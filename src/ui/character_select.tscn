@@ -1,0 +1,79 @@
+[gd_scene format=3 uid="uid://shrwmnrfr7em"]
+
+[ext_resource type="Script" uid="uid://t0p70jsmthne" path="res://src/ui/CharacterSelect.cs" id="1_p3g3s"]
+
+[node name="CharacterSelect" type="Control" unique_id=1687275278]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_p3g3s")
+
+[node name="HSplit" type="HSplitContainer" parent="." unique_id=38328081]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Left" type="VBoxContainer" parent="HSplit" unique_id=476650161]
+layout_mode = 2
+
+[node name="CharactersLabel" type="Label" parent="HSplit/Left" unique_id=889047068]
+layout_mode = 2
+text = "Characters"
+
+[node name="Scroll" type="ScrollContainer" parent="HSplit/Left" unique_id=984768964]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CharacterList" type="VBoxContainer" parent="HSplit/Left/Scroll" unique_id=1617200332]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NewCharacterButton" type="Button" parent="HSplit/Left" unique_id=29767034]
+layout_mode = 2
+text = "+ New Character"
+
+[node name="StartRunButton" type="Button" parent="HSplit/Left" unique_id=1021393237]
+layout_mode = 2
+text = "Start Run"
+
+[node name="Right" type="VBoxContainer" parent="HSplit" unique_id=1325313161]
+layout_mode = 2
+
+[node name="CreatePanel" type="Panel" parent="HSplit/Right" unique_id=392016356]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBox" type="VBoxContainer" parent="HSplit/Right/CreatePanel" unique_id=1415876869]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 8
+
+[node name="CreateLabel" type="Label" parent="HSplit/Right/CreatePanel/VBox" unique_id=152403764]
+layout_mode = 2
+text = "Create Character"
+
+[node name="NameInput" type="LineEdit" parent="HSplit/Right/CreatePanel/VBox" unique_id=821645220]
+layout_mode = 2
+placeholder_text = "Character name..."
+
+[node name="WarriorBtn" type="Button" parent="HSplit/Right/CreatePanel/VBox" unique_id=1998876563]
+layout_mode = 2
+text = "Warrior  — 150 HP  170 Speed  20 DMG"
+
+[node name="RogueBtn" type="Button" parent="HSplit/Right/CreatePanel/VBox" unique_id=1737602149]
+layout_mode = 2
+text = "Rogue  — 80 HP  260 Speed  15 DMG"
+
+[node name="MageBtn" type="Button" parent="HSplit/Right/CreatePanel/VBox" unique_id=47511467]
+layout_mode = 2
+text = "Mage  — 100 HP  200 Speed  35 DMG"
+
+[node name="ConfirmBtn" type="Button" parent="HSplit/Right/CreatePanel/VBox" unique_id=1438081010]
+layout_mode = 2
+text = "Create"
+
+[node name="CancelBtn" type="Button" parent="HSplit/Right/CreatePanel/VBox" unique_id=441765050]
+layout_mode = 2
+text = "Cancel"

@@ -1,3 +1,64 @@
-[gd_scene load_steps=1 format=3 uid="uid://dq3x7f2rkm8yp"]
+[gd_scene format=3 uid="uid://dq3x7f2rkm8yp"]
 
-[node name="Main" type="Node"]
+[ext_resource type="PackedScene" uid="uid://b2jv4d1ynue3q" path="res://src/player/player.tscn" id="1_0xm2m"]
+[ext_resource type="Script" uid="uid://ef12dpfsn6oj" path="res://src/player/PlayerController.cs" id="2_h2yge"]
+[ext_resource type="Script" uid="uid://i3jqkpg3o72m" path="res://src/CheckerBackground.cs" id="3_h2yge"]
+[ext_resource type="Script" uid="uid://bpey7ysst6hsh" path="res://src/enemies/EnemySpawner.cs" id="6_7mycd"]
+[ext_resource type="PackedScene" uid="uid://c000f6ave0x4q" path="res://src/hud/hud.tscn" id="6_272bh"]
+[ext_resource type="Script" uid="uid://dkr4akhu1o2kg" path="res://src/hud/Hud.cs" id="7_5vw27"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_rxibo"]
+radius = 16.0
+
+[node name="Main" type="Node" unique_id=1499980909]
+
+[node name="Player" type="CharacterBody2D" parent="." unique_id=1376160702 instance=ExtResource("1_0xm2m")]
+script = ExtResource("2_h2yge")
+
+[node name="CollisionShape" type="CollisionShape2D" parent="Player" unique_id=1143918174]
+shape = SubResource("CircleShape2D_rxibo")
+
+[node name="Sprite2D" type="Sprite2D" parent="Player" unique_id=2128842841]
+
+[node name="Background" type="Node2D" parent="." unique_id=1546617146]
+script = ExtResource("3_h2yge")
+
+[node name="Hud" type="CanvasLayer" parent="." unique_id=420008163 instance=ExtResource("6_272bh")]
+script = ExtResource("7_5vw27")
+
+[node name="Control" type="Control" parent="Hud" unique_id=590774434]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HealthBar" type="ProgressBar" parent="Hud/Control" unique_id=1919971692]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 220.0
+offset_bottom = 30.0
+value = 100.0
+show_percentage = false
+
+[node name="XpBar" type="ProgressBar" parent="Hud/Control" unique_id=1662962443]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 36.0
+offset_right = 220.0
+offset_bottom = 52.0
+max_value = 20.0
+show_percentage = false
+
+[node name="LevelLabel" type="Label" parent="Hud/Control" unique_id=1720263009]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 56.0
+offset_right = 220.0
+offset_bottom = 76.0
+text = "Level 1"
+
+[node name="EnemySpawner" type="Node" parent="." unique_id=1044822307]
+script = ExtResource("6_7mycd")

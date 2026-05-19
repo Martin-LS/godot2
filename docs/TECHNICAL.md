@@ -8,22 +8,51 @@ Godot 4.6, C#, Forward Plus renderer. Scene composition over inheritance — eac
 
 ---
 
-## Scene Layout
+## Scene Flow
 
 ```
+main_menu.tscn  →  character_select.tscn  →  main.tscn
+```
+
+`CharacterManager` (autoload) holds the selected character across scene transitions.
+
+## Scene Layout
+
+### `src/ui/main_menu.tscn`
+```
+MainMenu (Control)
+└── VBox (VBoxContainer)
+    ├── Title (Label)
+    └── PlayButton (Button)
+```
+
+### `src/ui/character_select.tscn`
+```
+CharacterSelect (Control)
+└── HSplit (HSplitContainer)
+    ├── Left (VBoxContainer)
+    │   ├── CharactersLabel (Label)
+    │   ├── Scroll (ScrollContainer)
+    │   │   └── CharacterList (VBoxContainer)  ← cards added at runtime
+    │   ├── NewCharacterButton (Button)
+    │   └── StartRunButton (Button)
+    └── Right (VBoxContainer)
+        └── CreatePanel (Panel)
+            └── VBox (VBoxContainer)
+                ├── CreateLabel, NameInput, WarriorBtn, RogueBtn, MageBtn
+                ├── ConfirmBtn, CancelBtn
+```
+
+### `main.tscn` (run scene)
+```
 Main (Node)
-├── World (Node2D)
-│   ├── TileMap
-│   ├── EnemySpawner (Node)
-│   ├── Enemies (Node)          ← spawned enemies parented here
-│   └── Pickups (Node)          ← XP gems, coins, health drops
-├── Player (CharacterBody2D)
-├── UI (CanvasLayer)
-│   ├── HUD                     ← health, XP bar, timer, coin count
-│   ├── UpgradePicker           ← level-up pause overlay
-│   ├── PauseMenu
-│   └── RunResults
-└── RunSession (Node)           ← tracks time, XP, level, run state
+├── Player (CharacterBody2D)   ← stats seeded from CharacterManager.SelectedCharacter
+│   ├── CollisionShape
+│   ├── Camera2D
+│   └── Weapon (Node)
+├── Background (Node2D)
+├── Hud (CanvasLayer)
+└── EnemySpawner (Node)
 ```
 
 > Provisional — update as scenes are created.
@@ -34,49 +63,59 @@ Main (Node)
 
 | System            | Responsibility                                               | Path                      |
 |-------------------|--------------------------------------------------------------|---------------------------|
+| CharacterManager  | Autoload — load/save characters, hold selected character     | `res://src/character/`    |
 | Player            | Input, movement, stat sheet, taking damage                   | `res://src/player/`       |
 | Weapon            | Auto-attack, targeting nearest enemy, firing on cooldown     | `res://src/weapon/`       |
 | EnemySpawner      | Time-based wave scaling, spawning enemy scenes               | `res://src/enemies/`      |
-| Enemy             | AI (chase/ranged), taking damage, death + drop spawning      | `res://src/enemies/`      |
-| Pickup            | XP gems, coins, health — auto-collected on contact           | `res://src/pickups/`      |
+| Enemy             | AI (chase), taking damage, death + XP gem spawning           | `res://src/enemies/`      |
+| XpGem             | XP pickup — auto-collected on contact                        | `res://src/xp/`           |
+| Hud               | Health bar, XP bar, level label — reacts to player signals   | `res://src/hud/`          |
 | RunSession        | Tracks elapsed time, XP, current level, run state           | `res://src/run/`          |
 | UpgradePicker     | Pause game, present N choices, apply selected upgrade        | `res://src/ui/`           |
-| SaveManager       | Read/write persistent save file (meta layer)                 | `res://src/save/`         |
-| MetaProgression   | Gear slots, permanent upgrades, unlocks, coin bank           | `res://src/meta/`         |
+| MetaProgression   | Per-character permanent upgrades, coin bank                  | `res://src/meta/`         |
 
 ---
 
 ## Data / Resource Types
 
-Godot `Resource` subclasses used as data containers (no logic).
-
-| Resource            | Fields                                                        |
-|---------------------|---------------------------------------------------------------|
-| `CharacterData`     | Name, base stats, starting weapon reference, unlock condition |
-| `WeaponData`        | Name, base damage, cooldown, upgrade path (array of `WeaponUpgradeData`) |
-| `WeaponUpgradeData` | Damage delta, cooldown delta, new behaviour flags            |
-| `GearData`          | Name, slot (Weapon/Armour/Accessory), stat modifiers, ability |
-| `UpgradeOptionData` | Display name, description, effect type + value               |
-| `EnemyData`         | HP, speed, damage, XP value, drop table weights              |
+| Class               | Kind        | Fields                                                         |
+|---------------------|-------------|----------------------------------------------------------------|
+| `CharacterData`     | Plain C#    | Id, Name, Type (enum), RunsCompleted, TotalXpEarned, BonusMaxHealth, BonusSpeed, BonusDamage |
+| `CharacterType`     | C# enum     | Warrior, Rogue, Mage                                           |
+| `WeaponData`        | Godot Resource | Name, base damage, cooldown, upgrade path                   |
+| `WeaponUpgradeData` | Godot Resource | Damage delta, cooldown delta, new behaviour flags           |
+| `UpgradeOptionData` | Godot Resource | Display name, description, effect type + value              |
+| `EnemyData`         | Godot Resource | HP, speed, damage, XP value, drop table weights             |
 
 ---
 
 ## Save Layers
 
-### Persistent Save (between runs)
-Serialised to disk. Contains:
-- Equipped gear (3 slots)
-- Permanent upgrade levels
-- Coin bank balance
-- Unlocked characters
-- Unlocked starting builds
+### Character Save (`user://characters.json`)
+Managed by `CharacterManager` autoload. Written on every create/delete/upgrade.
+```json
+{
+  "characters": [
+    {
+      "id": "<guid>",
+      "name": "Ironclad",
+      "type": "Warrior",
+      "runsCompleted": 3,
+      "totalXpEarned": 420,
+      "bonusMaxHealth": 10,
+      "bonusSpeed": 0,
+      "bonusDamage": 5
+    }
+  ]
+}
+```
 
 ### Run Session (in-memory only)
-Lives on the `RunSession` node. Discarded when the scene unloads.
+Lives on the `RunSession` node. Discarded when the scene unloads. On run end, results are flushed back to the character via `CharacterManager.RecordRunCompletion()`.
 - Elapsed time
 - Current XP + level
 - Upgrades chosen this run
-- Coins earned this run → flushed to coin bank on run end
+- Coins earned this run
 
 ---
 

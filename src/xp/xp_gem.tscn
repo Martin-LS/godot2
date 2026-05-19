@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://bodp3acwu4m88"]
+
+[ext_resource type="Script" uid="uid://des87mkw6kmxn" path="res://src/xp/XpGem.cs" id="1_je6xg"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_t8el6"]
+radius = 8.0
+
+[node name="XpGem" type="Area2D" unique_id=2080270995]
+script = ExtResource("1_je6xg")
+
+[node name="CollisionShape" type="CollisionShape2D" parent="." unique_id=650446377]
+shape = SubResource("CircleShape2D_t8el6")

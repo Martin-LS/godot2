@@ -25,13 +25,26 @@ A top-down auto-attack horde survival game in the style of Vampire Survivors. Th
 
 ---
 
-## Player
+## Characters
 
-| Attribute    | Value |
-|--------------|-------|
-| Health       | [TBD] |
-| Move speed   | [TBD] |
-| Starting weapon | Determined by chosen character / build |
+Every run requires a character. Characters are created by the player, persist between runs, and grow over time. A player may own multiple characters simultaneously and delete any they no longer want.
+
+### Character Archetypes
+
+| Archetype | Max HP | Speed | Base Damage | Playstyle         |
+|-----------|--------|-------|-------------|-------------------|
+| Warrior   | 150    | 170   | 20          | Tanky brawler     |
+| Rogue     | 80     | 260   | 15          | Fast and fragile  |
+| Mage      | 100    | 200   | 35          | Glass cannon      |
+
+### Character Lifecycle
+1. **Create** — player picks a name and archetype
+2. **Select** — choose a character from the roster before a run
+3. **Run** — character's stats seed the run; XP earned is recorded on the character
+4. **Grow** — completed runs increment the character's run count and total XP; permanent stat bonuses can be applied between runs
+5. **Delete** — player can permanently remove a character (irreversible)
+
+A run cannot start without a selected character.
 
 ### Controls
 | Input | Action         |
@@ -87,6 +100,17 @@ Difficulty scales with elapsed time — more enemies, faster spawns, tougher var
 
 ## Meta-Progression (Between Runs)
 
+### Character-Level Progression
+Each character independently accumulates permanent stat bonuses between runs:
+
+| Bonus           | Effect                      |
+|-----------------|-----------------------------|
+| +Max Health     | Raises HP ceiling for runs  |
+| +Speed          | Increases movement speed    |
+| +Damage         | Increases weapon damage     |
+
+Bonuses are funded by currency earned in runs and are permanent to the character.
+
 ### Gear Slots
 Equipment persisted between runs. Equipped before starting a run.
 
@@ -97,16 +121,11 @@ Equipment persisted between runs. Equipped before starting a run.
 | Accessory  | Passive ability or stat modifier |
 
 ### Permanent Upgrades
-Spend coins at a permanent upgrade shop. Examples:
+Spend coins at a permanent upgrade shop (per-character). Examples:
 - Max health increase
 - Move speed increase
 - Starting XP boost
 - Coin magnet range
-
-### Unlockables
-Earned through runs:
-- **Characters** — different base stats or unique passive
-- **Starting weapons / builds** — alternate weapon options to start a run with
 
 ---
 
@@ -120,11 +139,11 @@ Earned through runs:
 - [TBD] Minimap
 
 ### Menus
-- Main menu
-- Character / gear selection (pre-run)
+- **Main Menu** → title screen, Play button
+- **Character Select** → list characters, create new (name + archetype), delete, start run
 - Pause menu
 - Run results / rewards screen
-- Permanent upgrade shop
+- Per-character upgrade screen (between runs)
 
 ---
 

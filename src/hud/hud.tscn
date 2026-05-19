@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://c000f6ave0x4q"]
+
+[ext_resource type="Script" uid="uid://dkr4akhu1o2kg" path="res://src/hud/Hud.cs" id="1_t0re6"]
+
+[node name="Hud" type="CanvasLayer" unique_id=420008163]
+script = ExtResource("1_t0re6")
+
+[node name="Control" type="Control" parent="." unique_id=590774434]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="HealthBar" type="ProgressBar" parent="Control" unique_id=1919971692]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 220.0
+offset_bottom = 30.0
+value = 100.0
+show_percentage = false
+
+[node name="XpBar" type="ProgressBar" parent="Control" unique_id=1662962443]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 36.0
+offset_right = 220.0
+offset_bottom = 52.0
+max_value = 20.0
+show_percentage = false
+
+[node name="LevelLabel" type="Label" parent="Control" unique_id=1720263009]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 56.0
+offset_right = 220.0
+offset_bottom = 76.0
+text = "Level 1"
