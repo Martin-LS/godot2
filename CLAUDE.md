@@ -21,9 +21,11 @@ src/
   enemies/     EnemyController, EnemySpawner, enemy.tscn
   hud/         Hud.cs, hud.tscn
   player/      PlayerController, player.tscn
-  ui/          MainMenu, CharacterSelect + their .tscn files
+  run/         RunSession (run timer, win/lose detection)
+  ui/          MainMenu, CharacterSelect, UpgradePicker, RunEndOverlay, MetaUpgradesPanel + their .tscn files
   weapon/      WeaponController, Projectile, projectile.tscn
   xp/          XpGem, xp_gem.tscn
+  meta/        MetaUpgradeType (enum), CoinPickup, coin_pickup.tscn
 docs/
   GDD.md
   TECHNICAL.md

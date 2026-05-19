@@ -1,6 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 using System.Linq;
+using Godot1.Meta;
 
 namespace Godot1.Character;
 
@@ -35,12 +36,41 @@ public partial class CharacterManager : Node
     public void SelectCharacter(string id) =>
         SelectedCharacter = _characters.FirstOrDefault(c => c.Id == id);
 
-    public void RecordRunCompletion(int xpEarned)
+    public void RecordRunCompletion(int xpEarned, int coinsEarned)
     {
         if (SelectedCharacter == null) return;
         SelectedCharacter.RunsCompleted++;
         SelectedCharacter.TotalXpEarned += xpEarned;
+        SelectedCharacter.CoinBank += coinsEarned;
         Save();
+    }
+
+    public bool PurchaseUpgrade(string characterId, MetaUpgradeType type)
+    {
+        var c = _characters.FirstOrDefault(x => x.Id == characterId);
+        if (c == null) return false;
+
+        int level = type switch
+        {
+            MetaUpgradeType.MaxHealth => c.BonusMaxHealth / 10,
+            MetaUpgradeType.Speed     => (int)(c.BonusSpeed / 10f),
+            MetaUpgradeType.Damage    => (int)(c.BonusDamage / 2f),
+            _                         => 0
+        };
+
+        if (level >= 5) return false;
+        int cost = (level + 1) * 50;
+        if (c.CoinBank < cost) return false;
+
+        c.CoinBank -= cost;
+        switch (type)
+        {
+            case MetaUpgradeType.MaxHealth: c.BonusMaxHealth += 10;  break;
+            case MetaUpgradeType.Speed:     c.BonusSpeed     += 10f; break;
+            case MetaUpgradeType.Damage:    c.BonusDamage    += 2f;  break;
+        }
+        Save();
+        return true;
     }
 
     private void Save()
@@ -48,9 +78,18 @@ public partial class CharacterManager : Node
         var list = new Godot.Collections.Array();
         foreach (var c in _characters)
         {
-            var gd = new Godot.Collections.Dictionary();
-            foreach (var kv in c.ToDict())
-                gd[kv.Key] = Variant.From(kv.Value);
+            var gd = new Godot.Collections.Dictionary
+            {
+                ["id"]             = c.Id,
+                ["name"]           = c.Name,
+                ["type"]           = c.Type.ToString(),
+                ["runsCompleted"]  = c.RunsCompleted,
+                ["totalXpEarned"]  = c.TotalXpEarned,
+                ["coinBank"]       = c.CoinBank,
+                ["bonusMaxHealth"] = c.BonusMaxHealth,
+                ["bonusSpeed"]     = c.BonusSpeed,
+                ["bonusDamage"]    = c.BonusDamage,
+            };
             list.Add(gd);
         }
 

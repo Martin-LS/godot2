@@ -8,7 +8,9 @@ public partial class CharacterSelect : Control
 {
     private VBoxContainer _characterList = null!;
     private Button _startRunButton = null!;
+    private Button _upgradesButton = null!;
     private Panel _createPanel = null!;
+    private MetaUpgradesPanel _metaPanel = null!;
     private LineEdit _nameInput = null!;
     private CharacterType _pendingType = CharacterType.Warrior;
     private string? _selectedId;
@@ -17,18 +19,28 @@ public partial class CharacterSelect : Control
     {
         _characterList  = GetNode<VBoxContainer>("HSplit/Left/Scroll/CharacterList");
         _startRunButton = GetNode<Button>("HSplit/Left/StartRunButton");
+        _upgradesButton = GetNode<Button>("HSplit/Left/UpgradesButton");
         _createPanel    = GetNode<Panel>("HSplit/Right/CreatePanel");
+        _metaPanel      = GetNode<MetaUpgradesPanel>("HSplit/Right/MetaUpgradesPanel");
         _nameInput      = GetNode<LineEdit>("HSplit/Right/CreatePanel/VBox/NameInput");
 
-        GetNode<Button>("HSplit/Left/NewCharacterButton").Pressed += () => _createPanel.Visible = true;
+        GetNode<Button>("HSplit/Left/NewCharacterButton").Pressed += () =>
+        {
+            _metaPanel.Visible = false;
+            _createPanel.Visible = true;
+        };
+
         GetNode<Button>("HSplit/Right/CreatePanel/VBox/WarriorBtn").Pressed += () => _pendingType = CharacterType.Warrior;
         GetNode<Button>("HSplit/Right/CreatePanel/VBox/RogueBtn").Pressed   += () => _pendingType = CharacterType.Rogue;
         GetNode<Button>("HSplit/Right/CreatePanel/VBox/MageBtn").Pressed    += () => _pendingType = CharacterType.Mage;
         GetNode<Button>("HSplit/Right/CreatePanel/VBox/ConfirmBtn").Pressed += OnConfirmCreate;
         GetNode<Button>("HSplit/Right/CreatePanel/VBox/CancelBtn").Pressed  += () => _createPanel.Visible = false;
-        _startRunButton.Pressed += OnStartRun;
+
+        _startRunButton.Pressed  += OnStartRun;
+        _upgradesButton.Pressed  += OnUpgrades;
 
         _startRunButton.Disabled = true;
+        _upgradesButton.Disabled = true;
         _createPanel.Visible = false;
         RefreshList();
     }
@@ -44,6 +56,16 @@ public partial class CharacterSelect : Control
         RefreshList();
     }
 
+    private void OnUpgrades()
+    {
+        _createPanel.Visible = false;
+        var manager = GetNode<CharacterManager>("/root/CharacterManager");
+        var c = manager.GetAll().FirstOrDefault(x => x.Id == _selectedId);
+        if (c == null) return;
+        _metaPanel.Refresh(c);
+        _metaPanel.Visible = true;
+    }
+
     private void RefreshList()
     {
         foreach (Node child in _characterList.GetChildren())
@@ -53,8 +75,9 @@ public partial class CharacterSelect : Control
         foreach (var c in manager.GetAll())
             _characterList.AddChild(CreateCard(c, manager));
 
-        _startRunButton.Disabled = _selectedId == null ||
-            !manager.GetAll().Any(c => c.Id == _selectedId);
+        bool valid = _selectedId != null && manager.GetAll().Any(c => c.Id == _selectedId);
+        _startRunButton.Disabled  = !valid;
+        _upgradesButton.Disabled  = !valid;
     }
 
     private Control CreateCard(CharacterData c, CharacterManager manager)
@@ -72,6 +95,7 @@ public partial class CharacterSelect : Control
             _selectedId = c.Id;
             manager.SelectCharacter(c.Id);
             _startRunButton.Disabled = false;
+            _upgradesButton.Disabled = false;
         };
         hbox.AddChild(selectBtn);
 
@@ -83,6 +107,8 @@ public partial class CharacterSelect : Control
             {
                 _selectedId = null;
                 _startRunButton.Disabled = true;
+                _upgradesButton.Disabled = true;
+                _metaPanel.Visible = false;
             }
             RefreshList();
         };

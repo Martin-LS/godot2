@@ -35,12 +35,15 @@ CharacterSelect (Control)
     │   ├── Scroll (ScrollContainer)
     │   │   └── CharacterList (VBoxContainer)  ← cards added at runtime
     │   ├── NewCharacterButton (Button)
-    │   └── StartRunButton (Button)
+    │   ├── StartRunButton (Button)
+    │   └── UpgradesButton (Button)            ← enabled when character selected
     └── Right (VBoxContainer)
-        └── CreatePanel (Panel)
-            └── VBox (VBoxContainer)
-                ├── CreateLabel, NameInput, WarriorBtn, RogueBtn, MageBtn
-                ├── ConfirmBtn, CancelBtn
+        ├── CreatePanel (Panel)
+        │   └── VBox (VBoxContainer)
+        │       ├── CreateLabel, NameInput, WarriorBtn, RogueBtn, MageBtn
+        │       └── ConfirmBtn, CancelBtn
+        └── MetaUpgradesPanel (Panel)          ← shown on UpgradesButton press
+            └── VBox: TitleLabel, CoinLabel, UpgradesVBox (rows built at runtime), CloseButton
 ```
 
 ### `main.tscn` (run scene)
@@ -52,7 +55,10 @@ Main (Node)
 │   └── Weapon (Node)
 ├── Background (Node2D)
 ├── Hud (CanvasLayer)
-└── EnemySpawner (Node)
+├── EnemySpawner (Node)
+├── UpgradePicker (CanvasLayer)  ← shown on LeveledUp; pauses tree
+├── RunSession (Node)            ← tracks elapsed time; emits RunEnded(won, level, elapsed)
+└── RunEndOverlay (CanvasLayer)  ← shown on RunEnded; returns to main menu
 ```
 
 > Provisional — update as scenes are created.
@@ -61,18 +67,20 @@ Main (Node)
 
 ## Core Systems
 
-| System            | Responsibility                                               | Path                      |
-|-------------------|--------------------------------------------------------------|---------------------------|
-| CharacterManager  | Autoload — load/save characters, hold selected character     | `res://src/character/`    |
-| Player            | Input, movement, stat sheet, taking damage                   | `res://src/player/`       |
-| Weapon            | Auto-attack, targeting nearest enemy, firing on cooldown     | `res://src/weapon/`       |
-| EnemySpawner      | Time-based wave scaling, spawning enemy scenes               | `res://src/enemies/`      |
-| Enemy             | AI (chase), taking damage, death + XP gem spawning           | `res://src/enemies/`      |
-| XpGem             | XP pickup — auto-collected on contact                        | `res://src/xp/`           |
-| Hud               | Health bar, XP bar, level label — reacts to player signals   | `res://src/hud/`          |
-| RunSession        | Tracks elapsed time, XP, current level, run state           | `res://src/run/`          |
-| UpgradePicker     | Pause game, present N choices, apply selected upgrade        | `res://src/ui/`           |
-| MetaProgression   | Per-character permanent upgrades, coin bank                  | `res://src/meta/`         |
+| System            | Responsibility                                               | Path                      | Status |
+|-------------------|--------------------------------------------------------------|---------------------------|--------|
+| CharacterManager  | Autoload — load/save characters, hold selected character     | `res://src/character/`    | ✅ done |
+| Player            | Input, movement, stat sheet, taking damage                   | `res://src/player/`       | ✅ done |
+| Weapon            | Auto-attack, targeting nearest enemy, firing on cooldown     | `res://src/weapon/`       | ✅ done |
+| EnemySpawner      | Time-based wave scaling, spawning enemy scenes               | `res://src/enemies/`      | ✅ done |
+| Enemy             | AI (chase), taking damage, death + XP gem spawning           | `res://src/enemies/`      | ✅ done |
+| XpGem             | XP pickup — auto-collected on contact                        | `res://src/xp/`           | ✅ done |
+| Hud               | Health bar, XP bar, level label — reacts to player signals   | `res://src/hud/`          | ✅ done |
+| RunSession        | Run timer, win/lose detection, emits RunEnded signal         | `res://src/run/`          | ✅ done |
+| UpgradePicker     | Pause game, present 3 random choices, apply upgrade          | `res://src/ui/`           | ✅ done |
+| RunEndOverlay     | Show win/die results, flush run to character, return to menu | `res://src/ui/`           | ✅ done |
+| CoinPickup        | Coin drop (25% on enemy death) — reports to RunSession       | `res://src/meta/`         | ✅ done |
+| MetaProgression   | Per-character coin bank + permanent upgrades (HP/Speed/DMG)  | `res://src/meta/`, `src/ui/` | ✅ done |
 
 ---
 
@@ -80,7 +88,7 @@ Main (Node)
 
 | Class               | Kind        | Fields                                                         |
 |---------------------|-------------|----------------------------------------------------------------|
-| `CharacterData`     | Plain C#    | Id, Name, Type (enum), RunsCompleted, TotalXpEarned, BonusMaxHealth, BonusSpeed, BonusDamage |
+| `CharacterData`     | Plain C#    | Id, Name, Type (enum), RunsCompleted, TotalXpEarned, CoinBank, BonusMaxHealth, BonusSpeed, BonusDamage |
 | `CharacterType`     | C# enum     | Warrior, Rogue, Mage                                           |
 | `WeaponData`        | Godot Resource | Name, base damage, cooldown, upgrade path                   |
 | `WeaponUpgradeData` | Godot Resource | Damage delta, cooldown delta, new behaviour flags           |
@@ -102,6 +110,7 @@ Managed by `CharacterManager` autoload. Written on every create/delete/upgrade.
       "type": "Warrior",
       "runsCompleted": 3,
       "totalXpEarned": 420,
+      "coinBank": 150,
       "bonusMaxHealth": 10,
       "bonusSpeed": 0,
       "bonusDamage": 5
@@ -116,6 +125,9 @@ Lives on the `RunSession` node. Discarded when the scene unloads. On run end, re
 - Current XP + level
 - Upgrades chosen this run
 - Coins earned this run
+
+### Future: Profile Envelope
+If multi-user slots or cloud saves are ever needed, evaluate wrapping save data under a profile envelope. `CharacterManager` is the only entry point — the refactor scope is bounded (1 constant, a handful of callers).
 
 ---
 
@@ -149,15 +161,14 @@ Final boss spawns when the run timer expires.
 
 ## Drop System
 
-Each enemy holds a weighted drop table from its `EnemyData`.
+Current implementation — drops are hardcoded in `EnemyController.Die()`:
 
-| Drop          | Default weight |
-|---------------|---------------|
-| Nothing       | High           |
-| XP gem (small)| Medium         |
-| XP gem (large)| Low            |
-| Coin          | Low            |
-| Health pickup | Very low       |
+| Drop    | Chance | Notes                                      |
+|---------|--------|--------------------------------------------|
+| XP gem  | 100%   | Always dropped; value = 5 XP              |
+| Coin    | 25%    | `CoinPickup` auto-collected by player; reports to `RunSession.AddCoin()` |
+
+> Planned: health pickups, large XP gems, weighted drop tables via `EnemyData` resource.
 
 ---
 
@@ -180,7 +191,7 @@ Systems communicate via signals only — no direct cross-system method calls.
 |-------------------------|----------------|----------------------------------|
 | `HealthChanged(int)`    | Player         | HUD, GameManager                 |
 | `PlayerDied`            | Player         | RunSession (end run)             |
-| `LeveledUp(int)`        | RunSession     | UpgradePicker (show choices)     |
+| `LeveledUp(int)`        | Player         | UpgradePicker (show choices)     |
 | `UpgradeChosen(data)`   | UpgradePicker  | Player, WeaponController         |
 | `EnemyDied(position)`   | Enemy          | DropSpawner, RunSession (XP)     |
 | `XpCollected(int)`      | Pickup         | RunSession                       |

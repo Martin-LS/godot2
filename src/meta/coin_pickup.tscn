@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://dcoinpick01"]
+
+[ext_resource type="Script" uid="uid://dcoinpksc01" path="res://src/meta/CoinPickup.cs" id="1_coin"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_coin"]
+radius = 6.0
+
+[node name="CoinPickup" type="Area2D"]
+script = ExtResource("1_coin")
+
+[node name="CollisionShape" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_coin")

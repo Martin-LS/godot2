@@ -1,12 +1,15 @@
 [gd_scene format=3 uid="uid://shrwmnrfr7em"]
 
 [ext_resource type="Script" uid="uid://t0p70jsmthne" path="res://src/ui/CharacterSelect.cs" id="1_p3g3s"]
+[ext_resource type="PackedScene" uid="uid://dmetaupnl01" path="res://src/ui/meta_upgrades_panel.tscn" id="2_meta"]
 
 [node name="CharacterSelect" type="Control" unique_id=1687275278]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_p3g3s")
 
 [node name="HSplit" type="HSplitContainer" parent="." unique_id=38328081]
@@ -36,6 +39,10 @@ text = "+ New Character"
 [node name="StartRunButton" type="Button" parent="HSplit/Left" unique_id=1021393237]
 layout_mode = 2
 text = "Start Run"
+
+[node name="UpgradesButton" type="Button" parent="HSplit/Left" unique_id=1122334455]
+layout_mode = 2
+text = "Upgrades"
 
 [node name="Right" type="VBoxContainer" parent="HSplit" unique_id=1325313161]
 layout_mode = 2
@@ -77,3 +84,5 @@ text = "Create"
 [node name="CancelBtn" type="Button" parent="HSplit/Right/CreatePanel/VBox" unique_id=441765050]
 layout_mode = 2
 text = "Cancel"
+
+[node name="MetaUpgradesPanel" parent="HSplit/Right" unique_id=9988776655 instance=ExtResource("2_meta")]

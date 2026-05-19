@@ -10,6 +10,8 @@ public class CharacterData
     public int RunsCompleted { get; set; } = 0;
     public int TotalXpEarned { get; set; } = 0;
 
+    public int CoinBank { get; set; } = 0;
+
     public int BonusMaxHealth { get; set; } = 0;
     public float BonusSpeed { get; set; } = 0f;
     public float BonusDamage { get; set; } = 0f;
@@ -33,6 +35,7 @@ public class CharacterData
         ["type"]           = Type.ToString(),
         ["runsCompleted"]  = RunsCompleted,
         ["totalXpEarned"]  = TotalXpEarned,
+        ["coinBank"]       = CoinBank,
         ["bonusMaxHealth"] = BonusMaxHealth,
         ["bonusSpeed"]     = BonusSpeed,
         ["bonusDamage"]    = BonusDamage,
@@ -45,6 +48,7 @@ public class CharacterData
         Type           = System.Enum.Parse<CharacterType>((string)d["type"]!),
         RunsCompleted  = System.Convert.ToInt32(d["runsCompleted"]),
         TotalXpEarned  = System.Convert.ToInt32(d["totalXpEarned"]),
+        CoinBank       = d.ContainsKey("coinBank") ? System.Convert.ToInt32(d["coinBank"]) : 0,
         BonusMaxHealth = System.Convert.ToInt32(d["bonusMaxHealth"]),
         BonusSpeed     = System.Convert.ToSingle(d["bonusSpeed"]),
         BonusDamage    = System.Convert.ToSingle(d["bonusDamage"]),

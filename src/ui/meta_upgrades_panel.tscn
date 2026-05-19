@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://dmetaupnl01"]
+
+[ext_resource type="Script" uid="uid://dmetascr01" path="res://src/ui/MetaUpgradesPanel.cs" id="1_meta"]
+
+[node name="MetaUpgradesPanel" type="Panel"]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("1_meta")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="VBox"]
+layout_mode = 2
+text = "Permanent Upgrades"
+theme_override_font_sizes/font_size = 20
+
+[node name="CoinLabel" type="Label" parent="VBox"]
+layout_mode = 2
+text = "Coins: 0"
+theme_override_font_sizes/font_size = 16
+
+[node name="UpgradesVBox" type="VBoxContainer" parent="VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="CloseButton" type="Button" parent="VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Close"

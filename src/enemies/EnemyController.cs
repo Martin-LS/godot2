@@ -7,6 +7,8 @@ public partial class EnemyController : CharacterBody2D
 {
     private static readonly PackedScene GemScene =
         GD.Load<PackedScene>("res://src/xp/xp_gem.tscn");
+    private static readonly PackedScene CoinScene =
+        GD.Load<PackedScene>("res://src/meta/coin_pickup.tscn");
 
     [Signal] public delegate void DiedEventHandler(Vector2 position);
 
@@ -63,6 +65,13 @@ public partial class EnemyController : CharacterBody2D
         var gem = GemScene.Instantiate<Xp.XpGem>();
         gem.GlobalPosition = GlobalPosition;
         GetParent().AddChild(gem);
+
+        if (GD.Randf() < 0.25f)
+        {
+            var coin = CoinScene.Instantiate<Meta.CoinPickup>();
+            coin.GlobalPosition = GlobalPosition;
+            GetParent().AddChild(coin);
+        }
 
         QueueFree();
     }

@@ -4,6 +4,9 @@
 [ext_resource type="Script" uid="uid://ef12dpfsn6oj" path="res://src/player/PlayerController.cs" id="2_h2yge"]
 [ext_resource type="Script" uid="uid://i3jqkpg3o72m" path="res://src/CheckerBackground.cs" id="3_h2yge"]
 [ext_resource type="Script" uid="uid://bpey7ysst6hsh" path="res://src/enemies/EnemySpawner.cs" id="6_7mycd"]
+[ext_resource type="PackedScene" uid="uid://b7safndmjkp4" path="res://src/ui/upgrade_picker.tscn" id="8_upkr1"]
+[ext_resource type="Script" uid="uid://drs7mknbpx3t" path="res://src/run/RunSession.cs" id="9_rsess"]
+[ext_resource type="PackedScene" uid="uid://drend0vrlay1" path="res://src/ui/run_end_overlay.tscn" id="10_rend"]
 [ext_resource type="PackedScene" uid="uid://c000f6ave0x4q" path="res://src/hud/hud.tscn" id="6_272bh"]
 [ext_resource type="Script" uid="uid://dkr4akhu1o2kg" path="res://src/hud/Hud.cs" id="7_5vw27"]
 
@@ -62,3 +65,10 @@ text = "Level 1"
 
 [node name="EnemySpawner" type="Node" parent="." unique_id=1044822307]
 script = ExtResource("6_7mycd")
+
+[node name="UpgradePicker" parent="." instance=ExtResource("8_upkr1")]
+
+[node name="RunSession" type="Node" parent="."]
+script = ExtResource("9_rsess")
+
+[node name="RunEndOverlay" parent="." instance=ExtResource("10_rend")]
