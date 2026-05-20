@@ -22,10 +22,11 @@ src/
   hud/         Hud.cs, hud.tscn
   player/      PlayerController, player.tscn
   run/         RunSession (run timer, win/lose detection)
-  ui/          MainMenu, CharacterSelect, UpgradePicker, RunEndOverlay, MetaUpgradesPanel + their .tscn files
+  ui/          MainMenu, CharacterSelect, CharacterScreen, RunEndOverlay, MetaUpgradesPanel, UpgradePicker (dormant) + their .tscn files
   weapon/      WeaponController, Projectile, projectile.tscn
   xp/          XpGem, xp_gem.tscn
   meta/        MetaUpgradeType (enum), CoinPickup, coin_pickup.tscn
+  health/      HealthPickup, health_pickup.tscn
 docs/
   GDD.md
   TECHNICAL.md
@@ -36,7 +37,7 @@ project.godot  Main scene: src/ui/main_menu.tscn
 ## Scene Flow
 
 ```
-src/ui/main_menu.tscn  →  src/ui/character_select.tscn  →  main.tscn
+src/ui/main_menu.tscn  →  src/ui/character_select.tscn  →  src/ui/character_screen.tscn  →  main.tscn
 ```
 
 `CharacterManager` autoload holds the selected character across transitions.

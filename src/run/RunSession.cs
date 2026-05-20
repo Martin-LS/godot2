@@ -5,11 +5,13 @@ namespace Godot1.Run;
 
 public partial class RunSession : Node
 {
-    [Export] public float RunDuration = 300f; // 5 minutes
+    [Export] public float RunDuration = 5f;
 
     [Signal] public delegate void RunEndedEventHandler(bool won, int levelReached, float elapsed);
+    [Signal] public delegate void CoinChangedEventHandler(int total);
 
     public int CoinsEarned { get; private set; }
+    public float ElapsedTime => _elapsed;
 
     private float _elapsed;
     private bool  _ended;
@@ -29,7 +31,11 @@ public partial class RunSession : Node
             EndRun(true);
     }
 
-    public void AddCoin(int amount) => CoinsEarned += amount;
+    public void AddCoin(int amount)
+    {
+        CoinsEarned += amount;
+        EmitSignal(SignalName.CoinChanged, CoinsEarned);
+    }
 
     private void EndRun(bool won)
     {

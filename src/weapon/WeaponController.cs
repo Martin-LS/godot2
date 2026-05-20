@@ -10,6 +10,7 @@ public partial class WeaponController : Node
     [Export] public float Damage = 20f;
 
     public void SetDamage(float d) => Damage = d;
+    public void AddDamage(float d) => Damage += d;
     [Export] public float Cooldown = 0.8f;
     [Export] public float Range = 400f;
 

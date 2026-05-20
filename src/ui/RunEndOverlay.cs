@@ -40,9 +40,9 @@ public partial class RunEndOverlay : CanvasLayer
         var manager = GetNode<Character.CharacterManager>("/root/CharacterManager");
         var player  = GetTree().GetFirstNodeInGroup("player") as Player.PlayerController;
         var session = GetParent().GetNodeOrNull<Run.RunSession>("RunSession");
-        manager.RecordRunCompletion(player?.Level * 10 ?? 0, session?.CoinsEarned ?? 0);
+        manager.RecordRunCompletion(player?.Level ?? 1, player?.CurrentXp ?? 0, session?.CoinsEarned ?? 0);
 
         GetTree().Paused = false;
-        GetTree().ChangeSceneToFile("res://src/ui/main_menu.tscn");
+        GetTree().ChangeSceneToFile("res://src/ui/character_screen.tscn");
     }
 }

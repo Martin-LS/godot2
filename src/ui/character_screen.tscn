@@ -1,0 +1,55 @@
+[gd_scene format=3 uid="uid://dcharscr001"]
+
+[ext_resource type="Script" uid="uid://ccharscreen1" path="res://src/ui/CharacterScreen.cs" id="1_chr01"]
+
+[node name="CharacterScreen" type="Control" unique_id=5551111001]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_chr01")
+
+[node name="VBox" type="VBoxContainer" parent="." unique_id=5551111002]
+layout_mode = 0
+offset_left = 326.0
+offset_top = 100.0
+offset_right = 826.0
+offset_bottom = 548.0
+theme_override_constants/separation = 16
+
+[node name="NameLabel" type="Label" parent="VBox" unique_id=5551111003]
+layout_mode = 2
+text = "Character Name"
+theme_override_font_sizes/font_size = 32
+
+[node name="TypeLabel" type="Label" parent="VBox" unique_id=5551111004]
+layout_mode = 2
+text = "Type"
+
+[node name="LevelLabel" type="Label" parent="VBox" unique_id=5551111005]
+layout_mode = 2
+text = "Level 1   XP: 0"
+
+[node name="StatsLabel" type="Label" parent="VBox" unique_id=5551111006]
+layout_mode = 2
+text = "Stats"
+
+[node name="Spacer" type="Control" parent="VBox" unique_id=5551111007]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Buttons" type="HBoxContainer" parent="VBox" unique_id=5551111008]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="BackButton" type="Button" parent="VBox/Buttons" unique_id=5551111009]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Back"
+
+[node name="StartRunButton" type="Button" parent="VBox/Buttons" unique_id=5551111010]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Start Run"

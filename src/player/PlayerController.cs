@@ -24,13 +24,28 @@ public partial class PlayerController : CharacterBody2D
     {
         var manager = GetNodeOrNull<Character.CharacterManager>("/root/CharacterManager");
         Character.CharacterType type = Character.CharacterType.Warrior;
+
         if (manager?.SelectedCharacter != null)
         {
-            var (hp, spd, dmg) = manager.SelectedCharacter.BaseStats();
+            var c = manager.SelectedCharacter;
+            var (hp, spd, dmg) = c.BaseStats();
+
             MaxHealth = hp;
-            Speed = spd;
-            type = manager.SelectedCharacter.Type;
-            GetNodeOrNull<Weapon.WeaponController>("Weapon")?.SetDamage(dmg);
+            Speed     = spd;
+            type      = c.Type;
+
+            Level        = c.CurrentLevel;
+            CurrentXp    = c.CurrentXp;
+            XpToNextLevel = ComputeXpToNextLevel(Level);
+
+            int levelsAboveOne = Level - 1;
+            MaxHealth += levelsAboveOne * 5;
+            GetNodeOrNull<Weapon.WeaponController>("Weapon")?.SetDamage(dmg + levelsAboveOne);
+        }
+        else
+        {
+            XpToNextLevel = ComputeXpToNextLevel(Level);
+            GetNodeOrNull<Weapon.WeaponController>("Weapon")?.SetDamage(20f);
         }
 
         CurrentHealth = MaxHealth;
@@ -83,11 +98,22 @@ public partial class PlayerController : CharacterBody2D
         CurrentXp += amount;
         while (CurrentXp >= XpToNextLevel)
         {
-            CurrentXp -= XpToNextLevel;
+            CurrentXp     -= XpToNextLevel;
             Level++;
-            XpToNextLevel = (int)(XpToNextLevel * 1.4f);
+            XpToNextLevel  = ComputeXpToNextLevel(Level);
+            MaxHealth     += 5;
+            CurrentHealth  = Mathf.Min(CurrentHealth + 5, MaxHealth);
+            GetNodeOrNull<Weapon.WeaponController>("Weapon")?.AddDamage(1f);
             EmitSignal(SignalName.LeveledUp, Level);
         }
         EmitSignal(SignalName.XpChanged, CurrentXp, XpToNextLevel);
+    }
+
+    private static int ComputeXpToNextLevel(int level)
+    {
+        int xtn = 20;
+        for (int i = 1; i < level; i++)
+            xtn = (int)(xtn * 1.4f);
+        return xtn;
     }
 }

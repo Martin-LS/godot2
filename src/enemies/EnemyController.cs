@@ -9,6 +9,8 @@ public partial class EnemyController : CharacterBody2D
         GD.Load<PackedScene>("res://src/xp/xp_gem.tscn");
     private static readonly PackedScene CoinScene =
         GD.Load<PackedScene>("res://src/meta/coin_pickup.tscn");
+    private static readonly PackedScene HealthScene =
+        GD.Load<PackedScene>("res://src/health/health_pickup.tscn");
     private static readonly Texture2D EnemyTex =
         GD.Load<Texture2D>("res://assets/kenney_topdown_rpg/Topdown Shooter (Pixel)/Tilesheet/tilesheet_transparent.png");
 
@@ -18,6 +20,7 @@ public partial class EnemyController : CharacterBody2D
     [Export] public int MaxHealth = 30;
     [Export] public int ContactDamage = 10;
     [Export] public float DamageInterval = 1f;
+    [Export] public int SpriteRow = 6;
 
     private int _currentHealth;
     private CharacterBody2D? _player;
@@ -32,8 +35,8 @@ public partial class EnemyController : CharacterBody2D
         {
             Texture       = EnemyTex,
             RegionEnabled = true,
-            RegionRect    = new Rect2(476, 102, 16, 16),
-            Scale         = new Vector2(2f, 2f)
+            RegionRect    = new Rect2(476, SpriteRow * 17, 16, 16),
+            Scale         = new Vector2(4f, 4f)
         });
     }
 
@@ -74,6 +77,13 @@ public partial class EnemyController : CharacterBody2D
             var coin = CoinScene.Instantiate<Meta.CoinPickup>();
             coin.GlobalPosition = GlobalPosition;
             GetParent().AddChild(coin);
+        }
+
+        if (GD.Randf() < 0.10f)
+        {
+            var hp = HealthScene.Instantiate<Health.HealthPickup>();
+            hp.GlobalPosition = GlobalPosition;
+            GetParent().AddChild(hp);
         }
 
         QueueFree();

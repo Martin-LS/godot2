@@ -36,12 +36,13 @@ public partial class CharacterManager : Node
     public void SelectCharacter(string id) =>
         SelectedCharacter = _characters.FirstOrDefault(c => c.Id == id);
 
-    public void RecordRunCompletion(int xpEarned, int coinsEarned)
+    public void RecordRunCompletion(int finalLevel, int finalXp, int coinsEarned)
     {
         if (SelectedCharacter == null) return;
         SelectedCharacter.RunsCompleted++;
-        SelectedCharacter.TotalXpEarned += xpEarned;
-        SelectedCharacter.CoinBank += coinsEarned;
+        SelectedCharacter.CurrentLevel = finalLevel;
+        SelectedCharacter.CurrentXp    = finalXp;
+        SelectedCharacter.CoinBank    += coinsEarned;
         Save();
     }
 
@@ -84,7 +85,8 @@ public partial class CharacterManager : Node
                 ["name"]           = c.Name,
                 ["type"]           = c.Type.ToString(),
                 ["runsCompleted"]  = c.RunsCompleted,
-                ["totalXpEarned"]  = c.TotalXpEarned,
+                ["currentLevel"]   = c.CurrentLevel,
+                ["currentXp"]      = c.CurrentXp,
                 ["coinBank"]       = c.CoinBank,
                 ["bonusMaxHealth"] = c.BonusMaxHealth,
                 ["bonusSpeed"]     = c.BonusSpeed,

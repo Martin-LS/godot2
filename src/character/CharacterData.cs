@@ -8,7 +8,9 @@ public class CharacterData
     public string Name { get; set; } = "";
     public CharacterType Type { get; set; } = CharacterType.Warrior;
     public int RunsCompleted { get; set; } = 0;
-    public int TotalXpEarned { get; set; } = 0;
+
+    public int CurrentLevel { get; set; } = 1;
+    public int CurrentXp { get; set; } = 0;
 
     public int CoinBank { get; set; } = 0;
 
@@ -34,7 +36,8 @@ public class CharacterData
         ["name"]           = Name,
         ["type"]           = Type.ToString(),
         ["runsCompleted"]  = RunsCompleted,
-        ["totalXpEarned"]  = TotalXpEarned,
+        ["currentLevel"]   = CurrentLevel,
+        ["currentXp"]      = CurrentXp,
         ["coinBank"]       = CoinBank,
         ["bonusMaxHealth"] = BonusMaxHealth,
         ["bonusSpeed"]     = BonusSpeed,
@@ -47,8 +50,9 @@ public class CharacterData
         Name           = (string)d["name"]!,
         Type           = System.Enum.Parse<CharacterType>((string)d["type"]!),
         RunsCompleted  = System.Convert.ToInt32(d["runsCompleted"]),
-        TotalXpEarned  = System.Convert.ToInt32(d["totalXpEarned"]),
-        CoinBank       = d.ContainsKey("coinBank") ? System.Convert.ToInt32(d["coinBank"]) : 0,
+        CurrentLevel   = d.ContainsKey("currentLevel") ? System.Convert.ToInt32(d["currentLevel"]) : 1,
+        CurrentXp      = d.ContainsKey("currentXp")    ? System.Convert.ToInt32(d["currentXp"])    : 0,
+        CoinBank       = d.ContainsKey("coinBank")      ? System.Convert.ToInt32(d["coinBank"])      : 0,
         BonusMaxHealth = System.Convert.ToInt32(d["bonusMaxHealth"]),
         BonusSpeed     = System.Convert.ToSingle(d["bonusSpeed"]),
         BonusDamage    = System.Convert.ToSingle(d["bonusDamage"]),

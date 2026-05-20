@@ -36,3 +36,20 @@ offset_top = 56.0
 offset_right = 220.0
 offset_bottom = 76.0
 text = "Level 1"
+
+[node name="CoinLabel" type="Label" parent="Control" unique_id=3847261100]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 80.0
+offset_right = 220.0
+offset_bottom = 100.0
+text = "Coins: 0"
+
+[node name="TimerLabel" type="Label" parent="Control" unique_id=2031847562]
+layout_mode = 0
+offset_left = 476.0
+offset_top = 10.0
+offset_right = 676.0
+offset_bottom = 34.0
+horizontal_alignment = 1
+text = "0:00"

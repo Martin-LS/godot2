@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://dhealthpick01"]
+
+[ext_resource type="Script" uid="uid://chealthpickcs" path="res://src/health/HealthPickup.cs" id="1_hlth1"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hlth1"]
+radius = 8.0
+
+[node name="HealthPickup" type="Area2D" unique_id=7731820045]
+script = ExtResource("1_hlth1")
+
+[node name="CollisionShape" type="CollisionShape2D" parent="." unique_id=8820934156]
+shape = SubResource("CircleShape2D_hlth1")

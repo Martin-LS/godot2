@@ -4,7 +4,7 @@
 
 ## Overview
 
-A top-down auto-attack horde survival game in the style of Vampire Survivors. The player survives escalating waves of enemies for a fixed time limit, levelling up mid-run to evolve their weapon and gain passive abilities. Between runs, persistent gear and permanent upgrades carry over, giving a meta-progression layer that grows with playtime.
+A top-down auto-attack horde survival game. The player takes a persistent character into runs against escalating enemy waves. Killing enemies earns XP; levelling up permanently improves the character. The character's level, XP, and stats carry over between runs — each run makes the character meaningfully stronger. Between runs, coins earned fund permanent upgrades. The game is character-driven: you play to grow your character, not to build a single run's loadout.
 
 ---
 
@@ -40,8 +40,8 @@ Every run requires a character. Characters are created by the player, persist be
 ### Character Lifecycle
 1. **Create** — player picks a name and archetype
 2. **Select** — choose a character from the roster before a run
-3. **Run** — character's stats seed the run; XP earned is recorded on the character
-4. **Grow** — completed runs increment the character's run count and total XP; permanent stat bonuses can be applied between runs
+3. **Run** — character starts at their saved level; every new level gained during the run is permanent
+4. **Grow** — level, XP, and coin bank carry over between runs; permanent stat bonuses can be purchased between runs
 5. **Delete** — player can permanently remove a character (irreversible)
 
 A run cannot start without a selected character.
@@ -60,11 +60,9 @@ A run cannot start without a selected character.
 ### Level Up
 - Killing enemies drops **XP gems**
 - Collecting XP gems fills the XP bar
-- On level up: game pauses, player picks one of N upgrade choices
-- Upgrade types:
-  - Weapon upgrade (evolves weapon along its upgrade path)
-  - Passive stat boost (health, speed, pickup range, etc.)
-  - New passive ability [TBD]
+- On level up: automatic permanent bonuses are applied — **+5 Max Health, +1 Weapon Damage**
+- Level and XP within the current level persist when the run ends; the character picks up exactly where they left off
+- No popup or pause — levelling up is seamless
 
 ### Enemy Drops
 | Drop        | Effect                              | Drop chance  |
@@ -135,7 +133,6 @@ Spend coins at a permanent upgrade shop (per-character). Examples:
 - XP bar + current level
 - Coin counter (this run)
 - Elapsed time / countdown
-- Level-up upgrade picker (pause overlay)
 - [TBD] Minimap
 
 ### Menus
