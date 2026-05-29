@@ -19,13 +19,9 @@ public partial class PlayerController : CharacterBody3D
     public int CurrentXp { get; private set; }
     public int XpToNextLevel { get; private set; } = 20;
 
-    private static readonly Texture2D CharTex =
-        GD.Load<Texture2D>("res://assets/kenney_topdown_rpg/Roguelike Characters Pack/Spritesheet/roguelikeChar_transparent.png");
-
     public override void _Ready()
     {
         var manager = GetNodeOrNull<Character.CharacterManager>("/root/CharacterManager");
-        Character.CharacterType type = Character.CharacterType.Warrior;
 
         if (manager?.SelectedCharacter != null)
         {
@@ -34,7 +30,6 @@ public partial class PlayerController : CharacterBody3D
 
             MaxHealth = (int)_statBlock.Get(Stats.StatId.MaxHp);
             Speed     = _statBlock.Get(Stats.StatId.Speed);
-            type      = c.Type;
 
             Level         = c.CurrentLevel;
             CurrentXp     = c.CurrentXp;
@@ -53,27 +48,10 @@ public partial class PlayerController : CharacterBody3D
 
         CurrentHealth = MaxHealth;
         AddToGroup("player");
-        SetupSprite(type);
-    }
-
-    private void SetupSprite(Character.CharacterType type)
-    {
-        int row = type switch
+        AddChild(new MeshInstance3D
         {
-            Character.CharacterType.Warrior => 3,
-            Character.CharacterType.Rogue   => 0,
-            Character.CharacterType.Mage    => 5,
-            _                               => 0
-        };
-        AddChild(new Sprite3D
-        {
-            Texture       = CharTex,
-            RegionEnabled = true,
-            RegionRect    = new Rect2(0, row * 17, 16, 16),
-            PixelSize     = 2f,
-            Billboard     = BaseMaterial3D.BillboardModeEnum.Enabled,
-            Transparent   = true,
-            AlphaCut      = SpriteBase3D.AlphaCutMode.Discard,
+            Mesh     = new BoxMesh { Size = new Vector3(32f, 48f, 32f) },
+            Position = new Vector3(0f, 24f, 0f),
         });
     }
 

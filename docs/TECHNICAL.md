@@ -15,9 +15,10 @@ Godot 4.6, C#, Forward Plus renderer. **3D billboard** — game world is 3D (Cha
 | Decision         | Choice                        | Rationale                                                                 |
 |------------------|-------------------------------|---------------------------------------------------------------------------|
 | World dimensions | 3D, XZ movement plane, Y-up   | Standard for top-down 3D; gravity, navmesh, and lighting all assume Y-up  |
-| Camera type      | `Camera3D`, orthographic      | No perspective distortion — correct pairing for billboarded sprites        |
-| Camera angle     | Fixed ~45° isometric tilt     | Diablo-style; no player rotation                                           |
-| Character render | `Sprite3D` billboard          | Kenney 2D sprite sheets; billboard faces camera at all times               |
+| Camera type      | `Camera3D`, perspective       | Subtle depth like Diablo 4; fixed angle, no player rotation               |
+| Camera angle     | Fixed ~60° from horizontal    | Closer to overhead than classic 45° isometric; Diablo 4 reference         |
+| Character render | `MeshInstance3D` (geometry)   | Primitive meshes; visual appearance is GD's concern, opaque to all systems |
+| Lighting         | Single `DirectionalLight3D` parented to `Camera3D` | Global main light source, moves with camera; one light for now |
 | Projectiles      | Physical traveling objects    | Visible projectile travel is core to ARPG feel (not raycasts)              |
 | Target aspect ratio | 16:9, PC primary           | All UI scenes must use Godot anchor presets (no absolute offsets) — makes ratio changes free later. Mobile not in scope. |
 | Base viewport resolution | 1280×720               | Set in project.godot; Godot stretch mode scales to player's screen. |

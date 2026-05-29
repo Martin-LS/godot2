@@ -25,8 +25,10 @@ script = ExtResource("3_h2yge")
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_main")
 
-[node name="Camera3D" type="Camera3D" parent="."]
+[node name="Camera3D" type="Camera3D" parent="Player"]
 script = ExtResource("11_camf")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Player/Camera3D"]
 
 [node name="Hud" parent="." unique_id=420008163 instance=ExtResource("6_272bh")]
 

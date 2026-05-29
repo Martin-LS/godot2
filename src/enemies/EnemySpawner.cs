@@ -74,7 +74,6 @@ public partial class EnemySpawner : Node
         else
             data = EnemyRegistry.Tank;
 
-        enemy.SpriteRow      = data.SpriteRow;
         enemy.Speed          = data.BaseSpeed;
         enemy.MaxHealth      = data.BaseHealth;
         enemy.ContactDamage  = data.ContactDamage;

@@ -11,16 +11,12 @@ public partial class EnemyController : CharacterBody3D
         GD.Load<PackedScene>("res://src/meta/coin_pickup.tscn");
     private static readonly PackedScene HealthScene =
         GD.Load<PackedScene>("res://src/health/health_pickup.tscn");
-    private static readonly Texture2D EnemyTex =
-        GD.Load<Texture2D>("res://assets/kenney_topdown_rpg/Topdown Shooter (Pixel)/Tilesheet/tilesheet_transparent.png");
-
     [Signal] public delegate void DiedEventHandler(Vector3 position);
 
     [Export] public float Speed = 160f;
     [Export] public int MaxHealth = 1;
     [Export] public int ContactDamage = 10;
     [Export] public float DamageInterval = 1f;
-    [Export] public int SpriteRow = 6;
     public int MapLevel = 1;
 
     private int _currentHealth;
@@ -32,15 +28,10 @@ public partial class EnemyController : CharacterBody3D
         _currentHealth = MaxHealth;
         _player = GetTree().GetFirstNodeInGroup("player") as CharacterBody3D;
         AddToGroup("enemies");
-        AddChild(new Sprite3D
+        AddChild(new MeshInstance3D
         {
-            Texture       = EnemyTex,
-            RegionEnabled = true,
-            RegionRect    = new Rect2(476, SpriteRow * 17, 16, 16),
-            PixelSize     = 2f,
-            Billboard     = BaseMaterial3D.BillboardModeEnum.Enabled,
-            Transparent   = true,
-            AlphaCut      = SpriteBase3D.AlphaCutMode.Discard,
+            Mesh     = new BoxMesh { Size = new Vector3(28f, 28f, 28f) },
+            Position = new Vector3(0f, 14f, 0f),
         });
     }
 
