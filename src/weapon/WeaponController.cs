@@ -35,9 +35,9 @@ public partial class WeaponController : Node
         var direction = new Vector3(diff.X, 0f, diff.Z).Normalized();
 
         var projectile = ProjectileScene.Instantiate<Projectile>();
-        projectile.GlobalPosition = origin;
         projectile.Initialize(direction, Damage);
         GetTree().Root.AddChild(projectile);
+        projectile.GlobalPosition = origin;
     }
 
     private Enemies.EnemyController? FindNearestEnemy()

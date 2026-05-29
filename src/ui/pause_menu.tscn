@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://dpausemenu01"]
+
+[ext_resource type="Script" path="res://src/ui/PauseMenu.cs" id="1_pause"]
+
+[node name="PauseMenu" type="CanvasLayer"]
+process_mode = 3
+script = ExtResource("1_pause")
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_right = 200.0
+offset_top = -80.0
+offset_bottom = 80.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ResumeButton" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+text = "Resume"
+
+[node name="HBox" type="HBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="EndRunButton" type="Button" parent="Panel/VBox/HBox"]
+layout_mode = 2
+text = "End Run"
+
+[node name="WarningLabel" type="Label" parent="Panel/VBox/HBox"]
+layout_mode = 2
+text = "All progress from this run will be lost."

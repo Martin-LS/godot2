@@ -18,7 +18,7 @@ void vertex() {
 }
 
 void fragment() {
-    vec2 tile = floor(world_pos.xz / 64.0);
+    vec2 tile = floor(world_pos.xz / 16.0);
     float c = mod(tile.x + tile.y, 2.0);
     ALBEDO = mix(vec3(0.18, 0.18, 0.18), vec3(0.28, 0.28, 0.28), c);
 }

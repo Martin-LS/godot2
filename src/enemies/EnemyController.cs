@@ -77,21 +77,21 @@ public partial class EnemyController : CharacterBody3D
             pc.CollectXp(MapLevel);
 
         var gem = GemScene.Instantiate<Xp.XpGem>();
-        gem.GlobalPosition = GlobalPosition;
         GetParent().AddChild(gem);
+        gem.GlobalPosition = GlobalPosition;
 
         if (GD.Randf() < 0.25f)
         {
             var coin = CoinScene.Instantiate<Meta.CoinPickup>();
-            coin.GlobalPosition = GlobalPosition;
             GetParent().AddChild(coin);
+            coin.GlobalPosition = GlobalPosition;
         }
 
         if (GD.Randf() < 0.10f)
         {
             var hp = HealthScene.Instantiate<Health.HealthPickup>();
-            hp.GlobalPosition = GlobalPosition;
             GetParent().AddChild(hp);
+            hp.GlobalPosition = GlobalPosition;
         }
 
         if (GD.Randf() < 0.20f)

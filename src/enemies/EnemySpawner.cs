@@ -47,7 +47,6 @@ public partial class EnemySpawner : Node
 
         float minutes = _elapsed / 60f;
         var enemy = EnemyScene.Instantiate<EnemyController>();
-        enemy.GlobalPosition = RandomRingPosition();
 
         ApplyType(enemy, minutes);
 
@@ -56,6 +55,7 @@ public partial class EnemySpawner : Node
         enemy.MapLevel   = _runSession?.MapLevel ?? 1;
 
         GetParent().AddChild(enemy);
+        enemy.GlobalPosition = RandomRingPosition();
     }
 
     private static void ApplyType(EnemyController enemy, float minutes)

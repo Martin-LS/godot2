@@ -216,7 +216,10 @@ Crafting materials are tiered — common through exotic. Each tier drops at a di
   - **Skills tab** — visible, empty (reserved for future skill tree system)
   - All three tabs are always visible; empty tabs are not locked or greyed out
 - Run results overlay → shown at run end; return button goes back to character screen
-- [TBD] Pause menu
+- **Pause menu** — ESC during a run; second ESC or Resume button closes it; run is paused while open
+  - **Resume** button — closes menu, run continues
+  - **End Run** button — exits immediately to character screen; all progress from this run is discarded (level, XP, coins, crafting materials). Warning text alongside: *"All progress from this run will be lost."*
+  - No confirmation step — warning text is the friction
 
 ---
 
