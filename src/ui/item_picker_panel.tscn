@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://ditempicker01"]
 
 [ext_resource type="Script" path="res://src/ui/ItemPickerPanel.cs" id="1_itempicker"]
-[ext_resource type="Theme" path="res://src/ui/game_theme.tres" id="2_theme"]
 
 [node name="ItemPickerPanel" type="Control" unique_id=6661111001]
 layout_mode = 3
@@ -10,7 +9,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("2_theme")
 script = ExtResource("1_itempicker")
 
 [node name="Dim" type="ColorRect" parent="." unique_id=6661111002]

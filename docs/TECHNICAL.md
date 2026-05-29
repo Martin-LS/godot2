@@ -4,9 +4,7 @@
 
 ## Architecture Overview
 
-Godot 4.6, C#, Forward Plus renderer. **3D billboard** — game world is 3D (CharacterBody3D, XZ movement plane, Y-up); characters and enemies are rendered as `Sprite3D` billboard sprites that always face the camera. Camera is orthographic, fixed ~45° isometric tilt (Diablo-style), no player rotation. UI is 2D (`Control` / `CanvasLayer`) as standard in Godot — unaffected by the 3D world. Scene composition over inheritance — each system is a self-contained scene or node that communicates via signals. Two save layers: a persistent save file (meta) and an in-memory run session (discarded on run end).
-
-> **Note:** The project is currently 2D and is being migrated to this 3D architecture. Scene layouts below reflect the target state.
+Godot 4.6, C#, Forward Plus renderer. Game world is 3D (CharacterBody3D, XZ movement plane, Y-up); characters and enemies are rendered as `MeshInstance3D` primitive geometry. Camera is perspective, fixed ~60° from horizontal (Diablo 4-style), no player rotation, parented to player. UI is 2D (`Control` / `CanvasLayer`) as standard in Godot — unaffected by the 3D world. Scene composition over inheritance — each system is a self-contained scene or node that communicates via signals. Two save layers: a persistent save file (meta) and an in-memory run session (discarded on run end).
 
 ---
 
@@ -23,6 +21,9 @@ Godot 4.6, C#, Forward Plus renderer. **3D billboard** — game world is 3D (Cha
 | Target aspect ratio | 16:9, PC primary           | All UI scenes must use Godot anchor presets (no absolute offsets) — makes ratio changes free later. Mobile not in scope. |
 | Base viewport resolution | 1280×720               | Set in project.godot; Godot stretch mode scales to player's screen. |
 | Stretch mode        | `canvas_items`                | Scales UI and world together; crisp at integer multiples of 720p.  |
+| UI theme            | Spacey (`res://addons/Themey/themes/spacey/spacey.tres`) | Free Themey pack; set as project-wide theme — all Control nodes inherit automatically. No per-scene theme overrides. |
+| Floor               | Procedural checkerboard (`CheckerBackground.cs`) | Two-tone grey, generated at runtime — no external assets. |
+| Pickup visuals      | Colored `BoxMesh` (10×10×10) | XP gem = green, coin = yellow, health = red. Opaque to all systems. |
 
 ---
 
@@ -114,15 +115,18 @@ ItemPickerPanel (Control, full-screen)
 ### `main.tscn` (run scene)
 ```
 Main (Node)
-├── Player (CharacterBody2D)   ← stats seeded from CharacterManager.SelectedCharacter
-│   ├── CollisionShape
-│   ├── Camera2D
+├── Player (CharacterBody3D)   ← stats seeded from CharacterManager.SelectedCharacter
+│   ├── CollisionShape3D
+│   ├── Camera3D               ← perspective, ~60°, parented to player (follows automatically)
+│   │   └── DirectionalLight3D ← global main light, moves with camera
 │   └── Weapon (Node)
-├── Background (Node2D)
+├── Background (Node3D)        ← procedural floor plane
+├── WorldEnvironment
 ├── Hud (CanvasLayer)          ← health bar, XP bar, level, coin counter, run timer
 ├── EnemySpawner (Node)
 ├── RunSession (Node)          ← tracks elapsed time; emits RunEnded(won, level, elapsed)
-└── RunEndOverlay (CanvasLayer)← shown on RunEnded; returns to character_screen.tscn
+├── RunEndOverlay (CanvasLayer)← shown on RunEnded; returns to character_screen.tscn
+└── PauseMenu (CanvasLayer)
 ```
 
 ---
@@ -164,7 +168,7 @@ Main (Node)
 | `WeaponData`        | Godot Resource | Name, base damage, cooldown, upgrade path                   |
 | `WeaponUpgradeData` | Godot Resource | Damage delta, cooldown delta, new behaviour flags           |
 | `UpgradeOptionData` | Godot Resource | Display name, description, effect type + value              |
-| `EnemyData`         | Godot Resource | HP, speed, damage, XP value, drop table weights             |
+| `EnemyData`         | C# record      | EnemyType (string), BaseSpeed, BaseHealth, ContactDamage, DamageInterval |
 
 ---
 
@@ -222,11 +226,11 @@ Time-driven, no fixed waves. `EnemySpawner` recalculates each spawn:
 - **Spawn position** — fixed-radius ring (350px) around the player; viewport-size-independent
 - **Enemy types** — unlocked by elapsed minutes, chosen randomly from the available pool:
 
-| Type     | Sprite row | Unlocks | Speed | HP | Damage |
-|----------|-----------|---------|-------|----|--------|
-| Standard | 6 (grey)  | 0:00    | 260   | 1  | 10     |
-| Runner   | 4 (purple)| 1:00    | 400   | 1  | 8      |
-| Tank     | 2 (orange)| 2:00    | 160   | 1  | 18     |
+| Type     | Unlocks | Speed | HP | Damage |
+|----------|---------|-------|----|--------|
+| Standard | 0:00    | 260   | 1  | 10     |
+| Runner   | 1:00    | 400   | 1  | 8      |
+| Tank     | 2:00    | 160   | 1  | 18     |
 
 All types receive a time-scaling bonus on top: `Speed += 10 * minutes`, `MaxHealth += 5 * (int)minutes`.
 
@@ -296,3 +300,5 @@ Systems communicate via signals only — no direct cross-system method calls.
 | Tool           | Purpose                               |
 |----------------|---------------------------------------|
 | Godot MCP Pro  | AI-assisted editor control via Claude |
+| Themey         | Free open-source Godot 4 UI theme pack — Spacey theme in use (`res://addons/Themey/`) |
+| Ravenmore Fantasy Icon Pack | Item slot icons (`res://assets/icons/items/`) — CC-BY 3.0, credit: ravenmore.itch.io |

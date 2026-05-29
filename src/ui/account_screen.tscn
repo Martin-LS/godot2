@@ -1,19 +1,7 @@
 [gd_scene format=3 uid="uid://acc_screen_v1"]
 
 [ext_resource type="Script" uid="uid://accscreen_cs1" path="res://src/ui/AccountScreen.cs" id="1_accscr"]
-[ext_resource type="Theme" path="res://src/ui/game_theme.tres" id="2_theme"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_left_panel"]
-bg_color = Color(0.15, 0.10, 0.06, 1)
-border_width_left = 0
-border_width_top = 0
-border_width_right = 1
-border_width_bottom = 0
-border_color = Color(0.52, 0.36, 0.14, 1)
-content_margin_left = 8.0
-content_margin_right = 8.0
-content_margin_top = 8.0
-content_margin_bottom = 8.0
 
 [node name="AccountScreen" type="Control" unique_id=2001000001]
 layout_mode = 3
@@ -22,15 +10,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("2_theme")
 script = ExtResource("1_accscr")
 
-[node name="Bg" type="ColorRect" parent="." unique_id=2001000053]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-color = Color(0.10, 0.07, 0.04, 1)
 
 [node name="VBox" type="VBoxContainer" parent="." unique_id=2001000002]
 layout_mode = 1
@@ -57,7 +38,6 @@ split_offset = 80
 [node name="LeftPanel" type="PanelContainer" parent="VBox/HSplit" unique_id=2001000005]
 layout_mode = 2
 custom_minimum_size = Vector2(280, 0)
-theme_override_styles/panel = SubResource("StyleBoxFlat_left_panel")
 
 [node name="LeftVBox" type="VBoxContainer" parent="VBox/HSplit/LeftPanel" unique_id=2001000051]
 layout_mode = 2

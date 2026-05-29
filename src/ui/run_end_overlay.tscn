@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://drend0vrlay1"]
 
 [ext_resource type="Script" uid="uid://cpqy4wgn8m6v" path="res://src/ui/RunEndOverlay.cs" id="1_rend"]
-[ext_resource type="Theme" path="res://src/ui/game_theme.tres" id="2_theme"]
 
 [node name="RunEndOverlay" type="CanvasLayer"]
 process_mode = 2
@@ -15,7 +14,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("2_theme")
 mouse_filter = 0
 
 [node name="Dim" type="ColorRect" parent="Overlay"]

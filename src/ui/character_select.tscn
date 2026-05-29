@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://shrwmnrfr7em"]
 
 [ext_resource type="Script" uid="uid://t0p70jsmthne" path="res://src/ui/CharacterSelect.cs" id="1_p3g3s"]
-[ext_resource type="Theme" path="res://src/ui/game_theme.tres" id="2_theme"]
 
 [node name="CharacterSelect" type="Control" unique_id=1687275278]
 layout_mode = 3
@@ -10,7 +9,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("2_theme")
 script = ExtResource("1_p3g3s")
 
 [node name="HSplit" type="HSplitContainer" parent="." unique_id=38328081]

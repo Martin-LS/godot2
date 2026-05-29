@@ -1,38 +1,15 @@
 [gd_scene format=3 uid="uid://wlq8we53kovr"]
 
 [ext_resource type="Script" uid="uid://dahjloinslw7w" path="res://src/ui/MainMenu.cs" id="1_qkuje"]
-[ext_resource type="Theme" path="res://src/ui/game_theme.tres" id="2_theme"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_menu_card"]
-bg_color = Color(0.15, 0.10, 0.06, 0.95)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.65, 0.45, 0.18, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 32.0
-content_margin_right = 32.0
-content_margin_top = 36.0
-content_margin_bottom = 32.0
 
 [node name="MainMenu" type="Control" unique_id=1242140883]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme = ExtResource("2_theme")
 script = ExtResource("1_qkuje")
 
-[node name="Bg" type="ColorRect" parent="." unique_id=1470907120]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-color = Color(0.1, 0.08, 0.06, 1)
 
 [node name="MenuCard" type="PanelContainer" parent="." unique_id=1470907140]
 layout_mode = 1
@@ -43,7 +20,6 @@ anchor_right = 0.5
 anchor_bottom = 0.5
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_menu_card")
 
 [node name="VBox" type="VBoxContainer" parent="MenuCard" unique_id=1470907130]
 layout_mode = 2

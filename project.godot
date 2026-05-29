@@ -32,9 +32,13 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
 
+[gui]
+
+theme/custom="res://addons/Themey/themes/spacey/spacey.tres"
+
 [rendering]
 
-environment/defaults/default_clear_color = Color(0.1, 0.08, 0.06, 1)
+environment/defaults/default_clear_color = Color(0.08, 0.08, 0.12, 1)
 
 [dotnet]
 
