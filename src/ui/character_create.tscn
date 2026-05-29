@@ -1,0 +1,64 @@
+[gd_scene format=3 uid="uid://char_create_v1"]
+
+[ext_resource type="Script" path="res://src/ui/CharacterCreate.cs" id="1_chrcr"]
+
+[node name="CharacterCreate" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_chrcr")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -200.0
+offset_right = 240.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="VBox"]
+layout_mode = 2
+text = "Create Character"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 28
+
+[node name="NameInput" type="LineEdit" parent="VBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+placeholder_text = "Character name..."
+
+[node name="WarriorBtn" type="Button" parent="VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Warrior  —  150 HP   170 Spd   20 DMG"
+
+[node name="RogueBtn" type="Button" parent="VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Rogue  —  80 HP   260 Spd   15 DMG"
+
+[node name="MageBtn" type="Button" parent="VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Mage  —  100 HP   200 Spd   35 DMG"
+
+[node name="ConfirmBtn" type="Button" parent="VBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+disabled = true
+text = "Create"
+
+[node name="CancelBtn" type="Button" parent="VBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "← Cancel"

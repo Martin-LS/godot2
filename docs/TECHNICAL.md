@@ -31,6 +31,8 @@ Godot 4.6, C#, Forward Plus renderer. Game world is 3D (CharacterBody3D, XZ move
 
 ```
 main_menu.tscn  →  character_select.tscn  →  character_screen.tscn  →  main.tscn
+                          ↕
+                 character_create.tscn
 ```
 
 `CharacterManager` (autoload) holds the selected character across scene transitions.
@@ -46,24 +48,29 @@ MainMenu (Control)
 ```
 
 ### `src/ui/character_select.tscn`
-Roster-only screen. No inventory shown here — player's only job is choosing who to play.
+Roster-only screen. Lists existing characters; "+ New Character" navigates to `character_create.tscn`.
 ```
 CharacterSelect (Control)
-└── HSplit (HSplitContainer)
-    ├── Left (VBoxContainer)
-    │   ├── CharactersLabel (Label)
-    │   ├── Scroll (ScrollContainer, expand)
-    │   │   └── CharacterList (VBoxContainer) ← character cards added at runtime
-    │   ├── NewCharacterButton (Button)
-    │   └── BackButton (Button) ← "← Back to Menu" → main_menu.tscn
-    └── Right (VBoxContainer)
-        └── CreatePanel (Panel) ← shown when New clicked; hidden by default
-            └── VBox
-                ├── CreateLabel, NameInput (ConfirmBtn disabled until name entered)
-                ├── WarriorBtn, RogueBtn, MageBtn
-                ├── ConfirmBtn, CancelBtn
+└── VBox (VBoxContainer)
+    ├── CharactersLabel (Label)
+    ├── Scroll (ScrollContainer, expand)
+    │   └── CharacterList (VBoxContainer) ← character cards added at runtime
+    ├── NewCharacterButton (Button) → character_create.tscn
+    └── BackButton (Button) → main_menu.tscn
 ```
 On character selected: `CharacterManager.SelectCharacter(id)` → `character_screen.tscn`.
+
+### `src/ui/character_create.tscn`
+Dedicated character creation screen. Centred form; Create disabled until a name is entered.
+```
+CharacterCreate (Control)
+└── VBox (VBoxContainer, centred)
+    ├── TitleLabel (Label)
+    ├── NameInput (LineEdit) ← enables ConfirmBtn when non-empty
+    ├── WarriorBtn, RogueBtn, MageBtn (type selection)
+    ├── ConfirmBtn (Button) ← creates character → character_select.tscn
+    └── CancelBtn (Button) → character_select.tscn
+```
 
 ### `src/ui/character_screen.tscn`
 Full management hub for the selected character. Always has a character in context.
@@ -144,7 +151,8 @@ Main (Node)
 | Hud               | Health bar, XP bar, level, coin counter, run timer           | `res://src/hud/`          | ✅ done |
 | RunSession        | Run timer, win/lose detection, emits RunEnded signal         | `res://src/run/`          | ✅ done |
 | UpgradePicker     | (removed from scene — code kept dormant)                     | `res://src/ui/`           | ❌ removed |
-| CharacterSelect   | Roster screen: list, create, delete characters; no inventory | `res://src/ui/`           | ✅ done |
+| CharacterSelect   | Roster screen: list and delete characters; no inventory      | `res://src/ui/`           | ✅ done |
+| CharacterCreate   | Dedicated create screen: name input + archetype choice       | `res://src/ui/`           | ✅ done |
 | CharacterScreen   | Per-character hub: inventory, gear slots, tabs, Start Run    | `res://src/ui/`           | ✅ done |
 | ItemPickerPanel   | Modal picker for equipping/unequipping gear by slot          | `res://src/ui/`           | ✅ done |
 | ItemRegistry      | Static catalogue of all `ItemData` records (9 starter items) | `res://src/items/`        | ✅ done |

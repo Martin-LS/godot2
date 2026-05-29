@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_p3g3s")
 
-[node name="HSplit" type="HSplitContainer" parent="." unique_id=38328081]
+[node name="VBox" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,85 +20,28 @@ offset_left = 24.0
 offset_top = 24.0
 offset_right = -24.0
 offset_bottom = -24.0
-split_offset = 100
-
-[node name="Left" type="VBoxContainer" parent="HSplit" unique_id=476650161]
-layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="CharactersLabel" type="Label" parent="HSplit/Left" unique_id=889047068]
+[node name="CharactersLabel" type="Label" parent="VBox"]
 layout_mode = 2
 text = "Characters"
 theme_override_font_sizes/font_size = 22
 
-[node name="Scroll" type="ScrollContainer" parent="HSplit/Left" unique_id=984768964]
+[node name="Scroll" type="ScrollContainer" parent="VBox"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="CharacterList" type="VBoxContainer" parent="HSplit/Left/Scroll" unique_id=1617200332]
+[node name="CharacterList" type="VBoxContainer" parent="VBox/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="NewCharacterButton" type="Button" parent="HSplit/Left" unique_id=29767034]
+[node name="NewCharacterButton" type="Button" parent="VBox"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "+ New Character"
 
-[node name="BackButton" type="Button" parent="HSplit/Left" unique_id=29767035]
+[node name="BackButton" type="Button" parent="VBox"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "← Back to Menu"
-
-[node name="Right" type="VBoxContainer" parent="HSplit" unique_id=1325313161]
-layout_mode = 2
-
-[node name="CreatePanel" type="Panel" parent="HSplit/Right" unique_id=392016356]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="VBox" type="VBoxContainer" parent="HSplit/Right/CreatePanel" unique_id=1415876869]
-layout_mode = 0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
-theme_override_constants/separation = 12
-
-[node name="CreateLabel" type="Label" parent="HSplit/Right/CreatePanel/VBox" unique_id=152403764]
-layout_mode = 2
-text = "Create Character"
-theme_override_font_sizes/font_size = 22
-
-[node name="NameInput" type="LineEdit" parent="HSplit/Right/CreatePanel/VBox" unique_id=821645220]
-custom_minimum_size = Vector2(0, 40)
-layout_mode = 2
-placeholder_text = "Character name..."
-
-[node name="WarriorBtn" type="Button" parent="HSplit/Right/CreatePanel/VBox" unique_id=1998876563]
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-text = "Warrior  —  150 HP   170 Spd   20 DMG"
-
-[node name="RogueBtn" type="Button" parent="HSplit/Right/CreatePanel/VBox" unique_id=1737602149]
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-text = "Rogue  —  80 HP   260 Spd   15 DMG"
-
-[node name="MageBtn" type="Button" parent="HSplit/Right/CreatePanel/VBox" unique_id=47511467]
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-text = "Mage  —  100 HP   200 Spd   35 DMG"
-
-[node name="ConfirmBtn" type="Button" parent="HSplit/Right/CreatePanel/VBox" unique_id=1438081010]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-disabled = true
-text = "Create"
-
-[node name="CancelBtn" type="Button" parent="HSplit/Right/CreatePanel/VBox" unique_id=441765050]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-text = "Cancel"

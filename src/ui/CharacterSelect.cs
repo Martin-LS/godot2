@@ -6,40 +6,17 @@ namespace Godot1.Ui;
 public partial class CharacterSelect : Control
 {
     private VBoxContainer _characterList = null!;
-    private Panel         _createPanel   = null!;
-    private LineEdit      _nameInput     = null!;
-    private CharacterType _pendingType   = CharacterType.Warrior;
 
     public override void _Ready()
     {
-        _characterList = GetNode<VBoxContainer>("HSplit/Left/Scroll/CharacterList");
-        _createPanel   = GetNode<Panel>("HSplit/Right/CreatePanel");
-        _nameInput     = GetNode<LineEdit>("HSplit/Right/CreatePanel/VBox/NameInput");
+        _characterList = GetNode<VBoxContainer>("VBox/Scroll/CharacterList");
 
-        var confirmBtn = GetNode<Button>("HSplit/Right/CreatePanel/VBox/ConfirmBtn");
-        _nameInput.TextChanged += text => confirmBtn.Disabled = text.Trim().Length == 0;
+        GetNode<Button>("VBox/NewCharacterButton").Pressed += () =>
+            GetTree().ChangeSceneToFile("res://src/ui/character_create.tscn");
 
-        GetNode<Button>("HSplit/Left/NewCharacterButton").Pressed += () => _createPanel.Visible = true;
-        GetNode<Button>("HSplit/Left/BackButton").Pressed         += () => GetTree().ChangeSceneToFile("res://src/ui/main_menu.tscn");
+        GetNode<Button>("VBox/BackButton").Pressed += () =>
+            GetTree().ChangeSceneToFile("res://src/ui/main_menu.tscn");
 
-        GetNode<Button>("HSplit/Right/CreatePanel/VBox/WarriorBtn").Pressed += () => _pendingType = CharacterType.Warrior;
-        GetNode<Button>("HSplit/Right/CreatePanel/VBox/RogueBtn").Pressed   += () => _pendingType = CharacterType.Rogue;
-        GetNode<Button>("HSplit/Right/CreatePanel/VBox/MageBtn").Pressed    += () => _pendingType = CharacterType.Mage;
-        confirmBtn.Pressed                                                  += OnConfirmCreate;
-        GetNode<Button>("HSplit/Right/CreatePanel/VBox/CancelBtn").Pressed  += () => _createPanel.Visible = false;
-
-        _createPanel.Visible = false;
-        RefreshList();
-    }
-
-    private void OnConfirmCreate()
-    {
-        var name = _nameInput.Text.Trim();
-        if (name.Length == 0) return;
-
-        GetNode<CharacterManager>("/root/CharacterManager").Create(name, _pendingType);
-        _nameInput.Text = "";
-        _createPanel.Visible = false;
         RefreshList();
     }
 
