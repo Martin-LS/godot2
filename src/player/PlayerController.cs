@@ -50,7 +50,7 @@ public partial class PlayerController : CharacterBody3D
         CurrentHealth = MaxHealth;
         AddToGroup("player");
         _model = GD.Load<PackedScene>("res://assets/models/characters/Knight.glb").Instantiate<Node3D>();
-        _model.Scale = new Vector3(24f, 24f, 24f);
+        _model.Scale = new Vector3(12f, 12f, 12f);
         AddChild(_model);
     }
 

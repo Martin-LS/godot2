@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://drs7mknbpx3t" path="res://src/run/RunSession.cs" id="9_rsess"]
 [ext_resource type="PackedScene" path="res://src/ui/run_end_overlay.tscn" id="10_rend"]
 [ext_resource type="PackedScene" path="res://src/ui/pause_menu.tscn" id="12_pause"]
+[ext_resource type="PackedScene" path="res://src/dev/dev_overlay.tscn" id="13_devov"]
 [ext_resource type="Script" path="res://src/CameraFollow.cs" id="11_camf"]
 
 [sub_resource type="Environment" id="Environment_main"]
@@ -42,3 +43,5 @@ RunDuration = 300.0
 [node name="RunEndOverlay" parent="." unique_id=1662657642 instance=ExtResource("10_rend")]
 
 [node name="PauseMenu" parent="." instance=ExtResource("12_pause")]
+
+[node name="DevOverlay" parent="." instance=ExtResource("13_devov")]

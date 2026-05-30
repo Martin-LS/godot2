@@ -29,7 +29,7 @@ public partial class EnemyController : CharacterBody3D
         _player = GetTree().GetFirstNodeInGroup("player") as CharacterBody3D;
         AddToGroup("enemies");
         var enemyModel = GD.Load<PackedScene>("res://assets/models/enemies/Skeleton_Minion.glb").Instantiate<Node3D>();
-        enemyModel.Scale = new Vector3(20f, 20f, 20f);
+        enemyModel.Scale = new Vector3(10f, 10f, 10f);
         AddChild(enemyModel);
     }
 

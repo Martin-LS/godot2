@@ -41,11 +41,11 @@ XP sources per kill:
 
 ## Enemy Base Stats
 
-| Type     | Sprite row | Unlocks | Speed | HP | Damage |
-|----------|------------|---------|-------|----|--------|
-| Standard | 6 (grey)   | 0:00    | 260   | 1  | 10     |
-| Runner   | 4 (purple) | 1:00    | 400   | 1  | 8      |
-| Tank     | 2 (orange) | 2:00    | 160   | 1  | 18     |
+| Type     | Unlocks | Speed | HP | Damage |
+|----------|---------|-------|----|--------|
+| Standard | 0:00    | 75    | 1  | 10     |
+| Runner   | 1:00    | 110   | 1  | 8      |
+| Tank     | 2:00    | 45    | 1  | 18     |
 
 ### Enemy Time Scaling (applied on top of base stats)
 

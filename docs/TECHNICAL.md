@@ -15,7 +15,7 @@ Godot 4.6, C#, Forward Plus renderer. Game world is 3D (CharacterBody3D, XZ move
 | World dimensions | 3D, XZ movement plane, Y-up   | Standard for top-down 3D; gravity, navmesh, and lighting all assume Y-up  |
 | Camera type      | `Camera3D`, perspective       | Subtle depth like Diablo 4; fixed angle, no player rotation               |
 | Camera angle     | Fixed ~60° from horizontal    | Closer to overhead than classic 45° isometric; Diablo 4 reference         |
-| Character render | KayKit `.glb` loaded as `PackedScene`, instanced as child `Node3D` | Player = Knight.glb (scale 24), enemies = Skeleton_Minion.glb (scale 20). Model child rotates independently via `_model.LookAt()` — CharacterBody3D stays unrotated so camera doesn't spin. |
+| Character render | KayKit `.glb` loaded as `PackedScene`, instanced as child `Node3D` | Player = Knight.glb (scale 12), enemies = Skeleton_Minion.glb (scale 10). Model child rotates independently via `_model.LookAt()` — CharacterBody3D stays unrotated so camera doesn't spin. |
 | Lighting         | Single `DirectionalLight3D` parented to `Camera3D` | Global main light source, moves with camera; one light for now |
 | Projectiles      | Physical traveling objects    | Visible projectile travel is core to ARPG feel (not raycasts)              |
 | Target aspect ratio | 16:9, PC primary           | All UI scenes must use Godot anchor presets (no absolute offsets) — makes ratio changes free later. Mobile not in scope. |
@@ -133,8 +133,15 @@ Main (Node)
 ├── EnemySpawner (Node)
 ├── RunSession (Node)          ← tracks elapsed time; emits RunEnded(won, level, elapsed)
 ├── RunEndOverlay (CanvasLayer)← shown on RunEnded; returns to character_screen.tscn
-└── PauseMenu (CanvasLayer)
+├── PauseMenu (CanvasLayer)
+└── DevOverlay (CanvasLayer)   ← debug only; hidden when OS.IsDebugBuild() is false
+    ├── ToggleButton (Button)  ← anchored top-center; always visible in debug builds
+    └── DevPanel (PanelContainer) ← hidden by default; toggled by ToggleButton
+        └── VBox (VBoxContainer)
+            ├── SpeedLabel (Label)   ← displays current speed value
+            └── SpeedSlider (HSlider) ← live-edits PlayerController.Speed
 ```
+**DevOverlay behaviour:** `_Ready()` checks `OS.IsDebugBuild()` — if false, hides (or frees) the entire overlay so no dev UI is visible in release exports. `ToggleButton` flips `DevPanel.Visible` on each press. The slider's `ValueChanged` signal writes directly to `PlayerController.Speed`.
 
 ---
 
@@ -235,9 +242,9 @@ Time-driven, no fixed waves. `EnemySpawner` recalculates each spawn:
 
 | Type     | Unlocks | Speed | HP | Damage |
 |----------|---------|-------|----|--------|
-| Standard | 0:00    | 260   | 1  | 10     |
-| Runner   | 1:00    | 400   | 1  | 8      |
-| Tank     | 2:00    | 160   | 1  | 18     |
+| Standard | 0:00    | 75    | 1  | 10     |
+| Runner   | 1:00    | 110   | 1  | 8      |
+| Tank     | 2:00    | 45    | 1  | 18     |
 
 All types receive a time-scaling bonus on top: `Speed += 10 * minutes`, `MaxHealth += 5 * (int)minutes`.
 
