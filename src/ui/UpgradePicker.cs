@@ -83,7 +83,7 @@ public partial class UpgradePicker : CanvasLayer
                 if (_weapon != null) _weapon.Damage += opt.Value;
                 break;
             case UpgradeEffect.FireRate:
-                if (_weapon != null) _weapon.Cooldown = MathF.Max(0.1f, _weapon.Cooldown - opt.Value);
+                if (_weapon != null) _weapon.SetCooldown(MathF.Max(0.1f, _weapon.Cooldown - opt.Value));
                 break;
         }
     }

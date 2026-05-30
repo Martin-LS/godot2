@@ -9,7 +9,6 @@ Top-down auto-attack horde survival game (Vampire Survivors / Diablo style). God
 
 - `docs/GDD.md` — Game design: mechanics, characters, enemies, progression, UI/menus
 - `docs/TECHNICAL.md` — Architecture: scene layout, systems, data types, signals, save layers, C# conventions, rendering decisions
-- `docs/BALANCE.md` — All tunable numbers: XP curves, enemy scaling, drop rates, stat growth
 - `docs/PLAYTEST.md` — Playtest observations and feedback
 
 **Read the relevant doc before making design or architectural decisions.**

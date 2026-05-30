@@ -1,6 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 using System.Linq;
+using Godot1.Crafting;
 using Godot1.Items;
 
 namespace Godot1.Character;
@@ -31,16 +32,24 @@ public partial class CharacterManager : Node
     {
         var (weapon, armor, accessory) = c.Type switch
         {
-            CharacterType.Warrior => ("iron_sword",      "chain_mail",    "war_band"),
-            CharacterType.Rogue   => ("iron_sword",      "leather_vest",  "swift_ring"),
-            CharacterType.Mage    => ("enchanted_blade", "mage_robe",     "vitality_charm"),
-            _                     => ("iron_sword",      "leather_vest",  "war_band"),
+            CharacterType.Warrior => ("sword_t1", "heavy_armor_t1",  "accessory_t1"),
+            CharacterType.Rogue   => ("bow_t1",   "light_armor_t1",  "accessory_t1"),
+            CharacterType.Mage    => ("wand_t1",  "medium_armor_t1", "accessory_t1"),
+            _                     => ("sword_t1", "heavy_armor_t1",  "accessory_t1"),
         };
 
         // Starter items go straight into gear slots — not the shared inventory pool.
         c.EquippedItems[ItemSlot.Weapon.ToString()]    = weapon;
         c.EquippedItems[ItemSlot.Armor.ToString()]     = armor;
         c.EquippedItems[ItemSlot.Accessory.ToString()] = accessory;
+
+        c.SlottedSkillIds = c.Type switch
+        {
+            CharacterType.Warrior => new List<string> { "attack_melee" },
+            CharacterType.Rogue   => new List<string> { "attack_ranged_physical" },
+            CharacterType.Mage    => new List<string> { "attack_ranged_magic" },
+            _                     => new List<string> { "attack_melee" },
+        };
     }
 
     public void Delete(string id)
@@ -61,7 +70,7 @@ public partial class CharacterManager : Node
         SelectedCharacter.CurrentLevel     = finalLevel;
         SelectedCharacter.CurrentXp        = finalXp;
         Profile.CoinBank          += coinsEarned;
-        Profile.CraftingCurrency1 += craftingCurrency1Earned;
+        Profile.AddMaterial("crafting_common", craftingCurrency1Earned);
         Save();
     }
 
@@ -71,6 +80,26 @@ public partial class CharacterManager : Node
         Profile.OwnedItemIds.Add(itemId);
         Save();
         return true;
+    }
+
+    public CraftResult CraftItem(string recipeId)
+    {
+        var recipe = RecipeRegistry.Get(recipeId);
+        if (recipe == null) return CraftResult.InsufficientMaterials;
+
+        foreach (var (matId, qty) in recipe.MaterialCosts)
+            if (Profile.GetMaterial(matId) < qty)
+                return CraftResult.InsufficientMaterials;
+
+        if (Profile.OwnedItemIds.Count >= ProfileData.MaxInventory)
+            return CraftResult.InventoryFull;
+
+        foreach (var (matId, qty) in recipe.MaterialCosts)
+            Profile.Materials[matId] -= qty;
+
+        AddItemToInventory(recipe.OutputItemId);
+        Save();
+        return CraftResult.Success;
     }
 
     public void EquipItem(string characterId, ItemSlot slot, string itemId)
@@ -117,11 +146,14 @@ public partial class CharacterManager : Node
         var ownedArr = new Godot.Collections.Array();
         foreach (var id in Profile.OwnedItemIds) ownedArr.Add(id);
 
+        var matsDict = new Godot.Collections.Dictionary();
+        foreach (var kv in Profile.Materials) matsDict[kv.Key] = kv.Value;
+
         var profileDict = new Godot.Collections.Dictionary
         {
-            ["coinBank"]          = Profile.CoinBank,
-            ["craftingCurrency1"] = Profile.CraftingCurrency1,
-            ["ownedItemIds"]      = ownedArr,
+            ["coinBank"]    = Profile.CoinBank,
+            ["materials"]   = matsDict,
+            ["ownedItemIds"] = ownedArr,
         };
 
         var charList = new Godot.Collections.Array();
@@ -130,15 +162,19 @@ public partial class CharacterManager : Node
             var equippedDict = new Godot.Collections.Dictionary();
             foreach (var kv in c.EquippedItems) equippedDict[kv.Key] = kv.Value;
 
+            var skillsArr = new Godot.Collections.Array();
+            foreach (var sid in c.SlottedSkillIds) skillsArr.Add(sid);
+
             charList.Add(new Godot.Collections.Dictionary
             {
-                ["id"]            = c.Id,
-                ["name"]          = c.Name,
-                ["type"]          = c.Type.ToString(),
-                ["runsCompleted"] = c.RunsCompleted,
-                ["currentLevel"]  = c.CurrentLevel,
-                ["currentXp"]     = c.CurrentXp,
-                ["equippedItems"] = equippedDict,
+                ["id"]              = c.Id,
+                ["name"]            = c.Name,
+                ["type"]            = c.Type.ToString(),
+                ["runsCompleted"]   = c.RunsCompleted,
+                ["currentLevel"]    = c.CurrentLevel,
+                ["currentXp"]       = c.CurrentXp,
+                ["equippedItems"]   = equippedDict,
+                ["slottedSkillIds"] = skillsArr,
             });
         }
 
@@ -163,8 +199,13 @@ public partial class CharacterManager : Node
 
         if (root.ContainsKey("profile") && root["profile"].Obj is Godot.Collections.Dictionary pd)
         {
-            Profile.CoinBank          = pd.ContainsKey("coinBank")          ? System.Convert.ToInt32(pd["coinBank"].Obj)          : 0;
-            Profile.CraftingCurrency1 = pd.ContainsKey("craftingCurrency1") ? System.Convert.ToInt32(pd["craftingCurrency1"].Obj) : 0;
+            Profile.CoinBank = pd.ContainsKey("coinBank") ? System.Convert.ToInt32(pd["coinBank"].Obj) : 0;
+
+            if (pd.ContainsKey("materials") && pd["materials"].Obj is Godot.Collections.Dictionary md)
+                foreach (var kv in md)
+                    Profile.Materials[kv.Key.ToString()!] = System.Convert.ToInt32(kv.Value.Obj);
+            else if (pd.ContainsKey("craftingCurrency1"))
+                Profile.AddMaterial("crafting_common", System.Convert.ToInt32(pd["craftingCurrency1"].Obj));
             if (pd.ContainsKey("ownedItemIds") && pd["ownedItemIds"].Obj is Godot.Collections.Array arr)
                 Profile.OwnedItemIds = arr.Select(v => v.ToString()!).ToList();
         }
@@ -190,6 +231,12 @@ public partial class CharacterManager : Node
                     continue;
                 }
 
+                if (key == "slottedSkillIds" && val is Godot.Collections.Array skillArr)
+                {
+                    d[key] = skillArr.Select(v => v.ToString()!).ToList();
+                    continue;
+                }
+
                 d[key] = val;
             }
             _characters.Add(CharacterData.FromDict(d));
@@ -199,5 +246,38 @@ public partial class CharacterManager : Node
         foreach (var c in _characters)
             foreach (var id in c.EquippedItems.Values)
                 Profile.OwnedItemIds.Remove(id);
+
+        // Migrate: seed default skill for old saves with no slotted skills.
+        foreach (var c in _characters)
+            if (c.SlottedSkillIds.Count == 0)
+                c.SlottedSkillIds.Add(c.Type switch
+                {
+                    CharacterType.Warrior => "attack_melee",
+                    CharacterType.Rogue   => "attack_ranged_physical",
+                    CharacterType.Mage    => "attack_ranged_magic",
+                    _                     => "attack_melee",
+                });
+
+        // Migrate old item IDs to new tier-1 items.
+        var oldToNew = new System.Collections.Generic.Dictionary<string, string>
+        {
+            ["iron_sword"]      = "sword_t1",
+            ["battle_axe"]      = "sword_t1",
+            ["enchanted_blade"] = "wand_t1",
+            ["leather_vest"]    = "light_armor_t1",
+            ["chain_mail"]      = "heavy_armor_t1",
+            ["mage_robe"]       = "medium_armor_t1",
+            ["swift_ring"]      = "accessory_t1",
+            ["vitality_charm"]  = "accessory_t1",
+            ["war_band"]        = "accessory_t1",
+        };
+        foreach (var c in _characters)
+            foreach (var slot in new[] { "Weapon", "Armor", "Accessory" })
+                if (c.EquippedItems.TryGetValue(slot, out var id) && oldToNew.TryGetValue(id, out var newId))
+                    c.EquippedItems[slot] = newId;
+        Profile.OwnedItemIds = Profile.OwnedItemIds
+            .Select(id => oldToNew.TryGetValue(id, out var newId) ? newId : id)
+            .Where(id => Items.ItemRegistry.Get(id) != null)
+            .ToList();
     }
 }

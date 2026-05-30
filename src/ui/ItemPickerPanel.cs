@@ -83,9 +83,11 @@ public partial class ItemPickerPanel : Control
     private static string BuildLabel(ItemData item, bool equipped)
     {
         string parts = "";
-        if (item.BonusHp    != 0)   parts += $" HP {item.BonusHp:+#;-#;0}";
-        if (item.BonusSpeed != 0f)  parts += $" Spd {item.BonusSpeed:+#;-#;0}";
-        if (item.BonusDamage != 0f) parts += $" Dmg {item.BonusDamage:+#;-#;0}";
+        if (item.BonusHp            != 0)   parts += $" HP {item.BonusHp:+#;-#;0}";
+        if (item.BonusSpeed         != 0f)  parts += $" Spd {item.BonusSpeed:+#;-#;0}";
+        if (item.SkillBonus         != 0f)  parts += $" Skill {item.SkillBonus:+#;-#;0}";
+        if (item.DamageReduction    != 0f)  parts += $" DR {item.DamageReduction:P0}";
+        if (item.PhysicalResistance != 0f)  parts += $" PR {item.PhysicalResistance:P0}";
         string tag = equipped ? " [equipped]" : "";
         return $"{item.Name}{parts}{tag}";
     }

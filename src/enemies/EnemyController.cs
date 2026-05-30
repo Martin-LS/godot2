@@ -18,6 +18,8 @@ public partial class EnemyController : CharacterBody3D
     [Export] public int ContactDamage = 10;
     [Export] public float DamageInterval = 1f;
     public int MapLevel = 1;
+    public float PhysicalResistance = 0f;
+    public float MagicResistance    = 0f;
 
     private int _currentHealth;
     private CharacterBody3D? _player;
@@ -49,14 +51,16 @@ public partial class EnemyController : CharacterBody3D
         if (_damageCooldown <= 0f && GlobalPosition.DistanceTo(_player.GlobalPosition) < 32f)
         {
             if (_player is Godot1.Player.PlayerController pc)
-                pc.TakeDamage(ContactDamage);
+                pc.TakeDamage(ContactDamage, Items.DamageType.Physical);
             _damageCooldown = DamageInterval;
         }
     }
 
-    public void TakeDamage(int amount)
+    public void TakeDamage(float rawAmount, Items.DamageType type)
     {
-        _currentHealth -= amount;
+        float resistance = type == Items.DamageType.Physical ? PhysicalResistance : MagicResistance;
+        float effective  = rawAmount * (1f - resistance);
+        _currentHealth  -= Mathf.CeilToInt(effective);
         if (_currentHealth <= 0)
             Die();
     }

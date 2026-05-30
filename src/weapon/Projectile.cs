@@ -4,17 +4,19 @@ namespace Godot1.Weapon;
 
 public partial class Projectile : Area3D
 {
-    public float Damage;
-    public float Speed = 500f;
-    public float MaxRange = 600f;
+    public float             Damage;
+    public Items.DamageType  DamageType = Items.DamageType.Physical;
+    public float             Speed      = 500f;
+    public float             MaxRange   = 600f;
 
     private Vector3 _direction;
-    private float _traveled;
+    private float   _traveled;
 
-    public void Initialize(Vector3 direction, float damage)
+    public void Initialize(Vector3 direction, float damage, Items.DamageType type = Items.DamageType.Physical)
     {
         _direction = direction.Normalized();
-        Damage = damage;
+        Damage     = damage;
+        DamageType = type;
     }
 
     public override void _Ready()
@@ -40,7 +42,7 @@ public partial class Projectile : Area3D
     {
         if (body is Enemies.EnemyController enemy)
         {
-            enemy.TakeDamage((int)Damage);
+            enemy.TakeDamage(Damage, DamageType);
             QueueFree();
         }
     }

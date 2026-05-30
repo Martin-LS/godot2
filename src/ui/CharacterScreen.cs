@@ -1,4 +1,6 @@
 using Godot;
+using System.Linq;
+using Godot1.Crafting;
 using Godot1.Items;
 using Godot1.Stats;
 
@@ -17,9 +19,7 @@ public partial class CharacterScreen : Control
     private Button _armorBtn   = null!;
     private Button _accBtn     = null!;
 
-    private Button _craftWeaponBtn    = null!;
-    private Button _craftArmorBtn     = null!;
-    private Button _craftAccessoryBtn = null!;
+    private VBoxContainer _craftVBox = null!;
 
     private Character.CharacterManager _manager = null!;
 
@@ -54,13 +54,7 @@ public partial class CharacterScreen : Control
         GetNode<Button>($"{CharViewBase}/HSplit/InfoVBox/Buttons/StartRunButton").Pressed += () =>
             GetTree().ChangeSceneToFile("res://main.tscn");
 
-        _craftWeaponBtn    = GetNode<Button>($"{CraftingBase}/VBox/CraftWeaponButton");
-        _craftArmorBtn     = GetNode<Button>($"{CraftingBase}/VBox/CraftArmorButton");
-        _craftAccessoryBtn = GetNode<Button>($"{CraftingBase}/VBox/CraftAccessoryButton");
-
-        _craftWeaponBtn.Pressed    += () => { _manager.AddItemToInventory("iron_sword");   Refresh(); };
-        _craftArmorBtn.Pressed     += () => { _manager.AddItemToInventory("leather_vest"); Refresh(); };
-        _craftAccessoryBtn.Pressed += () => { _manager.AddItemToInventory("swift_ring");   Refresh(); };
+        _craftVBox = GetNode<VBoxContainer>($"{CraftingBase}/VBox");
 
         GetNode<Button>("VBox/BackButton").Pressed += () =>
             GetTree().ChangeSceneToFile("res://src/ui/character_select.tscn");
@@ -72,6 +66,7 @@ public partial class CharacterScreen : Control
     {
         RefreshInventory();
         RefreshCharacter();
+        RefreshCrafting();
     }
 
     private void RefreshCharacter()
@@ -115,7 +110,7 @@ public partial class CharacterScreen : Control
     private void RefreshInventory()
     {
         var profile = _manager.Profile;
-        _inventoryInfo.Text = $"{profile.OwnedItemIds.Count} / {Character.ProfileData.MaxInventory}   Coins: {profile.CoinBank}   Crafting: {profile.CraftingCurrency1}";
+        _inventoryInfo.Text = $"{profile.OwnedItemIds.Count} / {Character.ProfileData.MaxInventory}   Coins: {profile.CoinBank}   Common: {profile.GetMaterial("crafting_common")}";
 
         foreach (Node child in _inventoryGrid.GetChildren())
             child.QueueFree();
@@ -159,19 +154,50 @@ public partial class CharacterScreen : Control
             _inventoryGrid.AddChild(btn);
         }
 
-        bool full = profile.OwnedItemIds.Count >= Character.ProfileData.MaxInventory;
-        _craftWeaponBtn.Disabled    = full;
-        _craftArmorBtn.Disabled     = full;
-        _craftAccessoryBtn.Disabled = full;
+    }
+
+    private void RefreshCrafting()
+    {
+        foreach (Node child in _craftVBox.GetChildren())
+            child.QueueFree();
+
+        var matsLabel = new Label
+        {
+            Text = $"Common materials: {_manager.Profile.GetMaterial("crafting_common")}",
+        };
+        _craftVBox.AddChild(matsLabel);
+
+        bool inventoryFull = _manager.Profile.OwnedItemIds.Count >= Character.ProfileData.MaxInventory;
+
+        foreach (var recipe in RecipeRegistry.All.Values)
+        {
+            var item = ItemRegistry.Get(recipe.OutputItemId);
+            if (item == null) continue;
+
+            string costText = string.Join(", ", recipe.MaterialCosts.Select(kv =>
+                $"{kv.Value}× {(kv.Key == "crafting_common" ? "Common" : kv.Key)}"));
+            bool canAfford = recipe.MaterialCosts.All(kv => _manager.Profile.GetMaterial(kv.Key) >= kv.Value);
+
+            var btn = new Button
+            {
+                Text     = $"{item.Name}  —  {costText}",
+                Disabled = !canAfford || inventoryFull,
+            };
+            string capturedId = recipe.Id;
+            btn.Pressed += () => { _manager.CraftItem(capturedId); Refresh(); };
+            _craftVBox.AddChild(btn);
+        }
     }
 
     private static string BuildTooltip(ItemData item)
     {
         var sb = new System.Text.StringBuilder();
         sb.Append($"{item.Name}  [{item.Slot}]");
-        if (item.BonusHp     != 0)  sb.Append($"\nHP {item.BonusHp:+#;-#;0}");
-        if (item.BonusSpeed  != 0f) sb.Append($"\nSpeed {item.BonusSpeed:+#;-#;0}");
-        if (item.BonusDamage != 0f) sb.Append($"\nDamage {item.BonusDamage:+#;-#;0}");
+        if (item.BonusHp            != 0)   sb.Append($"\nHP {item.BonusHp:+#;-#;0}");
+        if (item.BonusSpeed         != 0f)  sb.Append($"\nSpeed {item.BonusSpeed:+#;-#;0}");
+        if (item.SkillBonus         != 0f)  sb.Append($"\nSkill Bonus {item.SkillBonus:+#;-#;0}");
+        if (item.DamageReduction    != 0f)  sb.Append($"\nDamage Reduction {item.DamageReduction:P0}");
+        if (item.PhysicalResistance != 0f)  sb.Append($"\nPhys. Resist {item.PhysicalResistance:P0}");
         return sb.ToString();
     }
 

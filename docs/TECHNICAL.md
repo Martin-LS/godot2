@@ -101,8 +101,10 @@ CharacterScreen (Control)
                 │               │   └── WeaponSlotButton (60×60, size_flags_h=shrink) ← popup (Unequip/Delete) if equipped; ItemPickerPanel if empty
                 │               ├── ArmorSlot / ArmorLabel / ArmorSlotButton (same pattern)
                 │               └── AccessorySlot / AccessoryLabel / AccessorySlotButton (same pattern)
-                └── Crafting tab
-                    └── VBox ← CraftWeaponButton, CraftArmorButton, CraftAccessoryButton
+                ├── Crafting tab
+                │   └── VBox ← CraftWeaponButton, CraftArmorButton, CraftAccessoryButton
+                ├── Sigils tab    ← empty; reserved for future sigil system
+                └── Skills tab    ← empty; reserved for future skill tree system
 ```
 **Inventory grid:** 50 slots (5 cols, scrollable), all always visible. Empty slots are dimmed. Clicking a filled slot opens a `PopupMenu` (Equip / Delete). Equip auto-routes to the item's slot on the selected character, swapping out any currently equipped item. Capacity defined by `ProfileData.MaxInventory = 50` — counts only unequipped items; equipped items live separately in `CharacterData.EquippedItems`. If `SelectedCharacter` is null on `_Ready`, redirects to `character_select.tscn`.
 
@@ -129,7 +131,7 @@ Main (Node)
 │   └── Weapon (Node)
 ├── Background (Node3D)        ← procedural floor plane
 ├── WorldEnvironment
-├── Hud (CanvasLayer)          ← health bar, XP bar, level, coin counter, run timer
+├── Hud (CanvasLayer)          ← health bar, XP bar, level, coin counter, run timer, skill bar
 ├── EnemySpawner (Node)
 ├── RunSession (Node)          ← tracks elapsed time; emits RunEnded(won, level, elapsed)
 ├── RunEndOverlay (CanvasLayer)← shown on RunEnded; returns to character_screen.tscn
@@ -162,7 +164,9 @@ Main (Node)
 | CharacterCreate   | Dedicated create screen: name input + archetype choice       | `res://src/ui/`           | ✅ done |
 | CharacterScreen   | Per-character hub: inventory, gear slots, tabs, Start Run    | `res://src/ui/`           | ✅ done |
 | ItemPickerPanel   | Modal picker for equipping/unequipping gear by slot          | `res://src/ui/`           | ✅ done |
-| ItemRegistry      | Static catalogue of all `ItemData` records (9 starter items) | `res://src/items/`        | ✅ done |
+| ItemRegistry      | Static catalogue of all `ItemData` records                   | `res://src/items/`        | ✅ done |
+| SkillRegistry     | Static catalogue of all `SkillData` records                  | `res://src/skills/`       | ✅ done |
+| RecipeRegistry    | Static catalogue of all `RecipeData` records                 | `res://src/crafting/`     | ⬜ not started |
 | RunEndOverlay     | Show win/die results, flush run to character, return to character screen | `res://src/ui/` | ✅ done |
 | CoinPickup        | Coin drop (25% on enemy death) — reports to RunSession       | `res://src/meta/`         | ✅ done |
 | MetaProgression   | Per-character coin bank + permanent upgrades (HP/Speed/DMG)  | `res://src/meta/`, `src/ui/` | ✅ done |
@@ -174,16 +178,23 @@ Main (Node)
 
 | Class               | Kind        | Fields                                                         |
 |---------------------|-------------|----------------------------------------------------------------|
-| `ProfileData`       | Plain C#    | CoinBank, CraftingCurrency1, OwnedItemIds (List\<string\>), MaxInventory (const = 50) — account-shared across all characters |
-| `CharacterData`     | Plain C#    | Id, Name, Type (enum), RunsCompleted, CurrentLevel, CurrentXp, BonusMaxHealth, BonusSpeed, BonusDamage, EquippedItems |
+| `ProfileData`       | Plain C#    | CoinBank, Materials (Dictionary\<string, int\> — material ID → quantity), OwnedItemIds (List\<string\>), MaxInventory (const = 50) — account-shared across all characters. Migration: old `craftingCurrency1` int field maps to `Materials["crafting_common"]` on load. |
+| `CharacterData`     | Plain C#    | Id, Name, Type (enum), RunsCompleted, CurrentLevel, CurrentXp, EquippedItems (Dictionary\<string, string\>), SlottedSkillIds (List\<string\>). Archetype base stats (HP/Speed/Damage) computed inline in `BuildStatBlock()` — not stored as fields. |
 | `CharacterType`     | C# enum     | Warrior, Rogue, Mage                                           |
-| `ItemData`          | C# record   | Id, Name, Slot (enum), BonusHp, BonusSpeed, BonusDamage, IconPath (string `res://` path to item texture) |
+| `ItemData`          | C# record   | Id, Name, Slot (enum), Tier (int), IconPath — plus slot-specific fields: `WeaponAffinity`, `SkillBonus (float)` for Weapon; `ArmorCategory`, `BonusHp`, `BonusSpeed`, `DamageReduction (float)` for Armor; `PhysicalResistance (float)` for Accessory. Unused fields default to zero. `BonusDamage` removed — weapons no longer contribute character damage. |
 | `ItemSlot`          | C# enum     | Weapon, Armor, Accessory                                       |
-| `ItemRegistry`      | Static class| `All` dict, `Get(id)`, `ForSlot(slot)`, `RandomDrop()`        |
-| `WeaponData`        | Godot Resource (planned) | Name, base damage, cooldown, upgrade path — not yet implemented; `WeaponController` manages damage as a plain `float` |
-| `WeaponUpgradeData` | Godot Resource (planned) | Damage delta, cooldown delta, new behaviour flags — not yet implemented |
-| `UpgradeOptionData` | Godot Resource (planned) | Display name, description, effect type + value — not yet implemented (UpgradePicker dormant) |
-| `EnemyData`         | C# record      | EnemyType (string), BaseSpeed, BaseHealth, ContactDamage, DamageInterval |
+| `SkillData`         | C# record   | Id, Name, Type (SkillType enum), Category (SkillCategory enum), Cooldown (float, seconds; 0 for Passive), Range (float) |
+| `SkillType`         | C# enum     | Active, Passive                                                |
+| `WeaponAffinity`    | C# enum     | None, Melee, RangedPhysical, RangedMagic                       |
+| `ArmorCategory`     | C# enum     | None, Heavy, Medium, Light                                     |
+| `SkillCategory`     | C# enum     | Melee, RangedPhysical, RangedMagic                             |
+| `DamageType`        | C# enum     | Physical, Magic                                                |
+| `ItemRegistry`      | Static class| `All` dict, `Get(id)`, `ForSlot(slot)` — 7 tier-1 starter items (sword, bow, wand, heavy/medium/light armor, accessory). `RandomDrop()` removed — items are not enemy drops. |
+| `SkillRegistry`     | Static class| `All` dict, `Get(id)` — static catalog of all `SkillData` records. v1: 3 entries: `attack_melee` (Melee), `attack_ranged_physical` (RangedPhysical), `attack_ranged_magic` (RangedMagic). |
+| `RecipeData`        | C# record   | Id, OutputItemId (string), MaterialCosts (Dictionary\<string, int\> — material ID → quantity) |
+| `CraftResult`       | C# enum     | Success, InsufficientMaterials, InventoryFull                  |
+| `RecipeRegistry`    | Static class| `All` dict, `Get(id)`, `ForSlot(ItemSlot)` — static catalog of all `RecipeData` records. v1: 7 tier-1 recipes (one per craftable item). Material costs TBD. |
+| `EnemyData`         | C# record   | EnemyType (string), BaseSpeed, BaseHealth, ContactDamage, DamageInterval, PhysicalResistance (float), MagicResistance (float) |
 
 ---
 
@@ -195,8 +206,8 @@ Managed by `CharacterManager` autoload. Written on every create/delete/upgrade.
 {
   "profile": {
     "coinBank": 150,
-    "craftingCurrency1": 30,
-    "ownedItemIds": ["swift_ring"]
+    "materials": { "crafting_common": 30 },
+    "ownedItemIds": ["bow_t1"]
   },
   "characters": [
     {
@@ -206,12 +217,13 @@ Managed by `CharacterManager` autoload. Written on every create/delete/upgrade.
       "runsCompleted": 3,
       "currentLevel": 7,
       "currentXp": 12,
-      "equippedItems": { "Weapon": "iron_sword", "Armor": "leather_vest" }
+      "equippedItems": { "Weapon": "sword_t1", "Armor": "heavy_armor_t1", "Accessory": "accessory_t1" },
+      "slottedSkillIds": ["attack_melee"]
     }
   ]
 }
 ```
-`ownedItemIds` holds only **unequipped** inventory items; equipped items live exclusively in `equippedItems`. `EquipItem` moves an item out of `ownedItemIds` and swaps the old equipped item back in. `UnequipItem` returns `false` (blocked) if inventory is at capacity. Old saves are migrated on load — any item ID present in both lists is removed from `ownedItemIds`. Starter gear is seeded directly into `equippedItems` (not inventory) by `SeedStarterGear()`. Fields default to empty if absent.
+`materials` holds all crafting material quantities keyed by material ID. Migration: on load, if the old `craftingCurrency1` key exists at the profile root, its value is moved into `materials["crafting_common"]`. `ownedItemIds` holds only **unequipped** inventory items; equipped items live exclusively in `equippedItems`. `EquipItem` moves an item out of `ownedItemIds` and swaps the old equipped item back in. `UnequipItem` returns `false` (blocked) if inventory is at capacity. Old saves are migrated on load — any item ID present in both lists is removed from `ownedItemIds`. Starter gear is seeded directly into `equippedItems` (not inventory) by `SeedStarterGear()`. Fields default to empty if absent.
 
 ### Run Session (in-memory only)
 Lives on the `RunSession` node. Discarded when the scene unloads. On run end, `CharacterManager.RecordRunCompletion(finalLevel, finalXp, coinsEarned)` writes the persistent state.
@@ -227,9 +239,130 @@ If multi-user slots or cloud saves are ever needed, evaluate wrapping save data 
 
 ## Weapon
 
-Single weapon per character. Damage is set at run start from `CharacterData.BaseStats()` plus level bonuses (`+1 per level above 1`). `WeaponController` exposes `SetDamage(float)` and `AddDamage(float)`.
+Single weapon per character (v1). `WeaponController` manages:
 
-[TBD] Weapon upgrade path (stages, piercing, AoE) — deferred until UpgradePicker or equivalent is reintroduced.
+- `BaseDamage (float)` — set at run start from `CharacterData` (archetype base + level bonuses + meta upgrades). The equipped weapon item does **not** contribute to base damage.
+- `SkillBonus (float)` — flat bonus added to damage when firing. Non-zero only when the equipped weapon's affinity matches the slotted skill's category.
+- `SkillCategory (SkillCategory)` — category of the slotted active skill. Determines `DamageType` (RangedMagic → Magic, else Physical) and affinity-match for `SkillBonus`.
+- `Cooldown (float)`, `Range (float)` — read from `SkillData` at run start, not exported constants.
+
+Exposes: `SetDamage(float)`, `AddDamage(float)`, `SetSkill(SkillData, float weaponSkillBonus, WeaponAffinity)`.
+
+`SetSkill` replaces the old `SetSkillBonus` — it stores SkillCategory, Cooldown, and Range from the `SkillData`, and computes `SkillBonus` from the affinity match in one call.
+
+Effective damage per shot: `BaseDamage + SkillBonus`.
+
+Emits: `SkillFired(int slotIndex, float cooldown)` when a skill activates — consumed by the HUD skill bar.
+
+[TBD] Weapon upgrade path (stages, piercing, AoE) — deferred.
+
+---
+
+## Skill Bar (HUD)
+
+An `HBoxContainer` in the HUD showing each slotted skill as an icon cell. v1: one cell.
+
+Each cell contains:
+- Skill icon (placeholder if none)
+- A `ProgressBar` overlay that drains from `cooldown → 0` over the skill's cooldown duration, then resets
+
+`Hud._Ready()` wires `WeaponController.SkillFired` → `OnSkillFired(int slotIndex, float cooldown)`. On fire: reset the matching cell's progress bar to full and begin draining. Draining is handled in `_Process` (bar value decrements by delta each frame).
+
+The skill bar is the visual feedback loop for the auto-attack cadence. It gives the player a read on when the next shot fires without requiring any input.
+
+---
+
+## Crafting
+
+Items are never dropped — they come exclusively from crafting. Each craftable item has one `RecipeData` entry in `RecipeRegistry`.
+
+### Data shape
+
+```
+RecipeData(Id, OutputItemId, MaterialCosts: Dictionary<string, int>)
+```
+
+`MaterialCosts` keys are material IDs (`"crafting_common"`, `"crafting_rare"`, …). v1: every recipe costs only `"crafting_common"`. Quantities are TBD.
+
+### `CharacterManager.CraftItem(string recipeId) → CraftResult`
+
+```
+recipe = RecipeRegistry.Get(recipeId)
+if recipe == null → InsufficientMaterials
+
+foreach (matId, qty) in recipe.MaterialCosts:
+    if Profile.Materials.GetValueOrDefault(matId) < qty → InsufficientMaterials
+
+if OwnedItemIds.Count >= MaxInventory → InventoryFull
+
+foreach (matId, qty) in recipe.MaterialCosts:
+    Profile.Materials[matId] -= qty
+
+AddItemToInventory(recipe.OutputItemId)
+Save()
+return Success
+```
+
+### Crafting tab (CharacterScreen)
+
+The three hardcoded stub buttons are replaced by a `ScrollContainer` / `VBoxContainer` recipe list populated at runtime from `RecipeRegistry`. A `Label` at the top shows current material balances (`"Common: N"`).
+
+Each row is a `Button`:
+- Text: `"[Item Name]  —  Common: N"`
+- Disabled when: materials insufficient **or** inventory full
+- On press: `CharacterManager.CraftItem(recipeId)`, then `Refresh()`
+
+`RecipeRegistry.ForSlot(ItemSlot)` can be used to group rows by weapon / armor / accessory if the tab gains category headers later.
+
+### Material IDs
+
+| ID | Display name | Source |
+|----|--------------|--------|
+| `crafting_common` | Common | 20% enemy drop (maps to old `craftingCurrency1`) |
+
+Higher tiers (rare, exotic) will be added when their drop sources are designed.
+
+---
+
+## Damage Pipeline
+
+### Player taking damage
+
+`PlayerController.TakeDamage(float rawAmount, DamageType type)`
+
+```
+effectiveDamage = rawAmount × (1 − DamageReduction)
+if type == Physical:
+    effectiveDamage ×= (1 − PhysicalResistance)
+CurrentHealth -= effectiveDamage
+emit HealthChanged(CurrentHealth)
+```
+
+`DamageReduction` and `PhysicalResistance` are runtime stats on `PlayerController`, seeded at run start from the equipped armor and accessory respectively. All current chase enemies pass `DamageType.Physical`. Future ranged/magic enemies pass `DamageType.Magic`.
+
+### Enemy taking damage
+
+`EnemyController.TakeDamage(float rawAmount, DamageType type)`
+
+```
+effectiveDamage = rawAmount × (1 − resistance[type])
+```
+
+Resistance values per enemy type live in `EnemyData` (`PhysicalResistance`, `MagicResistance`).
+
+### Stat seeding at run start
+
+`PlayerController._Ready()` reads `CharacterManager.SelectedCharacter` and equipped items:
+
+```
+MaxHealth          = archetype base + level bonuses + meta upgrades + armor.BonusHp
+Speed              = archetype base + meta upgrades + armor.BonusSpeed  // negative for Heavy
+Damage             = archetype base + level bonuses + meta upgrades
+DamageReduction    = armor.DamageReduction
+PhysicalResistance = accessory.PhysicalResistance
+skill              = SkillRegistry.Get(character.SlottedSkillIds[0])
+WeaponController.SetSkill(skill, weapon.SkillBonus, weapon.WeaponAffinity)
+```
 
 ---
 
@@ -286,7 +419,7 @@ Other drops hardcoded in `EnemyController.Die()`:
 
 - **Namespaces:** `Godot1.<System>` (e.g. `Godot1.Player`, `Godot1.Combat`)
 - **Node classes:** PascalCase — `PlayerController`, `EnemyBase`, `WeaponController`
-- **Resource classes:** suffix `Data` — `EnemyData`, `WeaponData`, `GearData`
+- **Resource classes:** suffix `Data` — `EnemyData`, `ItemData`, `CharacterData`
 - **Private fields:** `_camelCase`; public properties: `PascalCase`
 - **Signals:** `[Signal]` delegate, past-tense — `HealthChanged`, `EnemyDied`, `LeveledUp`
 - **Folder layout:** `src/<system>/` mirrors namespace
@@ -299,13 +432,14 @@ Systems communicate via signals only — no direct cross-system method calls.
 
 | Signal                  | Emitter        | Receivers                        |
 |-------------------------|----------------|----------------------------------|
-| `HealthChanged(int)`    | Player         | HUD, GameManager                 |
-| `PlayerDied`            | Player         | RunSession (end run)             |
-| `LeveledUp(int)`        | Player         | Hud (level display)              |
-| `Died(position)`        | Enemy          | (reserved — not yet wired)       |
-| `CoinChanged(int)`      | RunSession     | Hud (coin counter)               |
-| `RunTimerExpired`       | RunSession     | EnemySpawner (spawn boss)        |
-| `RunEnded(result)`      | RunSession     | CharacterManager (flush coins/XP/level via `RecordRunCompletion`) |
+| `HealthChanged(float)`      | Player         | HUD (formats to int for display), GameManager |
+| `PlayerDied`                | Player         | RunSession (end run)             |
+| `LeveledUp(int)`            | Player         | Hud (level display)              |
+| `SkillFired(int, float)`    | WeaponController | Hud skill bar (slotIndex, cooldown — resets cooldown overlay) |
+| `Died(position)`            | Enemy          | (reserved — not yet wired)       |
+| `CoinChanged(int)`          | RunSession     | Hud (coin counter)               |
+| `RunTimerExpired`           | RunSession     | EnemySpawner (spawn boss)        |
+| `RunEnded(result)`          | RunSession     | CharacterManager (flush coins/XP/level via `RecordRunCompletion`) |
 
 ---
 

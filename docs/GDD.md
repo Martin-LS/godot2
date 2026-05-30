@@ -31,7 +31,9 @@ The **skill bar** on the run HUD shows all slotted skills and their cooldown / t
 
 **v1:** One active attack skill. Fires on cooldown. Cooldown values TBD.
 
-Character damage scales with character level (via level-up bonuses) and archetype base damage — not from the weapon gear slot.
+Every skill has a **category**: Melee, Ranged-Physical, or Ranged-Magic. Category determines what weapon affinity enhances it — see Gear Slots.
+
+Character damage scales with character level (via level-up bonuses) and archetype base damage. Weapons do not contribute base damage — they provide a flat bonus to skills of matching category (see Gear Slots).
 
 ### Damage Types
 
@@ -43,7 +45,7 @@ Every damage source has a **damage type**. Every entity that can take damage has
 
 **Future expansion:** Elemental types (Fire, Lightning, Frost, etc.) will be added as the system grows — the formula and resistance model extend naturally.
 
-Resistances are always soft (never total immunity). Exact values are owned by BALANCE.md.
+Resistances are always soft (never total immunity). Exact values are TBD.
 
 ### Interaction
 - Collectibles auto-collected on contact (XP gems, coins, health)
@@ -57,11 +59,13 @@ Every run requires a character. Characters are created by the player, persist be
 
 ### Character Archetypes
 
-| Archetype | Max HP | Speed | Base Damage | Damage Type | Playstyle         |
-|-----------|--------|-------|-------------|-------------|-------------------|
-| Warrior   | 150    | 170   | 20          | Physical    | Tanky brawler     |
-| Rogue     | 80     | 260   | 15          | Physical    | Fast and fragile  |
-| Mage      | 100    | 200   | 35          | Magic       | Glass cannon      |
+| Archetype | Max HP | Speed | Base Damage | Damage Type | Default build               |
+|-----------|--------|-------|-------------|-------------|-----------------------------|
+| Warrior   | 150    | 170   | 20          | Physical    | Sword + Heavy armor — close-range brawler |
+| Rogue     | 80     | 260   | 15          | Physical    | Bow + Light armor — fast, fragile kiter   |
+| Mage      | 100    | 200   | 35          | Magic       | Wand + Medium armor — glass cannon        |
+
+Stat values are TBD. Default build reflects starter gear — players are free to deviate.
 
 ### Character Lifecycle
 1. **Create** — player picks a name (required) and archetype
@@ -134,7 +138,7 @@ More attributes will be added in future (e.g. enemy density modifiers, environme
 
 | Type     | Behavior          | Unlocks | Physical Resist | Magic Resist | Notes                        |
 |----------|-------------------|---------|-----------------|--------------|------------------------------|
-| Standard | Chase player      | 0:00    | 0%              | 0%           | Balanced — grey sprite       |
+| Standard | Chase player      | 0:00    | 0%              | 0%           | Balanced — grey           |
 | Runner   | Chase player fast | 1:00    | 0%              | 15%          | Fragile, high speed — purple |
 | Tank     | Chase player slow | 2:00    | 20%             | 0%           | High HP, high damage — orange|
 | [TBD]    | Ranged attacker   | —       | —               | —            | Future type                  |
@@ -167,35 +171,53 @@ Spend coins on the character screen between runs:
 
 ### Gear Slots
 
-Characters can equip up to 3 items, one per slot. Items persist between runs and provide flat stat bonuses on top of archetype base stats and coin upgrades.
+Characters can equip up to 3 items, one per slot. Items persist between runs. Each slot has a distinct role:
 
-| Slot      | Bonus type              |
-|-----------|-------------------------|
-| Weapon    | HP, Speed               |
-| Armor     | HP (primary), Speed     |
-| Accessory | Speed, HP, Damage (mixed)|
+| Slot      | Role                                                             | Progression axis                    |
+|-----------|------------------------------------------------------------------|-------------------------------------|
+| Weapon    | Skill synergy — flat damage bonus to skills of matching affinity | Tier → larger bonus                 |
+| Armor     | Survival — HP, Speed, damage reduction (%) by category          | Tier → better stats within category |
+| Accessory | Mitigation — physical resistance (%)                             | Tier → higher resistance            |
 
-**Starter items (9 total):**
+#### Weapon
 
-| Item            | Slot      | HP  | Speed | Damage |
-|-----------------|-----------|-----|-------|--------|
-| Iron Sword      | Weapon    | +10 | +10   | —      |
-| Battle Axe      | Weapon    | +25 | -15   | —      |
-| Enchanted Blade | Weapon    | +15 | +20   | —      |
-| Leather Vest    | Armor     | +20 | —     | —      |
-| Chain Mail      | Armor     | +40 | -10   | —      |
-| Mage Robe       | Armor     | +15 | +15   | —      |
-| Swift Ring      | Accessory | —   | +20   | —      |
-| Vitality Charm  | Accessory | +30 | —     | —      |
-| War Band        | Accessory | +10 | —     | +2     |
+Weapons have an **affinity** matching a skill category. Equipping a weapon gives a flat damage bonus to all skills of that category. Weapons contribute no base damage — they enhance skills only.
 
-**Starter gear:** Each character starts with three items, one per slot, chosen to match their archetype:
+| Weapon type | Affinity        | Enhances               |
+|-------------|-----------------|------------------------|
+| Sword       | Melee           | Melee skills           |
+| Bow         | Ranged-Physical | Ranged-Physical skills |
+| Wand        | Ranged-Magic    | Ranged-Magic skills    |
 
-| Archetype | Weapon          | Armor       | Accessory      |
-|-----------|-----------------|-------------|----------------|
-| Warrior   | Iron Sword      | Chain Mail  | War Band       |
-| Rogue     | Iron Sword      | Leather Vest| Swift Ring     |
-| Mage      | Enchanted Blade | Mage Robe   | Vitality Charm |
+Any character can equip any weapon. The affinity bonus incentivises pairing weapon with matching skills — but mixing is valid.
+
+#### Armor
+
+Armor has a **category** that defines its identity. Category is fixed per item — crafting a higher-tier heavy armor makes it stronger within that category, not a different category.
+
+| Category | HP       | Speed   | Damage Reduction |
+|----------|----------|---------|------------------|
+| Heavy    | High     | Penalty | Yes (%)          |
+| Medium   | Moderate | Neutral | —                |
+| Light    | Low      | Bonus   | —                |
+
+Any character can equip any armor. Heavy suits close-range builds taking hits; light suits ranged builds that kite; medium suits mixed or flexible builds.
+
+#### Accessory
+
+Accessories grant **physical resistance (%)**. No category — any character can equip any accessory. Tier is the only progression axis: higher-tier accessories give higher resistance. A tier 1 accessory gives low physical resistance.
+
+#### Starter Gear
+
+Each character starts with one item per slot, matched to their archetype:
+
+| Archetype | Weapon          | Armor                | Accessory        |
+|-----------|-----------------|----------------------|------------------|
+| Warrior   | Sword (tier 1)  | Heavy armor (tier 1) | Accessory (tier 1) |
+| Rogue     | Bow (tier 1)    | Light armor (tier 1) | Accessory (tier 1) |
+| Mage      | Wand (tier 1)   | Medium armor (tier 1)| Accessory (tier 1) |
+
+Specific item names and exact stat values are TBD.
 
 **Acquisition:** Gear is not dropped by enemies. New items come from crafting — each item has a recipe requiring a combination of materials (see Currencies).
 
@@ -203,7 +225,7 @@ Characters can equip up to 3 items, one per slot. Items persist between runs and
 
 **Inventory:** Crafted (unequipped) items go into the **account inventory** — a shared pool accessible by every character, capacity **50 items**. Equipped items are held separately in the character's gear slots and do not count against inventory capacity. The inventory is visible on the Character Screen as a scrollable 5-column icon grid.
 
-**Equipping:** Click an inventory item → popup → **Equip** to move it into its slot on the selected character (any currently equipped item swaps back to inventory). Click an occupied gear slot → popup → **Unequip** (returns item to inventory; blocked if inventory is full) or **Delete** (removes permanently). Empty gear slots open the item picker to select from compatible inventory items.
+**Equipping:** Click an inventory item → popup → **Equip** to move it into its slot on the selected character (any currently equipped item swaps back to inventory). Click an occupied gear slot → popup → **Unequip** (returns item to inventory; blocked if inventory is full) or **Delete** (removes permanently). Empty gear slots open the item picker to select from inventory items of that slot type.
 
 ---
 

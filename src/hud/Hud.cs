@@ -11,6 +11,9 @@ public partial class Hud : CanvasLayer
     private Label _coinLabel = null!;
 
     private Run.RunSession? _session;
+    private ProgressBar _skillCooldownBar  = null!;
+    private float       _skillCooldownMax;
+    private float       _skillCooldownRemaining;
 
     public override void _Ready()
     {
@@ -35,7 +38,30 @@ public partial class Hud : CanvasLayer
             player.HealthChanged += OnHealthChanged;
             player.XpChanged     += OnXpChanged;
             player.LeveledUp     += OnLeveledUp;
+
+            var weaponController = player.GetNodeOrNull<Weapon.WeaponController>("Weapon");
+            weaponController?.Connect(Weapon.WeaponController.SignalName.SkillFired,
+                Callable.From<int, float>(OnSkillFired));
         }
+
+        // Skill bar — one cell for v1
+        _skillCooldownBar = new ProgressBar
+        {
+            MaxValue          = 1.0,
+            Value             = 0.0,
+            ShowPercentage    = false,
+            CustomMinimumSize = new Vector2(64f, 8f),
+        };
+        var cell = new PanelContainer { CustomMinimumSize = new Vector2(64f, 64f) };
+        var cellVBox = new VBoxContainer();
+        cellVBox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
+        cellVBox.AddChild(_skillCooldownBar);
+        cell.AddChild(cellVBox);
+        var skillBar = new HBoxContainer();
+        skillBar.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomLeft);
+        skillBar.Position = new Vector2(20f, -80f);
+        skillBar.AddChild(cell);
+        GetNode<Control>("Control").AddChild(skillBar);
 
         _session = GetParent().GetNodeOrNull<Run.RunSession>("RunSession");
         if (_session != null)
@@ -47,12 +73,28 @@ public partial class Hud : CanvasLayer
 
     public override void _Process(double delta)
     {
-        if (_session == null) return;
-        int secs = (int)_session.ElapsedTime;
-        _timerLabel.Text = $"{secs / 60}:{secs % 60:D2}";
+        if (_session != null)
+        {
+            int secs = (int)_session.ElapsedTime;
+            _timerLabel.Text = $"{secs / 60}:{secs % 60:D2}";
+        }
+
+        if (_skillCooldownRemaining > 0f)
+        {
+            _skillCooldownRemaining = Mathf.Max(0f, _skillCooldownRemaining - (float)delta);
+            if (_skillCooldownMax > 0f)
+                _skillCooldownBar.Value = _skillCooldownRemaining / _skillCooldownMax;
+        }
     }
 
-    private void OnHealthChanged(int newHealth) => _healthBar.Value = newHealth;
+    private void OnHealthChanged(float newHealth) => _healthBar.Value = newHealth;
+
+    private void OnSkillFired(int slotIndex, float cooldown)
+    {
+        _skillCooldownMax       = cooldown;
+        _skillCooldownRemaining = cooldown;
+        _skillCooldownBar.Value = 1.0;
+    }
 
     private void OnXpChanged(int currentXp, int xpToNextLevel)
     {

@@ -16,6 +16,7 @@ public class CharacterData
     public int CurrentXp { get; set; } = 0;
 
     public Dictionary<string, string> EquippedItems { get; set; } = new();
+    public List<string> SlottedSkillIds { get; set; } = new();
 
     public StatBlock BuildStatBlock()
     {
@@ -42,10 +43,9 @@ public class CharacterData
         foreach (var (_, id) in EquippedItems)
         {
             var item = ItemRegistry.Get(id);
-            if (item == null) continue;
-            if (item.BonusHp    != 0)   block.AddModifier(new StatModifier(StatId.MaxHp,  ModifierType.FlatAdd, item.BonusHp,     ModifierSource.Item, id));
-            if (item.BonusSpeed != 0f)  block.AddModifier(new StatModifier(StatId.Speed,  ModifierType.FlatAdd, item.BonusSpeed,  ModifierSource.Item, id));
-            if (item.BonusDamage != 0f) block.AddModifier(new StatModifier(StatId.Damage, ModifierType.FlatAdd, item.BonusDamage, ModifierSource.Item, id));
+            if (item == null || item.Slot != ItemSlot.Armor) continue;
+            if (item.BonusHp    != 0)  block.AddModifier(new StatModifier(StatId.MaxHp, ModifierType.FlatAdd, item.BonusHp,    ModifierSource.Item, id));
+            if (item.BonusSpeed != 0f) block.AddModifier(new StatModifier(StatId.Speed, ModifierType.FlatAdd, item.BonusSpeed, ModifierSource.Item, id));
         }
 
         return block;
@@ -59,7 +59,8 @@ public class CharacterData
         ["runsCompleted"] = RunsCompleted,
         ["currentLevel"]  = CurrentLevel,
         ["currentXp"]     = CurrentXp,
-        ["equippedItems"] = EquippedItems,
+        ["equippedItems"]   = EquippedItems,
+        ["slottedSkillIds"] = SlottedSkillIds,
     };
 
     public static CharacterData FromDict(Dictionary<string, object?> d) => new()
@@ -72,6 +73,9 @@ public class CharacterData
         CurrentXp     = d.ContainsKey("currentXp")    ? System.Convert.ToInt32(d["currentXp"])    : 0,
         EquippedItems = d.ContainsKey("equippedItems") && d["equippedItems"] is Dictionary<string, object?> eq
             ? eq.ToDictionary(kv => kv.Key, kv => kv.Value?.ToString() ?? "")
+            : new(),
+        SlottedSkillIds = d.ContainsKey("slottedSkillIds") && d["slottedSkillIds"] is List<string> skills
+            ? skills
             : new(),
     };
 }

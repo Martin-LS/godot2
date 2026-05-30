@@ -74,10 +74,12 @@ public partial class EnemySpawner : Node
         else
             data = EnemyRegistry.Tank;
 
-        enemy.Speed          = data.BaseSpeed;
-        enemy.MaxHealth      = data.BaseHealth;
-        enemy.ContactDamage  = data.ContactDamage;
-        enemy.DamageInterval = data.DamageInterval;
+        enemy.Speed               = data.BaseSpeed;
+        enemy.MaxHealth           = data.BaseHealth;
+        enemy.ContactDamage       = data.ContactDamage;
+        enemy.DamageInterval      = data.DamageInterval;
+        enemy.PhysicalResistance  = data.PhysicalResistance;
+        enemy.MagicResistance     = data.MagicResistance;
     }
 
     private Vector3 RandomRingPosition()
