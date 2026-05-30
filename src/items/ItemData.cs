@@ -4,7 +4,6 @@ public record ItemData(
     string         Id,
     string         Name,
     ItemSlot       Slot,
-    int            Tier,
     string         IconPath           = "",
     // Weapon fields
     WeaponAffinity WeaponAffinity     = WeaponAffinity.None,

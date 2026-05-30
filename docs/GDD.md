@@ -161,6 +161,20 @@ Each level gained during a run permanently improves the character:
 
 These stack across all runs. A level-10 character has +45 HP and +9 damage above their archetype base.
 
+### Item Tiers
+
+All items — both equipment and skills — have a **tier** that represents quality and power level. Tier is shown as the background colour of the item icon everywhere it appears (inventory, slots, pickers).
+
+| Tier     | Colour | Notes                        |
+|----------|--------|------------------------------|
+| Common   | Gray   | Starter / lowest power       |
+| Uncommon | Green  | Mid tier                     |
+| Rare     | Blue   | Highest tier (v1)            |
+
+Exact stat differences per tier are TBD. Higher tier also unlocks deeper skill chains (see Skill Chains).
+
+---
+
 ### Gear Slots
 
 Characters can equip up to 3 gear items (one per gear slot) and up to 3 skill items (one per skill slot). All items persist between runs. Each slot has a distinct role:
@@ -179,6 +193,41 @@ Three skill slots map directly to the 3 skill bar slots shown during a run. What
 The same skill item can be equipped in multiple slots simultaneously. Any archetype can equip any skill — there are no archetype or weapon restrictions on skill slots. v1 skills: **Strike** (melee auto-attack), **Arrow** (ranged-physical auto-attack), **Bolt** (ranged-magic auto-attack).
 
 Skill items are crafted (see Skill Crafting tab) and equipped from the **Skills inventory tab**.
+
+#### Skill Augments
+
+Each skill slot has one **augment slot**. Augments add an effect on top of the base skill — the same augment can be applied to any skill regardless of category.
+
+- **Applying:** choose from the full augment list at the character screen; costs **1 Common material**; replaces any existing augment on that slot
+- **Removing:** free, no material cost
+
+Augments are not items — they are always available choices. The cost is the only gate.
+
+**v1 augments:**
+
+| Augment | Effect |
+|---------|--------|
+| Slow    | Reduces enemy movement speed on hit |
+
+Slow percentage and duration are TBD. Burn and Pierce are deferred to a future version.
+
+#### Skill Chains
+
+Skills can be chained via **on-hit connections**. When the parent skill hits an enemy, it fires the chained skill. Any skill category can chain to any other — melee can chain to ranged, ranged to melee, etc.
+
+**Chain depth** is determined by the **tier of the primary (slot-equipped) skill:**
+
+| Skill tier | Max chain depth |
+|------------|----------------|
+| 1          | 1 (A → B)      |
+| 2          | 2 (A → B → C)  |
+| N          | N              |
+
+**Adding a chain:** consuming an existing crafted skill item from inventory attaches it at the next chain position. The consumed item is **permanently spent** — it does not return to inventory if the chain is later removed.
+
+**Removing a chain:** the chain slot can be cleared at any time at no cost, but the consumed skill is lost.
+
+Each skill in a chain is itself a crafted skill item and carries its own augment. v1 has tier 1 skills only, so all chains are 1 deep in v1.
 
 #### Weapon
 
@@ -224,7 +273,7 @@ Specific item names and exact stat values are TBD.
 
 **Acquisition:** Gear is not dropped by enemies. New items come from crafting — each item has a recipe requiring a combination of materials (see Currencies).
 
-**Item identity:** Each item is a fixed, unique definition with its own ID and icon. Progression produces *new* items — a higher-tier crafted weapon is a new item with its own ID, not an upgraded version of an existing one. Icons never change dynamically; an item always looks the same regardless of who owns it or has it equipped.
+**Item identity:** Each item is a unique instance with its own ID. Items **upgrade in-place** — tier increases on the existing item rather than producing a new one. The item's background colour updates to reflect its new tier (see Item Tiers).
 
 **Inventory:** Crafted (unequipped) items go into the **account inventory** — a shared pool accessible by every character. The inventory has two tabs:
 
@@ -281,8 +330,12 @@ Crafting materials are tiered — common through exotic. Each tier drops at a di
     - *Skills tab* — crafted skill items, 50-item cap
     - Clicking a filled slot opens a popup (Equip / Delete). Equipped items are not shown here — they live in the slots.
   - **Equipment tab** *(default)* — gear slot buttons (Weapon / Armor / Accessory) and skill slot buttons (Skill 1 / Skill 2 / Skill 3) showing equipped items. Clicking an occupied slot: popup (Unequip / Delete). Clicking an empty slot: item picker filtered to that slot type.
-  - **Crafting tab** — craft new gear items from materials
-  - **Skill Crafting tab** — craft new skill items from materials
+  - **Crafting tab** — two sub-tabs:
+    - *Create* — craft new gear items from materials
+    - *Modify* — load an existing gear item into the slot; one **Upgrade** button to increase its tier (costs 1 Common material)
+  - **Skill Crafting tab** — two sub-tabs:
+    - *Create* — craft new skill items from materials
+    - *Modify* — load an existing skill item into the slot; one **Upgrade** button to increase its tier (costs 1 Common material); one **Augment** button to apply/change the augment (costs 1 Common material)
   - **Sigils tab** — visible, empty (reserved for future sigil system)
   - All five tabs are always visible; empty tabs are not locked or greyed out
   - Back button returns to Account Screen

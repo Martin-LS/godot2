@@ -8,29 +8,29 @@ public static class ItemRegistry
     public static readonly IReadOnlyDictionary<string, ItemData> All =
         new Dictionary<string, ItemData>
         {
-            // Weapons — affinity bonus to matching skill category; no base damage
-            ["sword_t1"] = new("sword_t1", "Sword",  ItemSlot.Weapon, Tier: 1,
+            // Weapons
+            ["sword_t1"] = new("sword_t1", "Sword",  ItemSlot.Weapon,
                 IconPath: "res://assets/icons/items/iron_sword.png",
-                WeaponAffinity: WeaponAffinity.Melee,           SkillBonus: 5f),
-            ["bow_t1"]   = new("bow_t1",   "Bow",    ItemSlot.Weapon, Tier: 1,
-                WeaponAffinity: WeaponAffinity.RangedPhysical,  SkillBonus: 5f),
-            ["wand_t1"]  = new("wand_t1",  "Wand",   ItemSlot.Weapon, Tier: 1,
+                WeaponAffinity: WeaponAffinity.Melee,          SkillBonus: 5f),
+            ["bow_t1"]   = new("bow_t1",   "Bow",    ItemSlot.Weapon,
+                WeaponAffinity: WeaponAffinity.RangedPhysical, SkillBonus: 5f),
+            ["wand_t1"]  = new("wand_t1",  "Wand",   ItemSlot.Weapon,
                 IconPath: "res://assets/icons/items/enchanted_blade.png",
-                WeaponAffinity: WeaponAffinity.RangedMagic,     SkillBonus: 5f),
+                WeaponAffinity: WeaponAffinity.RangedMagic,    SkillBonus: 5f),
 
-            // Armor — HP, Speed, and damage reduction vary by category
-            ["heavy_armor_t1"]  = new("heavy_armor_t1",  "Heavy Armor",  ItemSlot.Armor, Tier: 1,
+            // Armor
+            ["heavy_armor_t1"]  = new("heavy_armor_t1",  "Heavy Armor",  ItemSlot.Armor,
                 IconPath: "res://assets/icons/items/chain_mail.png",
                 ArmorCategory: ArmorCategory.Heavy,  BonusHp: 20, BonusSpeed: -20f, DamageReduction: 0.10f),
-            ["medium_armor_t1"] = new("medium_armor_t1", "Medium Armor", ItemSlot.Armor, Tier: 1,
+            ["medium_armor_t1"] = new("medium_armor_t1", "Medium Armor", ItemSlot.Armor,
                 IconPath: "res://assets/icons/items/mage_robe.png",
                 ArmorCategory: ArmorCategory.Medium, BonusHp: 10, BonusSpeed:   0f, DamageReduction: 0f),
-            ["light_armor_t1"]  = new("light_armor_t1",  "Light Armor",  ItemSlot.Armor, Tier: 1,
+            ["light_armor_t1"]  = new("light_armor_t1",  "Light Armor",  ItemSlot.Armor,
                 IconPath: "res://assets/icons/items/leather_vest.png",
                 ArmorCategory: ArmorCategory.Light,  BonusHp:  0, BonusSpeed:  20f, DamageReduction: 0f),
 
-            // Accessories — physical resistance only, no category
-            ["accessory_t1"] = new("accessory_t1", "Amulet", ItemSlot.Accessory, Tier: 1,
+            // Accessories
+            ["accessory_t1"] = new("accessory_t1", "Amulet", ItemSlot.Accessory,
                 IconPath: "res://assets/icons/items/swift_ring.png",
                 PhysicalResistance: 0.05f),
         };

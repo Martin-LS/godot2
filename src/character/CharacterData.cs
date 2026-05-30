@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Godot1.Items;
 using Godot1.Stats;
 
@@ -13,10 +12,14 @@ public class CharacterData
     public int RunsCompleted { get; set; } = 0;
 
     public int CurrentLevel { get; set; } = 1;
-    public int CurrentXp { get; set; } = 0;
+    public int CurrentXp    { get; set; } = 0;
 
-    public Dictionary<string, string> EquippedItems { get; set; } = new();
-    public List<string> SlottedSkillIds { get; set; } = new();
+    // Gear instances owned by this character (moved out of profile inventory when equipped).
+    public Dictionary<string, GearItemInstance> EquippedGear { get; set; } = new();
+
+    // GUIDs referencing SkillItemInstances in ProfileData.OwnedSkillInstances.
+    // Skills are not moved out of inventory when slotted — same instance can fill multiple slots.
+    public List<string> SlottedSkillInstanceIds { get; set; } = new();
 
     public StatBlock BuildStatBlock()
     {
@@ -40,42 +43,14 @@ public class CharacterData
             block.AddModifier(new StatModifier(StatId.Damage, ModifierType.FlatAdd, levelsAboveOne * 1f, ModifierSource.Level));
         }
 
-        foreach (var (_, id) in EquippedItems)
+        foreach (var (_, instance) in EquippedGear)
         {
-            var item = ItemRegistry.Get(id);
+            var item = instance.Definition;
             if (item == null || item.Slot != ItemSlot.Armor) continue;
-            if (item.BonusHp    != 0)  block.AddModifier(new StatModifier(StatId.MaxHp, ModifierType.FlatAdd, item.BonusHp,    ModifierSource.Item, id));
-            if (item.BonusSpeed != 0f) block.AddModifier(new StatModifier(StatId.Speed, ModifierType.FlatAdd, item.BonusSpeed, ModifierSource.Item, id));
+            if (item.BonusHp    != 0)  block.AddModifier(new StatModifier(StatId.MaxHp, ModifierType.FlatAdd, item.BonusHp,    ModifierSource.Item, instance.Id));
+            if (item.BonusSpeed != 0f) block.AddModifier(new StatModifier(StatId.Speed, ModifierType.FlatAdd, item.BonusSpeed, ModifierSource.Item, instance.Id));
         }
 
         return block;
     }
-
-    public Dictionary<string, object?> ToDict() => new()
-    {
-        ["id"]            = Id,
-        ["name"]          = Name,
-        ["type"]          = Type.ToString(),
-        ["runsCompleted"] = RunsCompleted,
-        ["currentLevel"]  = CurrentLevel,
-        ["currentXp"]     = CurrentXp,
-        ["equippedItems"]   = EquippedItems,
-        ["slottedSkillIds"] = SlottedSkillIds,
-    };
-
-    public static CharacterData FromDict(Dictionary<string, object?> d) => new()
-    {
-        Id            = (string)d["id"]!,
-        Name          = (string)d["name"]!,
-        Type          = System.Enum.Parse<CharacterType>((string)d["type"]!),
-        RunsCompleted = System.Convert.ToInt32(d["runsCompleted"]),
-        CurrentLevel  = d.ContainsKey("currentLevel") ? System.Convert.ToInt32(d["currentLevel"]) : 1,
-        CurrentXp     = d.ContainsKey("currentXp")    ? System.Convert.ToInt32(d["currentXp"])    : 0,
-        EquippedItems = d.ContainsKey("equippedItems") && d["equippedItems"] is Dictionary<string, object?> eq
-            ? eq.ToDictionary(kv => kv.Key, kv => kv.Value?.ToString() ?? "")
-            : new(),
-        SlottedSkillIds = d.ContainsKey("slottedSkillIds") && d["slottedSkillIds"] is List<string> skills
-            ? skills
-            : new(),
-    };
 }

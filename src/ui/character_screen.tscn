@@ -255,16 +255,79 @@ text = "Start Run"
 [node name="Crafting" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer" unique_id=6001000041]
 layout_mode = 2
 
-[node name="VBox" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/Crafting" unique_id=6001000042]
+[node name="CraftingTabs" type="TabContainer" parent="VBox/HSplit/RightPanel/TabContainer/Crafting" unique_id=6001000200]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Create" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/Crafting/CraftingTabs" unique_id=6001000201]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/Crafting/CraftingTabs/Create" unique_id=6001000042]
 layout_mode = 2
 theme_override_constants/separation = 12
+
+[node name="Modify" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/Crafting/CraftingTabs" unique_id=6001000202]
+layout_mode = 2
+
+[node name="ModifyVBox" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/Crafting/CraftingTabs/Modify" unique_id=6001000203]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SlotLabel" type="Label" parent="VBox/HSplit/RightPanel/TabContainer/Crafting/CraftingTabs/Modify/ModifyVBox" unique_id=6001000204]
+layout_mode = 2
+text = "Select gear to modify:"
+
+[node name="GearModifySlotBtn" type="Button" parent="VBox/HSplit/RightPanel/TabContainer/Crafting/CraftingTabs/Modify/ModifyVBox" unique_id=6001000205]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+size_flags_horizontal = 0
+text = "Select"
+
+[node name="GearUpgradeBtn" type="Button" parent="VBox/HSplit/RightPanel/TabContainer/Crafting/CraftingTabs/Modify/ModifyVBox" unique_id=6001000206]
+layout_mode = 2
+text = "Upgrade"
+disabled = true
 
 [node name="SkillCrafting" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer" unique_id=6001000120]
 layout_mode = 2
 
-[node name="VBox" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting" unique_id=6001000121]
+[node name="SkillCraftingTabs" type="TabContainer" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting" unique_id=6001000210]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Create" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs" unique_id=6001000211]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs/Create" unique_id=6001000121]
 layout_mode = 2
 theme_override_constants/separation = 12
+
+[node name="Modify" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs" unique_id=6001000212]
+layout_mode = 2
+
+[node name="ModifyVBox" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs/Modify" unique_id=6001000213]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SlotLabel" type="Label" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs/Modify/ModifyVBox" unique_id=6001000214]
+layout_mode = 2
+text = "Select skill to modify:"
+
+[node name="SkillModifySlotBtn" type="Button" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs/Modify/ModifyVBox" unique_id=6001000215]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+size_flags_horizontal = 0
+text = "Select"
+
+[node name="SkillUpgradeBtn" type="Button" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs/Modify/ModifyVBox" unique_id=6001000216]
+layout_mode = 2
+text = "Upgrade"
+disabled = true
+
+[node name="SkillAugmentBtn" type="Button" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs/Modify/ModifyVBox" unique_id=6001000217]
+layout_mode = 2
+text = "Add Augment"
+disabled = true
 
 [node name="Sigils" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer" unique_id=6001000122]
 layout_mode = 2

@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using Godot1.Items;
 using Godot1.Skills;
 
 namespace Godot1.Ui;
@@ -15,7 +16,6 @@ public partial class SkillPickerPanel : Control
     private VBoxContainer _itemList   = null!;
     private Button        _closeBtn   = null!;
 
-    // Must be called before AddChild so fields are set before _Ready fires.
     public void Init(
         Character.CharacterManager manager,
         Character.CharacterData    character,
@@ -45,19 +45,21 @@ public partial class SkillPickerPanel : Control
         foreach (Node child in _itemList.GetChildren())
             child.QueueFree();
 
-        string? currentId = _slotIndex < _character.SlottedSkillIds.Count
-            ? _character.SlottedSkillIds[_slotIndex]
+        string? currentId = _slotIndex < _character.SlottedSkillInstanceIds.Count
+            ? _character.SlottedSkillInstanceIds[_slotIndex]
             : null;
 
-        foreach (var skillId in _manager.Profile.OwnedSkillIds)
+        foreach (var instance in _manager.Profile.OwnedSkillInstances)
         {
-            var skill = SkillRegistry.Get(skillId);
+            var skill = instance.Definition;
             if (skill == null) continue;
 
-            bool   active = skillId == currentId;
-            string label  = $"{skill.Name}  [{skill.Type}]  CD: {skill.Cooldown:F1}s{(active ? "  [active]" : "")}";
-            var    btn    = new Button { Text = label };
-            string captured = skillId;
+            bool   active     = instance.Id == currentId;
+            string tierLabel  = ItemTier.Label(instance.Tier);
+            string augLabel   = instance.Augment != null ? $" +{AugmentRegistry.Get(instance.Augment)?.Name}" : "";
+            string label      = $"{skill.Name}  [{tierLabel}]{augLabel}  CD: {skill.Cooldown:F1}s{(active ? "  [active]" : "")}";
+            var    btn        = new Button { Text = label };
+            string captured   = instance.Id;
             btn.Pressed += () => { _manager.EquipSkill(_character.Id, _slotIndex, captured); Close(); };
             _itemList.AddChild(btn);
         }

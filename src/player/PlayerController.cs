@@ -50,11 +50,11 @@ public partial class PlayerController : CharacterBody3D
             var weaponController = GetNodeOrNull<Weapon.WeaponController>("Weapon");
             weaponController?.SetDamage(_statBlock.Get(Stats.StatId.Damage));
 
-            for (int i = 0; i < 3 && i < c.SlottedSkillIds.Count; i++)
+            for (int i = 0; i < 3 && i < c.SlottedSkillInstanceIds.Count; i++)
             {
-                var skillId = c.SlottedSkillIds[i];
-                if (string.IsNullOrEmpty(skillId)) continue;
-                var skill = SkillRegistry.Get(skillId);
+                var instanceId = c.SlottedSkillInstanceIds[i];
+                if (string.IsNullOrEmpty(instanceId)) continue;
+                var skill = manager.FindSkillInstance(instanceId)?.Definition;
                 if (skill == null) continue;
                 bool matches = weapon != null && weapon.WeaponAffinity switch
                 {
@@ -135,8 +135,8 @@ public partial class PlayerController : CharacterBody3D
 
     private static Items.ItemData? GetEquippedItem(Character.CharacterData c, Items.ItemSlot slot)
     {
-        c.EquippedItems.TryGetValue(slot.ToString(), out var id);
-        return id != null ? Items.ItemRegistry.Get(id) : null;
+        c.EquippedGear.TryGetValue(slot.ToString(), out var instance);
+        return instance?.Definition;
     }
 
     private static int ComputeXpToNextLevel(int level)
