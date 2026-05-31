@@ -91,6 +91,23 @@ columns = 5
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 4
 
+[node name="Augments" type="VBoxContainer" parent="VBox/HSplit/LeftPanel/LeftVBox/InventoryTabs" unique_id=6001000106]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="AugmentsScroll" type="ScrollContainer" parent="VBox/HSplit/LeftPanel/LeftVBox/InventoryTabs/Augments" unique_id=6001000107]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="AugmentsGrid" type="GridContainer" parent="VBox/HSplit/LeftPanel/LeftVBox/InventoryTabs/Augments/AugmentsScroll" unique_id=6001000108]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 5
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+
 [node name="RightPanel" type="VBoxContainer" parent="VBox/HSplit" unique_id=6001000010]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -324,10 +341,9 @@ layout_mode = 2
 text = "Upgrade"
 disabled = true
 
-[node name="SkillAugmentBtn" type="Button" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs/Modify/ModifyVBox" unique_id=6001000217]
+[node name="SupportSlotsRow" type="HBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs/Modify/ModifyVBox" unique_id=6001000217]
 layout_mode = 2
-text = "Add Augment"
-disabled = true
+theme_override_constants/separation = 8
 
 [node name="Sigils" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer" unique_id=6001000122]
 layout_mode = 2

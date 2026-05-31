@@ -4,7 +4,7 @@
 
 ## Overview
 
-A top-down horde survival game (Vampire Survivors / Diablo style). The player takes a persistent character into timed runs against escalating enemy waves. Skills fire automatically on cooldown — survival is about positioning and progression, not twitch reflexes.
+A top-down horde survival game (Vampire Survivors / Diablo style). The player takes a persistent character into timed runs against escalating enemy waves. Skills can fire automatically on cooldown or be activated manually — survival is about positioning and progression, not twitch reflexes.
 
 Every run makes the character permanently stronger: level and XP carry over, stat bonuses stack, and coins and crafting materials earned go into a shared account pool. Between runs, players craft gear from materials — building both their character and their item collection over time. Coins accumulate but have no spend mechanic yet.
 
@@ -20,20 +20,24 @@ The game has two intertwined goals: grow your character through runs, and build 
 
 ### Combat
 
+> **Design inspiration:** The skill system takes Path of Exile 2 as its north star — skills as socketable items, supports that modify individual skills, and trigger/chain mechanics. Our specific skills and numbers will differ, but the philosophy (deep, legible skill modification through a gem/support layer) guides all skill design decisions.
+
 Skills drive all combat. Each skill has a **type**:
 
 | Skill type | Behaviour |
 |---|---|
-| Active | Fires automatically when its cooldown expires. No player input required during the run. |
+| Active | Fires automatically when its cooldown expires, or can be triggered manually by the player. |
 | Passive | On/off toggle. Effect is always-on while enabled. |
 
 The **skill bar** on the run HUD shows all slotted skills and their cooldown / toggle state.
 
-**v1:** Three skill slots, each firing independently on its own cooldown. v1 has three skills (Strike, Arrow, Bolt — one per category). Starter characters have all 3 slots pre-filled with the same skill; players can mix freely. Cooldown: 0.8s per slot.
+**v1:** Three skill slots, each firing independently on its own cooldown. v1 has three skills (Strike, Arrow, Bolt). Starter characters have all 3 slots pre-filled with the same skill; players can mix freely. Cooldown: 0.8s per slot.
 
-Every skill has a **category**: Melee, Ranged-Physical, or Ranged-Magic. Category determines what weapon affinity enhances it — see Gear Slots.
+Every skill has one or more **tags** — descriptors that other systems react to (e.g. `Melee`, `Ranged`, `Magic`, `Attack`, `Spell`). Tags are not restrictions — any character can equip any skill. Tags determine which supports are compatible with a skill and which weapon affinity bonuses apply.
 
-Character damage scales with character level (via level-up bonuses) and archetype base damage. Weapons do not contribute base damage — they provide a flat bonus to skills of matching category (see Gear Slots).
+**v1 tags:** `Melee`, `Ranged`, `Magic`, `Attack`, `Spell` (expand as more skills and supports are added).
+
+Character damage scales with character level (via level-up bonuses) and archetype base damage. Weapons do not contribute base damage — they provide a flat bonus to skills with matching tags (see Gear Slots).
 
 ### Damage Types
 
@@ -47,8 +51,37 @@ Every damage source has a **damage type**. Every entity that can take damage has
 
 Resistances are always soft (never total immunity). Exact values are TBD.
 
+### Effects over Time (EoT)
+
+Skills and supports can apply **Effects over Time (EoT)** to enemies on hit. All EoTs follow the same rules regardless of what the specific effect does:
+
+Every EoT has the same four properties. All EoTs follow the same application rules:
+
+| Property | All EoTs | Notes |
+|---|---|---|
+| Apply chance | Yes | % chance to apply on hit |
+| Duration | Yes | How long the effect lasts; refreshes on reapply |
+| Tick rate | Damage EoTs only | Ignored for non-damage EoTs |
+| Damage per tick | Damage EoTs only | Ignored for non-damage EoTs |
+
+**Application rules (all EoTs):**
+- No stacking — only one instance of each EoT type per enemy at a time
+- Reapplying refreshes the duration rather than stacking or being ignored
+
+The EoT type defines *what it does* when active:
+
+| EoT | Damage per tick? | What it does |
+|---|---|---|
+| Slow | No | Reduces enemy movement speed |
+| Burn | Yes (Magic) | Deals damage per tick |
+| Vulnerability | No | Increases damage taken by the enemy |
+
+When designing new EoTs: if it deals damage per tick, set tick rate and damage per tick. If not, leave those blank. That is the only distinction.
+
+v1 supports only use Slow. All future effects follow this same framework.
+
 ### Interaction
-- Collectibles auto-collected on contact (XP gems, coins, health)
+- Collectibles auto-collected on contact (XP Shards, coins, health)
 - [TBD] Any interactive objects (chests, shrines, etc.)
 
 ---
@@ -59,13 +92,32 @@ Every run requires a character. Characters are created by the player, persist be
 
 ### Character Archetypes
 
-| Archetype | Max HP | Speed | Base Damage | Damage Type | Default build               |
-|-----------|--------|-------|-------------|-------------|-----------------------------|
-| Warrior   | 150    | 170   | 20          | Physical    | Sword + Heavy armor — close-range brawler |
-| Rogue     | 80     | 260   | 15          | Physical    | Bow + Light armor — fast, fragile kiter   |
-| Mage      | 100    | 200   | 35          | Magic       | Wand + Medium armor — glass cannon        |
+| Archetype | Max HP | Speed | Physical Damage | Magic Damage | Default build               |
+|-----------|--------|-------|----------------|--------------|------------------------------|
+| Warrior   | 150    | 170   | 20             | 0            | Sword + Heavy armor — close-range brawler |
+| Rogue     | 80     | 260   | 15             | 0            | Bow + Light armor — fast, fragile kiter   |
+| Mage      | 100    | 200   | 0              | 35           | Wand + Medium armor — glass cannon        |
 
 Stat values are TBD. Default build reflects starter gear — players are free to deviate.
+
+#### Archetype Stat Multipliers
+
+All stats scale through the archetype multiplier formula:
+
+`modifier_total × (level × multiplier)`
+
+Where `modifier_total` is the sum of all modifier sources for that stat: level-up bonuses + item contributions. Base archetype stats (the starting values at level 1) are not subject to the multiplier — they are applied directly. At level 1 (no modifiers yet) effective stats equal the archetype base stats unchanged. The default multiplier for every stat on every archetype is `0.1`. Archetypes override only the stats that define their identity — everything else stays at default.
+
+| Stat | Warrior | Rogue | Mage |
+|------|---------|-------|------|
+| Max HP | `level × TBD` | default | default |
+| Speed | default | `level × TBD` | default |
+| Physical Damage | `level × TBD` | `level × TBD` | default |
+| Magic Damage | default | default | `level × TBD` |
+| Physical Resistance | `level × TBD` | default | default |
+| Magic Resistance | default | default | `level × TBD` |
+
+"default" = `level × 0.1`. Exact override values are TBD — owned by the Balancer.
 
 ### Character Lifecycle
 1. **Create** — player picks a name (required) and archetype
@@ -77,11 +129,12 @@ Stat values are TBD. Default build reflects starter gear — players are free to
 A run cannot start without a selected character.
 
 ### Controls
-| Input | Action         |
-|-------|----------------|
-| WASD  | Move           |
-| —     | Attack (auto)  |
-| ESC   | Pause          |
+| Input   | Action                                      |
+|---------|---------------------------------------------|
+| WASD    | Move                                        |
+| —       | Attack (auto — fires on cooldown)           |
+| [TBD]   | Manual skill activation                     |
+| ESC     | Pause                                       |
 
 ---
 
@@ -89,16 +142,16 @@ A run cannot start without a selected character.
 
 ### Level Up
 - Killing an enemy grants **`1 XP × map level`** instantly (kill reward, no pickup required)
-- Killing enemies also drops **XP gems** — collecting them adds further XP
+- Killing enemies also drops **XP Shards** — collecting them adds further XP
 - Both sources fill the same XP bar
-- On level up: automatic permanent bonuses are applied — **+5 Max Health, +1 Damage**
+- On level up: permanent HP and damage bonuses are applied automatically, scaled by archetype and level
 - Level and XP within the current level persist when the run ends; the character picks up exactly where they left off
 - No popup or pause — levelling up is seamless
 
 ### Enemy Drops
 | Drop               | Effect                                         | Drop chance |
 |--------------------|------------------------------------------------|-------------|
-| XP gem             | Feeds level-up bar                             | 100%        |
+| XP Shard             | Feeds level-up bar                             | 100%        |
 | Coin               | Added to coin bank on run end                  | 25%         |
 | Health pickup      | Restores HP instantly                          | 10%         |
 | Crafting material (common) | Added to crafting-currency-1 bank on run end | 20% |
@@ -116,7 +169,7 @@ Maps are the arenas where runs take place. Each map has **attributes** that modi
 
 | Attribute   | Description                                                                 |
 |-------------|-----------------------------------------------------------------------------|
-| Map Level   | Scales kill XP reward — killing an enemy grants `1 XP × map level` directly, on top of any XP gem the enemy drops |
+| Map Level   | Scales kill XP reward — killing an enemy grants `1 XP × map level` directly, on top of any XP Shard the enemy drops |
 
 More attributes will be added in future (e.g. enemy density modifiers, environmental hazards, drop bonuses).
 
@@ -152,14 +205,7 @@ All types scale with elapsed time — speed and HP increase per minute. Spawn ra
 ## Meta-Progression (Between Runs)
 
 ### Level Bonuses (automatic)
-Each level gained during a run permanently improves the character:
-
-| Per level gained | Effect                  |
-|------------------|-------------------------|
-| +5 Max Health    | Permanent HP increase   |
-| +1 Damage        | Permanent damage increase (applies to attack skill) |
-
-These stack across all runs. A level-10 character has +45 HP and +9 damage above their archetype base.
+Each level gained during a run permanently increases the character's HP and damage. Bonuses scale with both archetype and level — each archetype grows faster in the stats that define its playstyle. These stack across all runs and are applied automatically on level-up. Exact growth coefficients are owned by the Balancer.
 
 ### Item Tiers
 
@@ -171,7 +217,7 @@ All items — both equipment and skills — have a **tier** that represents qual
 | Uncommon | Green  | Mid tier                     |
 | Rare     | Blue   | Highest tier (v1)            |
 
-Exact stat differences per tier are TBD. Higher tier also unlocks deeper skill chains (see Skill Chains).
+Exact stat differences per tier are TBD. Higher tier also unlocks more support slots on skill items (see Supports).
 
 ---
 
@@ -190,56 +236,53 @@ Characters can equip up to 3 gear items (one per gear slot) and up to 3 skill it
 
 Three skill slots map directly to the 3 skill bar slots shown during a run. Whatever is equipped in skill slots 1–3 is what fires during the run.
 
-The same skill item can be equipped in multiple slots simultaneously. Any archetype can equip any skill — there are no archetype or weapon restrictions on skill slots. v1 skills: **Strike** (melee auto-attack), **Arrow** (ranged-physical auto-attack), **Bolt** (ranged-magic auto-attack).
+The same skill item can be equipped in multiple slots simultaneously. Any archetype can equip any skill — there are no restrictions. v1 skills: **Strike** (`Melee`, `Attack`), **Arrow** (`Ranged`, `Attack`), **Bolt** (`Ranged`, `Magic`, `Spell`).
 
 Skill items are crafted (see Skill Crafting tab) and equipped from the **Skills inventory tab**.
 
-#### Skill Augments
+#### Supports
 
-Each skill slot has one **augment slot**. Augments add an effect on top of the base skill — the same augment can be applied to any skill regardless of category.
+> **PoE2 inspiration:** Supports are the equivalent of PoE2 support gems — they socket directly into a skill and modify how it behaves. Tag compatibility is the only gate; there are no character or archetype restrictions.
 
-- **Applying:** choose from the full augment list at the character screen; costs **1 Common material**; replaces any existing augment on that slot
-- **Removing:** free, no material cost
+Supports are craftable items that socket into a skill item to modify it. A support can only socket into a skill if the skill has at least one matching tag.
 
-Augments are not items — they are always available choices. The cost is the only gate.
+**Support slots per tier** — upgrading a skill unlocks deeper modification, not just bigger numbers:
 
-**v1 augments:**
+| Skill tier | Support slots |
+|------------|--------------|
+| Common     | 1            |
+| Uncommon   | 2            |
+| Rare       | 3            |
 
-| Augment | Effect |
-|---------|--------|
-| Slow    | Reduces enemy movement speed on hit |
+- **Socketing:** choose a compatible support from inventory and place it into an open support slot on the skill item
+- **Removing:** free, support returns to inventory
+- **Compatibility:** governed by tags — a support declares which tags it requires; the skill must have at least one
 
-Slow percentage and duration are TBD. Burn and Pierce are deferred to a future version.
+**v1 supports:**
 
-#### Skill Chains
+| Support | Requires tag | Effect |
+|---------|-------------|--------|
+| Splash  | `Melee`     | Hit damages a small area around the target |
+| Pierce  | `Ranged`    | Projectile passes through enemies |
+| Slow    | `Attack`    | Applies the Slow EoT on hit (see Effects over Time) |
 
-Skills can be chained via **on-hit connections**. When the parent skill hits an enemy, it fires the chained skill. Any skill category can chain to any other — melee can chain to ranged, ranged to melee, etc.
+Exact values (splash radius, slow %, apply chance, duration) are TBD.
 
-**Chain depth** is determined by the **tier of the primary (slot-equipped) skill:**
+**Crafting cost (v1):** every support costs **1 Common material** to craft.
 
-| Skill tier | Max chain depth |
-|------------|----------------|
-| 1          | 1 (A → B)      |
-| 2          | 2 (A → B → C)  |
-| N          | N              |
-
-**Adding a chain:** consuming an existing crafted skill item from inventory attaches it at the next chain position. The consumed item is **permanently spent** — it does not return to inventory if the chain is later removed.
-
-**Removing a chain:** the chain slot can be cleared at any time at no cost, but the consumed skill is lost.
-
-Each skill in a chain is itself a crafted skill item and carries its own augment. v1 has tier 1 skills only, so all chains are 1 deep in v1.
+Support items are crafted from the **Skill Crafting tab** and live in the **Augments inventory tab**.
 
 #### Weapon
 
-Weapons have an **affinity** matching a skill category. Equipping a weapon gives a flat damage bonus to all skills of that category. Weapons contribute no base damage — they enhance skills only.
+Weapons have an **affinity** tied to one or more skill tags. Equipping a weapon gives a flat damage bonus to all skills that share at least one matching tag. Weapons contribute no base damage — they enhance skills only.
 
-| Weapon type | Affinity        | Enhances               |
-|-------------|-----------------|------------------------|
-| Sword       | Melee           | Melee skills           |
-| Bow         | Ranged-Physical | Ranged-Physical skills |
-| Wand        | Ranged-Magic    | Ranged-Magic skills    |
+| Weapon type | Affinity tag | Enhances                  |
+|-------------|--------------|---------------------------|
+| Sword       | `Melee`      | Skills with Melee tag     |
+| Bow         | `Ranged`     | Skills with Ranged tag    |
+| Wand        | `Magic`      | Skills with Magic tag     |
 
-Any character can equip any weapon. The affinity bonus incentivises pairing weapon with matching skills — but mixing is valid.
+Any character can equip any weapon. The affinity bonus incentivises pairing weapon with matching skills — but mixing is valid. A skill with multiple tags (e.g. `Ranged`, `Magic`) benefits from any weapon whose affinity tag it shares.
 
 #### Armor
 
@@ -275,12 +318,13 @@ Specific item names and exact stat values are TBD.
 
 **Item identity:** Each item is a unique instance with its own ID. Items **upgrade in-place** — tier increases on the existing item rather than producing a new one. The item's background colour updates to reflect its new tier (see Item Tiers).
 
-**Inventory:** Crafted (unequipped) items go into the **account inventory** — a shared pool accessible by every character. The inventory has two tabs:
+**Inventory:** Crafted (unequipped) items go into the **account inventory** — a shared pool accessible by every character. The inventory has three tabs:
 
 | Tab | Contents | Capacity |
 |---|---|---|
 | Equipment | Crafted gear (weapons, armor, accessories) | 50 items |
 | Skills | Crafted skill items | 50 items |
+| Augments | Crafted support items | 50 items |
 
 Equipped items are held separately in the character's slots and do not count against inventory capacity. Each tab is visible on the Character Screen as a scrollable 5-column icon grid.
 
@@ -294,7 +338,7 @@ Equipped items are held separately in the character's slots and do not count aga
 Earned during runs (25% enemy drop). **Account-shared** — earned by any character, spendable by any. Spend mechanic TBD — coins accumulate but have no current use.
 
 ### Crafting Materials
-Crafting materials are tiered — common through exotic. Each tier drops at a different rate during runs and enables crafting of items at the corresponding tier. Items are crafted from **combinations** of materials, not a single currency spend.
+Crafting materials are tiered — common through exotic. Each tier drops at a different rate during runs and enables crafting of items at the corresponding tier. **v1:** all items cost 1 Common material to craft. Future versions will use material combinations for higher-tier recipes.
 
 | Tier    | Current name        | Drop rate | Enables                          |
 |---------|---------------------|-----------|----------------------------------|
@@ -325,17 +369,18 @@ Crafting materials are tiered — common through exotic. Each tier drops at a di
 - **Main Menu** → title screen, Play button
 - **Account Screen** → the account-level hub. Always the first screen after Main Menu. Contains the character roster (list characters, create new, delete). Designed to grow — future account-level info (account stats, global progress, etc.) will live alongside the roster. Selecting a character navigates to their Character Screen.
 - **Character Screen** → full management hub for the selected character: inventory (left), character stats + gear + tabs (right), Start Run button
-  - **Inventory** (left panel) — account-shared item pool, 5-column scrollable grid. Two tabs:
+  - **Inventory** (left panel) — account-shared item pool, 5-column scrollable grid. Three tabs:
     - *Equipment tab* — crafted gear (weapon, armor, accessory), 50-item cap
     - *Skills tab* — crafted skill items, 50-item cap
+    - *Augments tab* — crafted support items, 50-item cap
     - Clicking a filled slot opens a popup (Equip / Delete). Equipped items are not shown here — they live in the slots.
   - **Equipment tab** *(default)* — gear slot buttons (Weapon / Armor / Accessory) and skill slot buttons (Skill 1 / Skill 2 / Skill 3) showing equipped items. Clicking an occupied slot: popup (Unequip / Delete). Clicking an empty slot: item picker filtered to that slot type.
   - **Crafting tab** — two sub-tabs:
     - *Create* — craft new gear items from materials
     - *Modify* — load an existing gear item into the slot; one **Upgrade** button to increase its tier (costs 1 Common material)
   - **Skill Crafting tab** — two sub-tabs:
-    - *Create* — craft new skill items from materials
-    - *Modify* — load an existing skill item into the slot; one **Upgrade** button to increase its tier (costs 1 Common material); one **Augment** button to apply/change the augment (costs 1 Common material)
+    - *Create* — craft new skill items and support items from materials (costs 1 Common material each)
+    - *Modify* — load an existing skill item into the slot; one **Upgrade** button to increase its tier (costs 1 Common material). Socketing a support into a skill uses the same interaction as socketing a skill into a skill slot — click an open support slot on the skill item, pick a compatible support from the Augments inventory.
   - **Sigils tab** — visible, empty (reserved for future sigil system)
   - All five tabs are always visible; empty tabs are not locked or greyed out
   - Back button returns to Account Screen
@@ -355,3 +400,33 @@ Crafting materials are tiered — common through exotic. Each tier drops at a di
 | Timer expires | Run won — all rewards saved; [boss mechanic TBD]              |
 
 In both cases the player is returned to the character screen. There is no death penalty — every run makes the character stronger regardless of outcome.
+
+---
+
+## Future Design Notes
+
+### Archetype Defense System
+
+Each archetype should have a fundamentally different defensive philosophy — not just different numbers on the same stat, but a different *approach* to surviving:
+
+| Archetype | Defense type | Philosophy |
+|-----------|-------------|------------|
+| Warrior | Physical Resistance | Mitigation — get hit, absorb it. Rewards staying in melee range. |
+| Rogue | Dodge | Avoidance — don't get hit at all. Rewards speed investment and positioning. |
+| Mage | Focus Shield | Resource management — Focus absorbs damage before HP. Depleted by casting. Rewards Focus discipline. |
+
+**Focus** is the universal skill resource — all archetypes spend it to fire skills, but each archetype interacts with it differently:
+
+| Archetype | Focus interaction |
+|-----------|-----------------|
+| Warrior | Spends Focus on skills; non-magic skills cost relatively little |
+| Rogue | Spends Focus on skills; agile skills moderately refill it on use |
+| Mage | Spends Focus on high-cost magic skills; Focus also acts as a damage buffer (Focus Shield) before HP is hit |
+
+The Mage tension: blasting at full rate depletes Focus quickly, leaving the shield empty. Pacing preserves the buffer. This is the Mage's core risk/reward loop.
+
+**Dodge** for the Rogue pairs naturally with their speed archetype multiplier — speed investment increases evasion, reinforcing the kiting playstyle without adding a separate stat.
+
+The archetype multiplier system (see Characters) maps directly onto this: each archetype's designated defense type has a high multiplier, making cross-archetype defense investment possible but inefficient.
+
+*Not scheduled for v1. Design this when manual skill activation and Focus are on the roadmap.*

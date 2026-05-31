@@ -13,10 +13,10 @@ public static class ItemRegistry
                 IconPath: "res://assets/icons/items/iron_sword.png",
                 WeaponAffinity: WeaponAffinity.Melee,          SkillBonus: 5f),
             ["bow_t1"]   = new("bow_t1",   "Bow",    ItemSlot.Weapon,
-                WeaponAffinity: WeaponAffinity.RangedPhysical, SkillBonus: 5f),
+                WeaponAffinity: WeaponAffinity.Ranged, SkillBonus: 5f),
             ["wand_t1"]  = new("wand_t1",  "Wand",   ItemSlot.Weapon,
                 IconPath: "res://assets/icons/items/enchanted_blade.png",
-                WeaponAffinity: WeaponAffinity.RangedMagic,    SkillBonus: 5f),
+                WeaponAffinity: WeaponAffinity.Magic,  SkillBonus: 5f),
 
             // Armor
             ["heavy_armor_t1"]  = new("heavy_armor_t1",  "Heavy Armor",  ItemSlot.Armor,

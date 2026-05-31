@@ -23,7 +23,7 @@ Godot 4.6, C#, Forward Plus renderer. Game world is 3D (CharacterBody3D, XZ move
 | Stretch mode        | `canvas_items`                | Scales UI and world together; crisp at integer multiples of 720p.  |
 | UI theme            | Spacey (`res://addons/Themey/themes/spacey/spacey.tres`) | Free Themey pack; set as project-wide theme — all Control nodes inherit automatically. No per-scene theme overrides. |
 | Floor               | Procedural checkerboard (`CheckerBackground.cs`) | Two-tone grey, generated at runtime — no external assets. |
-| Pickup visuals      | Colored `BoxMesh` (10×10×10) | XP gem = green, coin = yellow, health = red. Opaque to all systems. |
+| Pickup visuals      | Colored `BoxMesh` (10×10×10) | XP Shard = green, coin = yellow, health = red. Opaque to all systems. |
 
 ---
 
@@ -83,14 +83,17 @@ CharacterScreen (Control)
         ├── LeftPanel (PanelContainer, min width 280)
         │   └── LeftVBox (VBoxContainer)
         │       ├── InventoryTitle (Label)
-        │       ├── InventoryInfo (Label)  ← "Gear: N/50  Skills: M/50  Coins: X  Common: Y"
+        │       ├── InventoryInfo (Label)  ← "Gear: N/50  Skills: M/50  Augments: P/50  Coins: X  Common: Y"
         │       └── InventoryTabs (TabContainer, expand vertical)
         │           ├── Equipment tab
         │           │   └── InventoryScroll (ScrollContainer)
         │           │       └── InventoryGrid (GridContainer, 5 cols) ← 50 Button slots, runtime-populated from OwnedGearInstances
-        │           └── Skills tab
-        │               └── SkillsScroll (ScrollContainer)
-        │                   └── SkillsGrid (GridContainer, 5 cols) ← 50 Button slots, runtime-populated from OwnedSkillInstances
+        │           ├── Skills tab
+        │           │   └── SkillsScroll (ScrollContainer)
+        │           │       └── SkillsGrid (GridContainer, 5 cols) ← 50 Button slots, runtime-populated from OwnedSkillInstances
+        │           └── Augments tab
+        │               └── AugmentsScroll (ScrollContainer)
+        │                   └── AugmentsGrid (GridContainer, 5 cols) ← 50 Button slots, runtime-populated from OwnedSupportInstances
         └── RightPanel (VBoxContainer)
             └── TabContainer
                 ├── Equipment tab (VBoxContainer)
@@ -119,14 +122,14 @@ CharacterScreen (Control)
                 │       └── GearUpgradeBtn (Button) ← costs 1 Common; disabled if no item loaded / max tier / insufficient materials
                 ├── Skill Crafting tab (SkillCraftingTabs TabContainer)
                 │   ├── Create sub-tab
-                │   │   └── VBox ← materials label + one Button per RecipeRegistry.ForType(Skill) entry
+                │   │   └── VBox ← materials label + one Button per RecipeRegistry.ForType(Skill) entry; one Button per RecipeRegistry.ForType(Support) entry
                 │   └── Modify sub-tab (ModifyVBox)
                 │       ├── SkillModifySlotBtn (Button 60×60) ← click → inline PopupMenu listing OwnedSkillInstances
                 │       ├── SkillUpgradeBtn (Button) ← costs 1 Common; disabled if no skill loaded / max tier / insufficient materials
-                │       └── SkillAugmentBtn (Button) ← shows current augment name; click → PopupMenu (AugmentRegistry entries + "Remove Augment")
+                │       └── SupportSlotsRow (HBoxContainer) ← one slot button per support slot (count = tier); each slot: empty → SupportPickerPanel filtered to compatible supports from OwnedSupportInstances; occupied → PopupMenu (Remove)
                 └── Sigils tab    ← empty; reserved for future sigil system
 ```
-**Inventory grids:** Each tab has 50 slots (5 cols, scrollable), all always visible. Empty slots are dimmed. Clicking a filled slot opens a `PopupMenu` (Equip / Delete). Equip routes the item to the correct slot on the selected character, swapping any currently equipped item back to inventory. Capacity: `ProfileData.MaxInventory = 50` per tab — counts only unequipped items; equipped gear lives in `CharacterData.EquippedGear`, slotted skill GUIDs in `SlottedSkillInstanceIds`. If `SelectedCharacter` is null on `_Ready`, redirects to `account_screen.tscn`.
+**Inventory grids:** Each tab has 50 slots (5 cols, scrollable), all always visible. Empty slots are dimmed. Clicking a filled slot opens a `PopupMenu` (Equip / Delete for gear/skills; Delete for supports — supports are not equipped directly, they are socketed into skills). Capacity: `ProfileData.MaxInventory = 50` per tab — counts only unequipped/unsocketed items; equipped gear lives in `CharacterData.EquippedGear`, slotted skill GUIDs in `SlottedSkillInstanceIds`, socketed support GUIDs in `SkillItemInstance.SocketedSupportInstanceIds`. If `SelectedCharacter` is null on `_Ready`, redirects to `account_screen.tscn`.
 
 **Skill slots:** Skill slot buttons open a `SkillPickerPanel` when empty. Occupied skill slots use a `PopupMenu` (Unequip / Delete).
 
@@ -190,8 +193,9 @@ Main (Node)
 | Player            | Input, movement, stat sheet, taking damage                   | `res://src/player/`       | ✅ done |
 | Weapon            | Auto-attack, targeting nearest enemy, firing on cooldown     | `res://src/weapon/`       | ✅ done |
 | EnemySpawner      | Time-based wave scaling, spawning enemy scenes               | `res://src/enemies/`      | ✅ done |
-| Enemy             | AI (chase), taking damage, death + XP gem spawning           | `res://src/enemies/`      | ✅ done |
-| XpGem             | XP pickup — auto-collected on contact                        | `res://src/xp/`           | ✅ done |
+| Enemy             | AI (chase), taking damage, death + XP Shard spawning           | `res://src/enemies/`      | ✅ done |
+| XpShard           | XP Shard pickup — auto-collected on contact                  | `res://src/xp/`           | ✅ done |
+| EoT               | Effect over Time — apply, tick, expire on enemies            | `res://src/eot/`          | 🔲 planned |
 | Hud               | Health bar, XP bar, level, coin counter, run timer           | `res://src/hud/`          | ✅ done |
 | RunSession        | Run timer, win/lose detection, emits RunEnded signal         | `res://src/run/`          | ✅ done |
 | UpgradePicker     | (removed from scene — code kept dormant)                     | `res://src/ui/`           | ❌ removed |
@@ -215,28 +219,35 @@ Main (Node)
 | Class               | Kind        | Fields                                                         |
 |---------------------|-------------|----------------------------------------------------------------|
 | `GearItemInstance`  | Plain C#    | Id (string, GUID), DefinitionId (string → `ItemRegistry`), Tier (int, 1–3). Authoritative tier for runtime stat scaling. |
-| `SkillItemInstance` | Plain C#    | Id (string, GUID), DefinitionId (string → `SkillRegistry`), Tier (int, 1–3), Augment (string?, augment ID or null), ChainInstanceId (string?, GUID of chained `SkillItemInstance` or null). |
-| `ProfileData`       | Plain C#    | CoinBank, Materials (Dictionary\<string, int\>), OwnedGearInstances (List\<GearItemInstance\>), OwnedSkillInstances (List\<SkillItemInstance\>), MaxInventory (const = 50) — applies separately to each list. Account-shared. Migration: old `ownedItemIds`/`ownedSkillIds` string lists are wrapped into instances (new GUID, Tier = 1) on load. |
-| `CharacterData`     | Plain C#    | Id, Name, Type (enum), RunsCompleted, CurrentLevel, CurrentXp, EquippedGear (Dictionary\<string, GearItemInstance\> — slot → full instance), SlottedSkillInstanceIds (List\<string\> — instance GUIDs; skill instances stay in `OwnedSkillInstances`). Archetype base stats computed inline in `BuildStatBlock()`. |
+| `SkillItemInstance` | Plain C#    | Id (string, GUID), DefinitionId (string → `SkillRegistry`), Tier (int, 1–3), SocketedSupportInstanceIds (List\<string\> — instance GUIDs, one entry per support slot; "" = empty slot; max length = support slots for tier: 1/2/3). |
+| `ProfileData`       | Plain C#    | CoinBank, Materials (Dictionary\<string, int\>), OwnedGearInstances (List\<GearItemInstance\>), OwnedSkillInstances (List\<SkillItemInstance\>), OwnedSupportInstances (List\<SupportItemInstance\>), MaxInventory (const = 50) — applies separately to each list. Account-shared. Migration: old `ownedItemIds`/`ownedSkillIds` string lists are wrapped into instances (new GUID, Tier = 1) on load. Old `augment`/`chainInstanceId` fields on skill instances are dropped on load. |
+| `CharacterData`     | Plain C#    | Id, Name, Type (enum), RunsCompleted, CurrentLevel, CurrentXp, EquippedGear (Dictionary\<string, GearItemInstance\> — slot → full instance), SlottedSkillInstanceIds (List\<string\> — instance GUIDs; skill instances stay in `OwnedSkillInstances`). Archetype base stats computed inline in `BuildStatBlock()` — applies archetype multiplier formula before returning. |
 | `CharacterType`     | C# enum     | Warrior, Rogue, Mage                                           |
+| `StatId`            | C# enum     | MaxHp, Speed, PhysicalDamage, MagicDamage, PhysicalResistance, MagicResistance |
+| `StatModifier`      | Plain C#    | StatId, ModifierType (FlatAdd), Value (float), ModifierSource (Level, Item) |
+| `StatBlock`         | Plain C#    | Internal flat modifier list per `StatId`. `Get(StatId)` returns the sum of all flat modifiers for that stat — archetype multiplier is applied in `BuildStatBlock()` before the block is returned, so callers always get effective values. |
 | `ItemData`          | C# record   | Id, Name, Slot (enum), IconPath — plus slot-specific fields: `WeaponAffinity`, `SkillBonus (float)` for Weapon; `ArmorCategory`, `BonusHp`, `BonusSpeed`, `DamageReduction (float)` for Armor; `PhysicalResistance (float)` for Accessory. Unused fields default to zero. `Tier` removed — tier lives on `GearItemInstance`, not the definition. |
 | `ItemSlot`          | C# enum     | Weapon, Armor, Accessory                                       |
-| `SkillData`         | C# record   | Id, Name, Type (SkillType enum), Category (SkillCategory enum), Cooldown (float, seconds; 0 for Passive), Range (float), IconPath (string, default ""). No Tier — tier lives on `SkillItemInstance`. |
+| `SkillData`         | C# record   | Id, Name, Type (SkillType enum), Tags (string[]) — e.g. `["Melee","Attack"]`, `["Ranged","Attack"]`, `["Ranged","Magic","Spell"]`. Cooldown (float, seconds; 0 for Passive), Range (float), IconPath (string, default ""). No Tier — tier lives on `SkillItemInstance`. |
 | `SkillType`         | C# enum     | Active, Passive                                                |
-| `WeaponAffinity`    | C# enum     | None, Melee, RangedPhysical, RangedMagic                       |
+| `WeaponAffinity`    | C# enum     | None, Melee, Ranged, Magic                                     |
 | `ArmorCategory`     | C# enum     | None, Heavy, Medium, Light                                     |
-| `SkillCategory`     | C# enum     | Melee, RangedPhysical, RangedMagic                             |
 | `DamageType`        | C# enum     | Physical, Magic                                                |
 | `ItemTier`          | C# static class (const ints) | Common = 1, Uncommon = 2, Rare = 3, Max = 3. `Label(int)` → display name. `BackgroundColor(int)` → Godot `Color`. Used for tier background colour in UI. |
 | `ItemRegistry`      | Static class| `All` dict, `Get(id)`, `ForSlot(slot)` — 7 starter gear definitions. Definitions carry no tier — all instances start at Tier = 1 when crafted. |
-| `SkillRegistry`     | Static class| `All` dict, `Get(id)` — v1: 3 entries (`attack_melee`, `attack_ranged_physical`, `attack_ranged_magic`). |
+| `SkillRegistry`     | Static class| `All` dict, `Get(id)` — v1: 3 entries: `strike` (Tags: `["Melee","Attack"]`), `arrow` (Tags: `["Ranged","Attack"]`), `bolt` (Tags: `["Ranged","Magic","Spell"]`). |
 | `RecipeData`        | C# record   | Id, OutputItemId (string — definition ID), RecipeType (enum), MaterialCosts (Dictionary\<string, int\>). Crafting always produces a new instance at Tier = 1. |
-| `RecipeType`        | C# enum     | Gear, Skill                                                    |
+| `SupportData`       | C# record   | Id (string), Name (string), RequiredTags (string[]) — skill must share at least one tag. EotId (string?, nullable) — links support to an EoT definition; null for supports with no timed effect (e.g. Splash, Pierce). No Effect field — behaviour dispatched by Id in code. v1: Splash (`["Melee"]`, EotId: null), Pierce (`["Ranged"]`, EotId: null), Slow (`["Attack"]`, EotId: `"slow"`). |
+| `SupportItemInstance` | Plain C#  | Id (string, GUID), DefinitionId (string → `SupportRegistry`). No tier — supports are flat items in v1. |
+| `SupportRegistry`   | Static class| `All` dict, `Get(id)`, `All()` — static catalog of available supports. v1: 3 entries (splash, pierce, slow). |
+| `RecipeType`        | C# enum     | Gear, Skill, Support                                           |
 | `CraftResult`       | C# enum     | Success, InsufficientMaterials, InventoryFull                  |
-| `RecipeRegistry`    | Static class| `All` dict, `Get(id)`, `ForSlot(ItemSlot)`, `ForType(RecipeType)` — v1: 7 gear recipes + 3 skill recipes (Strike/Arrow/Bolt, 3× common each). |
-| `AugmentData`       | C# record   | Id (string), Name (string). v1: one entry — `slow` ("Slow"). Always-available; not in an inventory. No Effect field — effect behaviour is code-dispatched by Id. |
-| `AugmentRegistry`   | Static class| `All` dict, `Get(id)`, `All()` — static catalog of available augments. |
+| `RecipeRegistry`    | Static class| `All` dict, `Get(id)`, `ForSlot(ItemSlot)`, `ForType(RecipeType)` — v1: 7 gear recipes + 3 skill recipes (Strike/Arrow/Bolt, 1× common each) + 3 support recipes (Splash/Pierce/Slow, 1× common each). |
 | `EnemyData`         | C# record   | EnemyType (string), BaseSpeed, BaseHealth, ContactDamage, DamageInterval, PhysicalResistance (float), MagicResistance (float) |
+| `EotData`           | C# record   | Id (string), Name (string), ApplyChance (float 0–1), Duration (float seconds), IsDamageEot (bool), TickRate (float seconds — ignored when IsDamageEot = false), DamagePerTick (float — ignored when IsDamageEot = false). All EoTs share these four properties; only damage EoTs use TickRate and DamagePerTick. |
+| `EotInstance`       | Plain C#    | Runtime state per active EoT on an enemy: DefinitionId (string), TimeRemaining (float), TickTimer (float — only relevant for damage EoTs). Held in `EnemyController._activeEots (Dictionary<string, EotInstance>)` keyed by EotData.Id — enforces one instance per type. |
+| `EotRegistry`       | Static class| `Get(id)`, `GetAll()` — static catalogue of all EoT definitions. v1: `slow` (IsDamageEot = false), `burn` (IsDamageEot = true). |
+| `ArchetypeMultiplierRegistry` | Static class | `Get(CharacterType, StatId) → float` — returns the archetype-specific level multiplier for a stat. Returns `0.1f` for any unspecified pair. Override table lives here — owned by the Balancer. Lives in `src/character/`. |
 
 ---
 
@@ -253,7 +264,10 @@ Managed by `CharacterManager` autoload. Written on every create/delete/upgrade.
       { "id": "<guid>", "defId": "bow_t1", "tier": 1 }
     ],
     "ownedSkillInstances": [
-      { "id": "<guid>", "defId": "attack_melee", "tier": 1, "augment": "slow", "chainInstanceId": "" }
+      { "id": "<guid>", "defId": "attack_melee", "tier": 1, "socketedSupportInstanceIds": ["<support-guid>", ""] }
+    ],
+    "ownedSupportInstances": [
+      { "id": "<support-guid>", "defId": "slow" }
     ]
   },
   "characters": [
@@ -274,7 +288,7 @@ Managed by `CharacterManager` autoload. Written on every create/delete/upgrade.
   ]
 }
 ```
-Note: `augment` and `chainInstanceId` serialize `null` as `""` (empty string) — `DictToSkillInst` treats `""` as null on load.
+Note: empty support slots serialize as `""` inside `socketedSupportInstanceIds`. `DictToSkillInst` treats `""` entries as empty slots on load. Old saves carrying `augment`/`chainInstanceId` fields have those fields dropped on migration.
 
 `ownedGearInstances` and `ownedSkillInstances` hold only **unequipped** instances. Equipped gear lives as full `GearItemInstance` objects in `equippedGear` (nested dicts on disk). Slotted skills remain in `ownedSkillInstances`; `slottedSkillInstanceIds` holds GUIDs referencing them. `EquipItem` moves a gear instance from `OwnedGearInstances` to `EquippedGear`, swapping the old equipped instance back. `UnequipItem` / `UnequipSkillSlot` blocked if respective inventory is at capacity.
 
@@ -298,11 +312,11 @@ If multi-user slots or cloud saves are ever needed, evaluate wrapping save data 
 
 Single weapon per character (v1). `WeaponController` manages:
 
-- `BaseDamage (float)` — set at run start from `CharacterData` (archetype base + level bonuses + meta upgrades). The equipped weapon item does **not** contribute to base damage.
+- `PhysicalBaseDamage (float)` and `MagicBaseDamage (float)` — both set at run start from `CharacterData.BuildStatBlock()` after the archetype multiplier formula is applied. The equipped weapon item does **not** contribute to base damage. At fire time, the slot uses `PhysicalBaseDamage` or `MagicBaseDamage` based on whether the skill has the `Magic` tag.
 - `_slots[3]` — internal array of 3 slot states, each holding `{ SkillData Skill, float CooldownTimer, float SkillBonus }`. Each slot fires independently when its timer reaches 0. Empty slots (null Skill) are skipped.
-- Per slot: `SkillBonus` is non-zero only when the weapon affinity matches the slot's skill category. `DamageType` per slot: `RangedMagic → Magic`, else `Physical`. `CooldownTimer` counts down independently from each slot's `Skill.Cooldown`.
+- Per slot: `SkillBonus` is non-zero only when the weapon's affinity tag appears in the slot's skill Tags array. `DamageType` per slot: skill has `Magic` tag → `Magic`, else `Physical`. `CooldownTimer` counts down independently from each slot's `Skill.Cooldown`.
 
-Exposes: `SetDamage(float)`, `AddDamage(float)`, `SetSlot(int slotIndex, SkillData, float weaponSkillBonus)`.
+Exposes: `SetDamage(float physicalDamage, float magicDamage)`, `SetSlot(int slotIndex, SkillData, float weaponSkillBonus)`.
 
 `SetSlot` replaces `SetSkill` — called once per slot at run start. Stores `SkillData`, pre-computed `SkillBonus`, and seeds `CooldownTimer` to 0 so each slot fires immediately on the first frame.
 
@@ -325,7 +339,7 @@ Each cell contains:
 
 `Hud._Ready()` wires `WeaponController.SkillFired` → `OnSkillFired(int slotIndex, float cooldown)`. On fire: set the matching cell's bar to 0, show grey overlay, begin filling. Filling is handled in `_Process` (bar value increments by `delta / cooldown` each frame). When bar reaches 1.0: hide grey overlay, stop incrementing.
 
-The skill bar is the visual feedback loop for the auto-attack cadence — 3 independent timers give the player a read on all active slots without any input required.
+The skill bar is the visual feedback loop for the skill cadence — 3 independent timers give the player a read on all active slots whether firing automatically or triggered manually.
 
 ---
 
@@ -339,7 +353,7 @@ Items are never dropped — they come exclusively from crafting. Each craftable 
 RecipeData(Id, OutputItemId, MaterialCosts: Dictionary<string, int>)
 ```
 
-`MaterialCosts` keys are material IDs (`"crafting_common"`, `"crafting_rare"`, …). v1: every recipe costs only `"crafting_common"`. Quantities are TBD.
+`MaterialCosts` keys are material IDs (`"crafting_common"`, `"crafting_rare"`, …). v1: every recipe costs `{ "crafting_common": 1 }`.
 
 ### `CharacterManager.CraftGearItem(string recipeId) → CraftResult`
 
@@ -355,7 +369,7 @@ Save(); return Success
 
 ### `CharacterManager.CraftSkillItem(string recipeId) → CraftResult`
 
-Same pattern, adds `new SkillItemInstance { Id = NewGuid(), DefinitionId = recipe.OutputItemId, Tier = 1, Augment = null, ChainInstanceId = null }` to `OwnedSkillInstances`.
+Same pattern, adds `new SkillItemInstance { Id = NewGuid(), DefinitionId = recipe.OutputItemId, Tier = 1, SocketedSupportInstanceIds = [] }` to `OwnedSkillInstances`.
 
 ### `CharacterManager.UpgradeGearItem(string instanceId) → CraftResult`
 
@@ -373,20 +387,26 @@ Save(); return Success
 
 Same pattern as `UpgradeGearItem`, searches both `OwnedSkillInstances` and slotted skill instances.
 
-### `CharacterManager.ApplyAugment(string instanceId, string augmentId) → CraftResult`
+### `CharacterManager.CraftSupportItem(string recipeId) → CraftResult`
+
+Same pattern as `CraftSkillItem`. Adds `new SupportItemInstance { Id = NewGuid(), DefinitionId = recipe.OutputItemId }` to `OwnedSupportInstances`.
+
+### `CharacterManager.SocketSupport(string skillInstanceId, int slotIndex, string supportInstanceId) → CraftResult`
 
 ```
-instance = find SkillItemInstance by id (owned or slotted)
-if instance == null → InsufficientMaterials
-if Profile.Materials["crafting_common"] < 1 → InsufficientMaterials
-Profile.Materials["crafting_common"] -= 1
-instance.Augment = augmentId
+skill = find SkillItemInstance by id (owned or slotted)
+support = OwnedSupportInstances.Find(supportInstanceId)
+if skill == null || support == null → InsufficientMaterials
+if slotIndex >= MaxSupportSlots(skill.Tier) → InsufficientMaterials
+supportDef = SupportRegistry.Get(support.DefinitionId)
+if skill.Tags shares no tag with supportDef.RequiredTags → InsufficientMaterials
+skill.SocketedSupportInstanceIds[slotIndex] = supportInstanceId
 Save(); return Success
 ```
 
-### `CharacterManager.RemoveAugment(string instanceId)`
+### `CharacterManager.RemoveSupport(string skillInstanceId, int slotIndex)`
 
-Sets `instance.Augment = null`. Free. Save().
+Sets `skill.SocketedSupportInstanceIds[slotIndex] = ""`. Free. Save().
 
 ### Crafting tab — Create sub-tab (CharacterScreen)
 
@@ -405,10 +425,10 @@ Parallel to gear Create tab. Recipe list from `RecipeRegistry.ForType(RecipeType
 
 ### Skill Crafting tab — Modify sub-tab (CharacterScreen)
 
-Contains a loaded-skill slot (Button, 60×60), an **Upgrade** button, and an **Augment** button.
+Contains a loaded-skill slot (Button, 60×60), an **Upgrade** button, and a **Support Slots** row.
 - Slot is empty until player clicks it → opens inline `PopupMenu` listing all `OwnedSkillInstances`
 - **Upgrade** button: same disabled conditions as gear upgrade
-- **Augment** button: shows current augment name (or "No augment"); on press opens augment picker (lists `AugmentRegistry.All()`); applying costs 1 Common; removing is free
+- **Support Slots** row: shows one slot button per support slot (count derived from loaded skill's tier). Empty slot → opens `SupportPickerPanel` filtered to `OwnedSupportInstances` whose `SupportData.RequiredTags` intersect with the skill's tags. Occupied slot → `PopupMenu` (Remove — free, support returns to inventory).
 
 ### Material IDs
 
@@ -417,6 +437,76 @@ Contains a loaded-skill slot (Button, 60×60), an **Upgrade** button, and an **A
 | `crafting_common` | Common | 20% enemy drop (maps to old `craftingCurrency1`) |
 
 Higher tiers (rare, exotic) will be added when their drop sources are designed.
+
+---
+
+## Effects over Time (EoT)
+
+All timed effects on enemies — whether damage or control — flow through a single EoT system. See GDD § Effects over Time for design rules.
+
+### Data
+
+```
+EotData(Id, Name, ApplyChance, Duration, IsDamageEot, TickRate, DamagePerTick)
+EotInstance { DefinitionId, TimeRemaining, TickTimer }
+```
+
+`EotRegistry` is a static catalogue. `SupportData` references EoT by id (e.g. `slow` support → `"slow"` EoT id). The mapping is 1-to-1 in v1 but supports could reference no EoT (e.g. Splash, Pierce are purely mechanical with no timed effect).
+
+### Application flow
+
+```
+Projectile hits EnemyController
+→ foreach socketed support on the firing skill slot:
+    eot = EotRegistry.Get(support.EotId)   // null if support has no EoT
+    if eot == null: skip
+    if Random() < eot.ApplyChance:
+        enemy.ApplyEot(eot)
+```
+
+`Projectile` carries a `List<string> SupportEotIds` resolved by `WeaponController` at fire time from the skill slot's socketed supports. No registry lookups on the hot path — just a list of IDs the projectile received at instantiation.
+
+### `EnemyController.ApplyEot(EotData eot)`
+
+```
+if _activeEots.ContainsKey(eot.Id):
+    _activeEots[eot.Id].TimeRemaining = eot.Duration   // refresh
+    return
+// first application:
+_activeEots[eot.Id] = new EotInstance { DefinitionId = eot.Id, TimeRemaining = eot.Duration, TickTimer = eot.TickRate }
+ApplyEotEffect(eot)   // e.g. reduce speed for Slow
+```
+
+### `EnemyController._Process(delta)` — EoT tick
+
+```
+foreach (id, inst) in _activeEots:
+    inst.TimeRemaining -= delta
+    if inst.TimeRemaining <= 0:
+        RemoveEotEffect(eot)
+        _activeEots.Remove(id)
+        continue
+    if eot.IsDamageEot:
+        inst.TickTimer -= delta
+        if inst.TickTimer <= 0:
+            TakeDamage(eot.DamagePerTick, DamageType.Magic)
+            inst.TickTimer = eot.TickRate
+```
+
+### Effect dispatch
+
+Effects are applied/removed by id — no subclassing:
+
+| EoT id | On apply | On remove |
+|---|---|---|
+| `slow` | `Speed *= (1 − SlowFraction)` | `Speed /= (1 − SlowFraction)` |
+| `burn` | _(nothing — damage fires on tick)_ | _(nothing)_ |
+
+`SlowFraction` is a field on `EotData` [TBD value]. Damage EoTs use `DamagePerTick` from `EotData`. New EoTs are added by extending the dispatch switch — no new classes needed.
+
+### Signal
+
+`EnemyController` does not emit a signal for EoT state. HUD / VFX feedback is deferred — exact signal contract TBD when visual effects are designed.
 
 ---
 
@@ -430,6 +520,8 @@ Higher tiers (rare, exotic) will be added when their drop sources are designed.
 effectiveDamage = rawAmount × (1 − DamageReduction)
 if type == Physical:
     effectiveDamage ×= (1 − PhysicalResistance)
+else if type == Magic:
+    effectiveDamage ×= (1 − MagicResistance)
 CurrentHealth -= effectiveDamage
 emit HealthChanged(CurrentHealth)
 ```
@@ -450,19 +542,57 @@ Resistance values per enemy type live in `EnemyData` (`PhysicalResistance`, `Mag
 
 `PlayerController._Ready()` reads `CharacterManager.SelectedCharacter` and equipped items. After seeding, `GlobalPosition` is forced to `Vector3.Zero` — the map center — regardless of any saved node position in the scene file.
 
+All stats are derived via the archetype multiplier formula (see Archetype Multiplier System below) — `BuildStatBlock()` returns pre-computed effective values.
+
 ```
-MaxHealth          = archetype base + level bonuses + meta upgrades + armor.BonusHp
-Speed              = archetype base + meta upgrades + armor.BonusSpeed  // negative for Heavy
-Damage             = archetype base + level bonuses + meta upgrades
-DamageReduction    = armor.DamageReduction
-PhysicalResistance = accessory.PhysicalResistance
+statBlock          = character.BuildStatBlock()   // applies multiplier formula internally
+
+MaxHealth          = statBlock.Get(MaxHp)
+Speed              = statBlock.Get(Speed)
+PhysicalDamage     = statBlock.Get(PhysicalDamage)
+MagicDamage        = statBlock.Get(MagicDamage)
+PhysicalResistance = statBlock.Get(PhysicalResistance)
+MagicResistance    = statBlock.Get(MagicResistance)
+DamageReduction    = armor.DamageReduction        // flat item stat, not multiplied
+
+WeaponController.SetDamage(PhysicalDamage, MagicDamage)
+
 for i in 0..2:
     instanceId = character.SlottedSkillInstanceIds[i]   // "" = skip
     if instanceId is non-empty:
         skill = CharacterManager.FindSkillInstance(instanceId).Definition
-        bonus = (weapon.WeaponAffinity matches skill.Category) ? weapon.SkillBonus : 0
+        bonus = skill.Tags.Contains(weapon.WeaponAffinity.ToString()) ? weapon.SkillBonus : 0
         WeaponController.SetSlot(i, skill, bonus)
 ```
+
+### Archetype Multiplier System
+
+Every modifier source is amplified by the character's archetype and current level:
+
+```
+effective_stat = base_stat + modifier_total × (level × archetype_multiplier)
+```
+
+`base_stat` = archetype base value — set directly, **not** subject to the multiplier. `modifier_total` = sum of all modifier sources: level-up bonuses + item contributions. At level 1 (no modifiers yet) effective stats equal base archetype stats unchanged.
+
+The default multiplier is `0.1` for every stat/archetype pair. Each archetype overrides only the stats that define its identity — all other pairs stay at default:
+
+| Stat | Warrior | Rogue | Mage |
+|------|---------|-------|------|
+| Max HP | TBD | 0.1 | 0.1 |
+| Speed | 0.1 | TBD | 0.1 |
+| Physical Damage | TBD | TBD | 0.1 |
+| Magic Damage | 0.1 | 0.1 | TBD |
+| Physical Resistance | TBD | 0.1 | 0.1 |
+| Magic Resistance | 0.1 | 0.1 | TBD |
+
+Override values are TBD — owned by the Balancer.
+
+**Implementation:** A static `ArchetypeMultiplierRegistry` maps `(CharacterType, StatId) → float`, returning `0.1f` for any unspecified pair. `BuildStatBlock()` calls this after accumulating flat modifiers and before returning — callers always receive effective values.
+
+**Mid-run level-up:** `BuildStatBlock()` is called once at run start and once per level-up event (not per frame). On level-up, `PlayerController` calls `BuildStatBlock()` with the new level and reseeds all stats from the result. This keeps the formula live throughout a run at negligible cost (~10 calls over 5 minutes).
+
+`DamageReduction` is not part of the multiplier system — it is a flat percentage from the armor item and is applied as-is.
 
 ---
 
@@ -489,7 +619,7 @@ Each run is played on a map. Maps carry an attribute set that modifies run behav
 
 | Attribute  | Type  | Effect                                                                     |
 |------------|-------|----------------------------------------------------------------------------|
-| `MapLevel` | `int` | On enemy death, `PlayerController.CollectXp(MapLevel)` is called directly — no pickup required. Stacks on top of any XP gem drop. |
+| `MapLevel` | `int` | On enemy death, `PlayerController.CollectXp(MapLevel)` is called directly — no pickup required. Stacks on top of any XP Shard drop. |
 
 `MapLevel` is passed into the run scene at startup (e.g. via `RunSession` or a `MapData` resource — exact wiring TBD when maps are selectable).
 
@@ -500,18 +630,18 @@ Each run is played on a map. Maps carry an attribute set that modifies run behav
 On enemy death, two XP sources fire independently:
 
 1. **Kill XP** — `1 × MapLevel` XP granted instantly via `PlayerController.CollectXp()`
-2. **XP gem drop** — physical `XpGem` scene spawned; player must walk over it (value = 5 XP)
+2. **XP Shard drop** — physical `XpShard` scene spawned; player must walk over it (value = 5 XP)
 
 Other drops hardcoded in `EnemyController.Die()`:
 
 | Drop              | Chance | Notes                                                                  |
 |-------------------|--------|------------------------------------------------------------------------|
-| XP gem            | 100%   | Always dropped; value = 5 XP                                           |
+| XP Shard            | 100%   | Always dropped; value = 5 XP                                           |
 | Coin              | 25%    | `CoinPickup` auto-collected; reports to `RunSession.AddCoin()`         |
 | Health pack       | 10%    | `HealthPickup` heals player for 15 HP on contact                       |
 | Crafting currency | 20%    | Instant; calls `RunSession.AddCraftingCurrency1(1)` — no pickup scene  |
 
-> Planned: large XP gems, weighted drop tables via `EnemyData` resource.
+> Planned: large XP Shards, weighted drop tables via `EnemyData` resource.
 
 ---
 
@@ -540,6 +670,18 @@ Systems communicate via signals only — no direct cross-system method calls.
 | `CoinChanged(int)`          | RunSession     | Hud (coin counter)               |
 | `RunTimerExpired`           | RunSession     | EnemySpawner (spawn boss)        |
 | `RunEnded(result)`          | RunSession     | CharacterManager (flush coins/XP/level via `RecordRunCompletion`) |
+
+---
+
+## Future Systems
+
+### Focus (Skill Resource)
+
+`Focus` is the planned universal skill resource — all archetypes spend it to fire skills, but each interacts with it differently (Warrior: low-cost non-magic skills; Rogue: agile skills refill on use; Mage: Focus also acts as a damage buffer before HP). See GDD § Future Design Notes.
+
+**Architecture placeholder:** `StatId.Focus` (max pool) and `StatId.FocusRegen` (regen rate) will be added when Focus is implemented. `PlayerController` will track `CurrentFocus` analogously to `CurrentHealth`. `WeaponController` will deduct Focus per shot based on skill cost; if insufficient Focus, the slot does not fire. Archetype multiplier table will include a Focus row.
+
+*Not scheduled for v1.*
 
 ---
 

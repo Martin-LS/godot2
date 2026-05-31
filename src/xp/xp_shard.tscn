@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://bodp3acwu4m88"]
+
+[ext_resource type="Script" uid="uid://des87mkw6kmxn" path="res://src/xp/XpShard.cs" id="1_je6xg"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_shard"]
+radius = 8.0
+
+[node name="XpShard" type="Area3D" unique_id=2080270995]
+script = ExtResource("1_je6xg")
+
+[node name="CollisionShape" type="CollisionShape3D" parent="." unique_id=650446377]
+shape = SubResource("SphereShape3D_shard")

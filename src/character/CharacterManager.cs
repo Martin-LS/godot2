@@ -45,10 +45,10 @@ public partial class CharacterManager : Node
 
         var skillDefId = c.Type switch
         {
-            CharacterType.Warrior => "attack_melee",
-            CharacterType.Rogue   => "attack_ranged_physical",
-            CharacterType.Mage    => "attack_ranged_magic",
-            _                     => "attack_melee",
+            CharacterType.Warrior => "strike",
+            CharacterType.Rogue   => "arrow",
+            CharacterType.Mage    => "bolt",
+            _                     => "strike",
         };
 
         var skillInst = new SkillItemInstance { DefinitionId = skillDefId };
@@ -99,6 +99,12 @@ public partial class CharacterManager : Node
         return Profile.OwnedSkillInstances.FirstOrDefault(s => s.Id == id);
     }
 
+    public SupportItemInstance? FindSupportInstance(string? id)
+    {
+        if (string.IsNullOrEmpty(id)) return null;
+        return Profile.OwnedSupportInstances.FirstOrDefault(s => s.Id == id);
+    }
+
     // ── Gear inventory ────────────────────────────────────────────────────────
 
     public CraftResult CraftGearItem(string recipeId)
@@ -127,7 +133,6 @@ public partial class CharacterManager : Node
         var inst = Profile.OwnedGearInstances.FirstOrDefault(g => g.Id == instanceId);
         if (c == null || inst == null) return;
 
-        // Return currently-equipped item to inventory.
         if (c.EquippedGear.TryGetValue(slot.ToString(), out var old))
             Profile.OwnedGearInstances.Add(old);
 
@@ -162,8 +167,8 @@ public partial class CharacterManager : Node
     public CraftResult UpgradeGearItem(string instanceId)
     {
         var inst = FindGearInstance(instanceId);
-        if (inst == null || inst.Tier >= ItemTier.Max)          return CraftResult.InsufficientMaterials;
-        if (Profile.GetMaterial("crafting_common") < 1)         return CraftResult.InsufficientMaterials;
+        if (inst == null || inst.Tier >= ItemTier.Max)  return CraftResult.InsufficientMaterials;
+        if (Profile.GetMaterial("crafting_common") < 1) return CraftResult.InsufficientMaterials;
         Profile.Materials["crafting_common"] -= 1;
         inst.Tier++;
         Save();
@@ -192,7 +197,6 @@ public partial class CharacterManager : Node
         return CraftResult.Success;
     }
 
-    // Skill slots hold references — instance stays in inventory.
     public void EquipSkill(string charId, int slotIndex, string instanceId)
     {
         var c = _characters.FirstOrDefault(x => x.Id == charId);
@@ -237,30 +241,62 @@ public partial class CharacterManager : Node
     public CraftResult UpgradeSkillItem(string instanceId)
     {
         var inst = FindSkillInstance(instanceId);
-        if (inst == null || inst.Tier >= ItemTier.Max)          return CraftResult.InsufficientMaterials;
-        if (Profile.GetMaterial("crafting_common") < 1)         return CraftResult.InsufficientMaterials;
+        if (inst == null || inst.Tier >= ItemTier.Max)  return CraftResult.InsufficientMaterials;
+        if (Profile.GetMaterial("crafting_common") < 1) return CraftResult.InsufficientMaterials;
         Profile.Materials["crafting_common"] -= 1;
         inst.Tier++;
         Save();
         return CraftResult.Success;
     }
 
-    public CraftResult ApplyAugment(string instanceId, string augmentId)
+    // ── Support inventory ─────────────────────────────────────────────────────
+
+    public CraftResult CraftSupportItem(string recipeId)
     {
-        var inst = FindSkillInstance(instanceId);
-        if (inst == null || AugmentRegistry.Get(augmentId) == null) return CraftResult.InsufficientMaterials;
-        if (Profile.GetMaterial("crafting_common") < 1)             return CraftResult.InsufficientMaterials;
-        Profile.Materials["crafting_common"] -= 1;
-        inst.Augment = augmentId;
+        var recipe = RecipeRegistry.Get(recipeId);
+        if (recipe == null) return CraftResult.InsufficientMaterials;
+
+        foreach (var (matId, qty) in recipe.MaterialCosts)
+            if (Profile.GetMaterial(matId) < qty)
+                return CraftResult.InsufficientMaterials;
+
+        if (Profile.OwnedSupportInstances.Count >= ProfileData.MaxInventory)
+            return CraftResult.InventoryFull;
+
+        foreach (var (matId, qty) in recipe.MaterialCosts)
+            Profile.Materials[matId] -= qty;
+
+        Profile.OwnedSupportInstances.Add(new SupportItemInstance { DefinitionId = recipe.OutputItemId });
         Save();
         return CraftResult.Success;
     }
 
-    public void RemoveAugment(string instanceId)
+    public CraftResult SocketSupport(string skillInstanceId, int slotIndex, string supportInstanceId)
     {
-        var inst = FindSkillInstance(instanceId);
-        if (inst == null) return;
-        inst.Augment = null;
+        var skill   = FindSkillInstance(skillInstanceId);
+        var support = FindSupportInstance(supportInstanceId);
+        if (skill == null || support == null) return CraftResult.InsufficientMaterials;
+        if (slotIndex >= skill.MaxSupportSlots) return CraftResult.InsufficientMaterials;
+
+        var supportDef = SupportRegistry.Get(support.DefinitionId);
+        if (supportDef == null) return CraftResult.InsufficientMaterials;
+
+        var skillDef = skill.Definition;
+        if (skillDef == null || !skillDef.Tags.Any(t => supportDef.RequiredTags.Contains(t)))
+            return CraftResult.InsufficientMaterials;
+
+        while (skill.SocketedSupportInstanceIds.Count <= slotIndex)
+            skill.SocketedSupportInstanceIds.Add("");
+        skill.SocketedSupportInstanceIds[slotIndex] = supportInstanceId;
+        Save();
+        return CraftResult.Success;
+    }
+
+    public void RemoveSupport(string skillInstanceId, int slotIndex)
+    {
+        var skill = FindSkillInstance(skillInstanceId);
+        if (skill == null || slotIndex >= skill.SocketedSupportInstanceIds.Count) return;
+        skill.SocketedSupportInstanceIds[slotIndex] = "";
         Save();
     }
 
@@ -273,13 +309,23 @@ public partial class CharacterManager : Node
         ["tier"]  = g.Tier,
     };
 
-    private static Godot.Collections.Dictionary SkillInstToDict(SkillItemInstance s) => new()
+    private static Godot.Collections.Dictionary SkillInstToDict(SkillItemInstance s)
     {
-        ["id"]              = s.Id,
-        ["defId"]           = s.DefinitionId,
-        ["tier"]            = s.Tier,
-        ["augment"]         = s.Augment         ?? "",
-        ["chainInstanceId"] = s.ChainInstanceId ?? "",
+        var supportArr = new Godot.Collections.Array();
+        foreach (var sid in s.SocketedSupportInstanceIds) supportArr.Add(sid);
+        return new Godot.Collections.Dictionary
+        {
+            ["id"]                         = s.Id,
+            ["defId"]                      = s.DefinitionId,
+            ["tier"]                       = s.Tier,
+            ["socketedSupportInstanceIds"] = supportArr,
+        };
+    }
+
+    private static Godot.Collections.Dictionary SupportInstToDict(SupportItemInstance s) => new()
+    {
+        ["id"]    = s.Id,
+        ["defId"] = s.DefinitionId,
     };
 
     private static GearItemInstance DictToGearInst(Godot.Collections.Dictionary d) => new()
@@ -289,32 +335,52 @@ public partial class CharacterManager : Node
         Tier         = System.Convert.ToInt32(d["tier"].Obj),
     };
 
-    private static SkillItemInstance DictToSkillInst(Godot.Collections.Dictionary d) => new()
+    private static SkillItemInstance DictToSkillInst(Godot.Collections.Dictionary d)
     {
-        Id              = d["id"].ToString()!,
-        DefinitionId    = d["defId"].ToString()!,
-        Tier            = System.Convert.ToInt32(d["tier"].Obj),
-        Augment         = d.ContainsKey("augment")         && d["augment"].ToString() != ""         ? d["augment"].ToString()         : null,
-        ChainInstanceId = d.ContainsKey("chainInstanceId") && d["chainInstanceId"].ToString() != "" ? d["chainInstanceId"].ToString() : null,
+        var inst = new SkillItemInstance
+        {
+            Id           = d["id"].ToString()!,
+            DefinitionId = d["defId"].ToString()!,
+            Tier         = d.ContainsKey("tier") ? System.Convert.ToInt32(d["tier"].Obj) : 1,
+        };
+
+        if (d.ContainsKey("socketedSupportInstanceIds") &&
+            d["socketedSupportInstanceIds"].Obj is Godot.Collections.Array arr)
+        {
+            foreach (var v in arr)
+                inst.SocketedSupportInstanceIds.Add(v.ToString()!);
+        }
+        // Old fields (augment, chainInstanceId) are silently dropped on migration.
+        return inst;
+    }
+
+    private static SupportItemInstance DictToSupportInst(Godot.Collections.Dictionary d) => new()
+    {
+        Id           = d["id"].ToString()!,
+        DefinitionId = d["defId"].ToString()!,
     };
 
     private void Save()
     {
         var gearArr = new Godot.Collections.Array();
-        foreach (var g in Profile.OwnedGearInstances)  gearArr.Add(GearInstToDict(g));
+        foreach (var g in Profile.OwnedGearInstances)    gearArr.Add(GearInstToDict(g));
 
         var skillArr = new Godot.Collections.Array();
-        foreach (var s in Profile.OwnedSkillInstances) skillArr.Add(SkillInstToDict(s));
+        foreach (var s in Profile.OwnedSkillInstances)   skillArr.Add(SkillInstToDict(s));
+
+        var supportArr = new Godot.Collections.Array();
+        foreach (var s in Profile.OwnedSupportInstances) supportArr.Add(SupportInstToDict(s));
 
         var matsDict = new Godot.Collections.Dictionary();
         foreach (var kv in Profile.Materials) matsDict[kv.Key] = kv.Value;
 
         var profileDict = new Godot.Collections.Dictionary
         {
-            ["coinBank"]            = Profile.CoinBank,
-            ["materials"]           = matsDict,
-            ["ownedGearInstances"]  = gearArr,
-            ["ownedSkillInstances"] = skillArr,
+            ["coinBank"]               = Profile.CoinBank,
+            ["materials"]              = matsDict,
+            ["ownedGearInstances"]     = gearArr,
+            ["ownedSkillInstances"]    = skillArr,
+            ["ownedSupportInstances"]  = supportArr,
         };
 
         var charList = new Godot.Collections.Array();
@@ -328,13 +394,13 @@ public partial class CharacterManager : Node
 
             charList.Add(new Godot.Collections.Dictionary
             {
-                ["id"]                     = c.Id,
-                ["name"]                   = c.Name,
-                ["type"]                   = c.Type.ToString(),
-                ["runsCompleted"]          = c.RunsCompleted,
-                ["currentLevel"]           = c.CurrentLevel,
+                ["id"]                      = c.Id,
+                ["name"]                    = c.Name,
+                ["type"]                    = c.Type.ToString(),
+                ["runsCompleted"]           = c.RunsCompleted,
+                ["currentLevel"]            = c.CurrentLevel,
                 ["currentXp"]              = c.CurrentXp,
-                ["equippedGear"]           = equippedGearDict,
+                ["equippedGear"]            = equippedGearDict,
                 ["slottedSkillInstanceIds"] = slottedArr,
             });
         }
@@ -377,6 +443,10 @@ public partial class CharacterManager : Node
                 foreach (var v in sa)
                     if (v.Obj is Godot.Collections.Dictionary sd) Profile.OwnedSkillInstances.Add(DictToSkillInst(sd));
 
+            if (pd.ContainsKey("ownedSupportInstances") && pd["ownedSupportInstances"].Obj is Godot.Collections.Array spa)
+                foreach (var v in spa)
+                    if (v.Obj is Godot.Collections.Dictionary spd) Profile.OwnedSupportInstances.Add(DictToSupportInst(spd));
+
             // Migrate: old ownedItemIds (string list) → GearItemInstance list
             if (pd.ContainsKey("ownedItemIds") && pd["ownedItemIds"].Obj is Godot.Collections.Array oldItems)
                 foreach (var v in oldItems)
@@ -389,7 +459,7 @@ public partial class CharacterManager : Node
             // Migrate: old ownedSkillIds (string list) → SkillItemInstance list
             if (pd.ContainsKey("ownedSkillIds") && pd["ownedSkillIds"].Obj is Godot.Collections.Array oldSkills)
                 foreach (var v in oldSkills)
-                    Profile.OwnedSkillInstances.Add(new SkillItemInstance { DefinitionId = v.ToString()! });
+                    Profile.OwnedSkillInstances.Add(new SkillItemInstance { DefinitionId = MigrateSkillId(v.ToString()!) });
         }
 
         // ── Characters ───────────────────────────────────────────────────────
@@ -402,15 +472,14 @@ public partial class CharacterManager : Node
 
             var c = new CharacterData
             {
-                Id           = gd.ContainsKey("id")            ? gd["id"].ToString()!                                        : System.Guid.NewGuid().ToString(),
-                Name         = gd.ContainsKey("name")          ? gd["name"].ToString()!                                      : "",
-                Type         = gd.ContainsKey("type")          ? System.Enum.Parse<CharacterType>(gd["type"].ToString()!)    : CharacterType.Warrior,
-                RunsCompleted = gd.ContainsKey("runsCompleted") ? System.Convert.ToInt32(gd["runsCompleted"].Obj)             : 0,
-                CurrentLevel = gd.ContainsKey("currentLevel")  ? System.Convert.ToInt32(gd["currentLevel"].Obj)              : 1,
-                CurrentXp    = gd.ContainsKey("currentXp")     ? System.Convert.ToInt32(gd["currentXp"].Obj)                 : 0,
+                Id            = gd.ContainsKey("id")            ? gd["id"].ToString()!                                     : System.Guid.NewGuid().ToString(),
+                Name          = gd.ContainsKey("name")          ? gd["name"].ToString()!                                   : "",
+                Type          = gd.ContainsKey("type")          ? System.Enum.Parse<CharacterType>(gd["type"].ToString()!) : CharacterType.Warrior,
+                RunsCompleted = gd.ContainsKey("runsCompleted") ? System.Convert.ToInt32(gd["runsCompleted"].Obj)          : 0,
+                CurrentLevel  = gd.ContainsKey("currentLevel")  ? System.Convert.ToInt32(gd["currentLevel"].Obj)          : 1,
+                CurrentXp     = gd.ContainsKey("currentXp")     ? System.Convert.ToInt32(gd["currentXp"].Obj)             : 0,
             };
 
-            // New format: equippedGear
             if (gd.ContainsKey("equippedGear") && gd["equippedGear"].Obj is Godot.Collections.Dictionary eqGd)
                 foreach (var kv in eqGd)
                     if (kv.Value.Obj is Godot.Collections.Dictionary instDict)
@@ -430,7 +499,6 @@ public partial class CharacterManager : Node
                     }
                 }
 
-            // New format: slottedSkillInstanceIds
             if (gd.ContainsKey("slottedSkillInstanceIds") && gd["slottedSkillInstanceIds"].Obj is Godot.Collections.Array slotArr)
                 c.SlottedSkillInstanceIds = slotArr.Select(v => v.ToString()!).ToList();
 
@@ -445,7 +513,7 @@ public partial class CharacterManager : Node
                     if (string.IsNullOrEmpty(defId)) continue;
                     if (!defIdToInst.ContainsKey(defId))
                     {
-                        var inst = new SkillItemInstance { DefinitionId = defId };
+                        var inst = new SkillItemInstance { DefinitionId = MigrateSkillId(defId) };
                         defIdToInst[defId] = inst;
                         Profile.OwnedSkillInstances.Add(inst);
                     }
@@ -457,13 +525,21 @@ public partial class CharacterManager : Node
                 }).ToList();
             }
 
-            // Ensure exactly 3 skill slots.
             while (c.SlottedSkillInstanceIds.Count < 3)
                 c.SlottedSkillInstanceIds.Add("");
 
             _characters.Add(c);
         }
     }
+
+    // Migrate old skill definition IDs to new tag-based IDs.
+    private static string MigrateSkillId(string oldId) => oldId switch
+    {
+        "attack_melee"           => "strike",
+        "attack_ranged_physical" => "arrow",
+        "attack_ranged_magic"    => "bolt",
+        _                        => oldId,
+    };
 
     private static readonly Dictionary<string, string> OldToNew = new()
     {

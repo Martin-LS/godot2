@@ -1,11 +1,11 @@
 namespace Godot1.Skills;
 
 public record SkillData(
-    string              Id,
-    string              Name,
-    SkillType           Type,
-    Items.SkillCategory Category,
-    float               Cooldown,
-    float               Range,
-    string              IconPath = ""
+    string    Id,
+    string    Name,
+    SkillType Type,
+    string[]  Tags,
+    float     Cooldown,
+    float     Range,
+    string    IconPath = ""
 );
