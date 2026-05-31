@@ -25,30 +25,55 @@ public class CharacterData
     {
         var block = new StatBlock();
 
-        var (baseHp, baseSpd, baseDmg) = Type switch
+        // Archetype base stats — set directly, not subject to multiplier formula.
+        var (baseHp, baseSpd, basePhysDmg, baseMagDmg) = Type switch
         {
-            CharacterType.Warrior => (150f, 170f, 20f),
-            CharacterType.Rogue   => (80f,  260f, 15f),
-            CharacterType.Mage    => (100f, 200f, 35f),
-            _                     => (100f, 200f, 20f),
+            CharacterType.Warrior => (150f, 170f, 20f,  0f),
+            CharacterType.Rogue   => (80f,  260f, 15f,  0f),
+            CharacterType.Mage    => (100f, 200f, 0f,   35f),
+            _                     => (100f, 200f, 20f,  0f),
         };
-        block.SetBase(StatId.MaxHp,  baseHp);
-        block.SetBase(StatId.Speed,  baseSpd);
-        block.SetBase(StatId.Damage, baseDmg);
+        block.SetBase(StatId.MaxHp,          baseHp);
+        block.SetBase(StatId.Speed,           baseSpd);
+        block.SetBase(StatId.PhysicalDamage,  basePhysDmg);
+        block.SetBase(StatId.MagicDamage,     baseMagDmg);
 
+        // Level-up flat bonuses — scaled by archetype multiplier × level.
+        // Formula: bonus × (CurrentLevel × multiplier).
+        // At level 1 there are no level-up bonuses (levelsAboveOne = 0), so no modifiers are added.
         int levelsAboveOne = CurrentLevel - 1;
         if (levelsAboveOne > 0)
         {
-            block.AddModifier(new StatModifier(StatId.MaxHp,  ModifierType.FlatAdd, levelsAboveOne * 5f, ModifierSource.Level));
-            block.AddModifier(new StatModifier(StatId.Damage, ModifierType.FlatAdd, levelsAboveOne * 1f, ModifierSource.Level));
+            StatId dmgStat  = Type == CharacterType.Mage ? StatId.MagicDamage : StatId.PhysicalDamage;
+            float  hpBonus  = levelsAboveOne * 5f * CurrentLevel * ArchetypeMultiplierRegistry.Get(Type, StatId.MaxHp);
+            float  dmgBonus = levelsAboveOne * 1f * CurrentLevel * ArchetypeMultiplierRegistry.Get(Type, dmgStat);
+            block.AddModifier(new StatModifier(StatId.MaxHp, ModifierType.FlatAdd, hpBonus,  ModifierSource.Level));
+            block.AddModifier(new StatModifier(dmgStat,      ModifierType.FlatAdd, dmgBonus, ModifierSource.Level));
         }
 
+        // Item contributions — scaled by archetype multiplier × level.
         foreach (var (_, instance) in EquippedGear)
         {
             var item = instance.Definition;
-            if (item == null || item.Slot != ItemSlot.Armor) continue;
-            if (item.BonusHp    != 0)  block.AddModifier(new StatModifier(StatId.MaxHp, ModifierType.FlatAdd, item.BonusHp,    ModifierSource.Item, instance.Id));
-            if (item.BonusSpeed != 0f) block.AddModifier(new StatModifier(StatId.Speed, ModifierType.FlatAdd, item.BonusSpeed, ModifierSource.Item, instance.Id));
+            if (item == null) continue;
+
+            if (item.Slot == ItemSlot.Armor)
+            {
+                if (item.BonusHp != 0)
+                    block.AddModifier(new StatModifier(StatId.MaxHp, ModifierType.FlatAdd,
+                        item.BonusHp * CurrentLevel * ArchetypeMultiplierRegistry.Get(Type, StatId.MaxHp),
+                        ModifierSource.Item, instance.Id));
+                if (item.BonusSpeed != 0f)
+                    block.AddModifier(new StatModifier(StatId.Speed, ModifierType.FlatAdd,
+                        item.BonusSpeed * CurrentLevel * ArchetypeMultiplierRegistry.Get(Type, StatId.Speed),
+                        ModifierSource.Item, instance.Id));
+            }
+            else if (item.Slot == ItemSlot.Accessory && item.PhysicalResistance != 0f)
+            {
+                block.AddModifier(new StatModifier(StatId.PhysicalResistance, ModifierType.FlatAdd,
+                    item.PhysicalResistance * CurrentLevel * ArchetypeMultiplierRegistry.Get(Type, StatId.PhysicalResistance),
+                    ModifierSource.Item, instance.Id));
+            }
         }
 
         return block;

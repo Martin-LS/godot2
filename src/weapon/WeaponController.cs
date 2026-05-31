@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 using Godot1.Skills;
 
 namespace Godot1.Weapon;
@@ -10,26 +11,32 @@ public partial class WeaponController : Node
     private static readonly PackedScene ProjectileScene =
         GD.Load<PackedScene>("res://src/weapon/projectile.tscn");
 
-    [Export] public float Damage = 20f;
+    private float _physicalDamage = 20f;
+    private float _magicDamage    = 0f;
 
-    public void SetDamage(float d) => Damage = d;
-    public void AddDamage(float d) => Damage += d;
+    public void SetDamage(float physicalDamage, float magicDamage)
+    {
+        _physicalDamage = physicalDamage;
+        _magicDamage    = magicDamage;
+    }
 
     private struct SkillSlot
     {
-        public SkillData? Skill;
-        public float      CooldownTimer;
-        public float      SkillBonus;
+        public SkillData?    Skill;
+        public float         CooldownTimer;
+        public float         SkillBonus;
+        public List<string>  EotIds;
     }
 
     private readonly SkillSlot[] _slots = new SkillSlot[3];
 
-    public void SetSlot(int slotIndex, SkillData skill, float weaponSkillBonus)
+    public void SetSlot(int slotIndex, SkillData skill, float weaponSkillBonus, List<string>? eotIds = null)
     {
         if (slotIndex < 0 || slotIndex >= 3) return;
         _slots[slotIndex].Skill         = skill;
         _slots[slotIndex].SkillBonus    = weaponSkillBonus;
         _slots[slotIndex].CooldownTimer = 0f;
+        _slots[slotIndex].EotIds        = eotIds ?? new List<string>();
     }
 
     public override void _PhysicsProcess(double delta)
@@ -55,12 +62,12 @@ public partial class WeaponController : Node
         var diff   = target.GlobalPosition - origin;
         var direction = new Vector3(diff.X, 0f, diff.Z).Normalized();
 
-        var dmgType = slot.Skill!.Category == Items.SkillCategory.RangedMagic
-            ? Items.DamageType.Magic
-            : Items.DamageType.Physical;
+        bool isMagic = System.Array.Exists(slot.Skill!.Tags, t => t == "Magic");
+        var  dmgType = isMagic ? Items.DamageType.Magic : Items.DamageType.Physical;
+        float baseDmg = isMagic ? _magicDamage : _physicalDamage;
 
         var projectile = ProjectileScene.Instantiate<Projectile>();
-        projectile.Initialize(direction, Damage + slot.SkillBonus, dmgType);
+        projectile.Initialize(direction, baseDmg + slot.SkillBonus, dmgType, slot.EotIds);
         GetTree().Root.AddChild(projectile);
         projectile.GlobalPosition = origin;
 

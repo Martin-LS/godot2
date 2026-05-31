@@ -80,7 +80,7 @@ public partial class UpgradePicker : CanvasLayer
                 _player.Speed += opt.Value;
                 break;
             case UpgradeEffect.Damage:
-                if (_weapon != null) _weapon.Damage += opt.Value;
+                // Damage upgrade removed — WeaponController no longer exposes a single Damage field
                 break;
             case UpgradeEffect.FireRate:
                 // FireRate upgrade removed — WeaponController no longer exposes per-character cooldown

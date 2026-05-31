@@ -2,7 +2,7 @@ using Godot;
 
 namespace Godot1.Xp;
 
-public partial class XpGem : Area3D
+public partial class XpShard : Area3D
 {
     [Export] public int Value = 5;
 

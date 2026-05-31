@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Linq;
 using Godot1.Items;
 using Godot1.Skills;
 
@@ -54,10 +55,10 @@ public partial class SkillPickerPanel : Control
             var skill = instance.Definition;
             if (skill == null) continue;
 
-            bool   active     = instance.Id == currentId;
-            string tierLabel  = ItemTier.Label(instance.Tier);
-            string augLabel   = instance.Augment != null ? $" +{AugmentRegistry.Get(instance.Augment)?.Name}" : "";
-            string label      = $"{skill.Name}  [{tierLabel}]{augLabel}  CD: {skill.Cooldown:F1}s{(active ? "  [active]" : "")}";
+            bool   active    = instance.Id == currentId;
+            string tierLabel = ItemTier.Label(instance.Tier);
+            int    socketed  = instance.SocketedSupportInstanceIds.Count(id => !string.IsNullOrEmpty(id));
+            string label     = $"{skill.Name}  [{tierLabel}]  {socketed}/{instance.MaxSupportSlots} supports  CD: {skill.Cooldown:F1}s{(active ? "  [active]" : "")}";
             var    btn        = new Button { Text = label };
             string captured   = instance.Id;
             btn.Pressed += () => { _manager.EquipSkill(_character.Id, _slotIndex, captured); Close(); };

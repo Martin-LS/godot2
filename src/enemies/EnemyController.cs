@@ -1,12 +1,14 @@
 using Godot;
+using System.Collections.Generic;
+using Godot1.Eot;
 
 namespace Godot1.Enemies;
 
 
 public partial class EnemyController : CharacterBody3D
 {
-    private static readonly PackedScene GemScene =
-        GD.Load<PackedScene>("res://src/xp/xp_gem.tscn");
+    private static readonly PackedScene ShardScene =
+        GD.Load<PackedScene>("res://src/xp/xp_shard.tscn");
     private static readonly PackedScene CoinScene =
         GD.Load<PackedScene>("res://src/meta/coin_pickup.tscn");
     private static readonly PackedScene HealthScene =
@@ -24,10 +26,13 @@ public partial class EnemyController : CharacterBody3D
     private int _currentHealth;
     private CharacterBody3D? _player;
     private float _damageCooldown;
+    private readonly Dictionary<string, EotInstance> _activeEots = new();
+    private float _baseSpeed;
 
     public override void _Ready()
     {
         _currentHealth = MaxHealth;
+        _baseSpeed     = Speed;
         _player = GetTree().GetFirstNodeInGroup("player") as CharacterBody3D;
         AddToGroup("enemies");
         var enemyModel = GD.Load<PackedScene>("res://assets/models/enemies/Skeleton_Minion.glb").Instantiate<Node3D>();
@@ -54,6 +59,66 @@ public partial class EnemyController : CharacterBody3D
                 pc.TakeDamage(ContactDamage, Items.DamageType.Physical);
             _damageCooldown = DamageInterval;
         }
+
+        TickEots((float)delta);
+    }
+
+    public void ApplyEot(EotData eot)
+    {
+        if (_activeEots.TryGetValue(eot.Id, out var existing))
+        {
+            existing.TimeRemaining = eot.Duration;
+            return;
+        }
+        _activeEots[eot.Id] = new EotInstance
+        {
+            DefinitionId  = eot.Id,
+            TimeRemaining = eot.Duration,
+            TickTimer     = eot.TickRate,
+        };
+        ApplyEotEffect(eot);
+    }
+
+    private void TickEots(float delta)
+    {
+        var expired = new System.Collections.Generic.List<string>();
+        foreach (var (id, inst) in _activeEots)
+        {
+            inst.TimeRemaining -= delta;
+            if (inst.TimeRemaining <= 0f)
+            {
+                expired.Add(id);
+                continue;
+            }
+            var eot = EotRegistry.Get(id);
+            if (eot is { IsDamageEot: true })
+            {
+                inst.TickTimer -= delta;
+                if (inst.TickTimer <= 0f)
+                {
+                    TakeDamage(eot.DamagePerTick, Items.DamageType.Magic);
+                    inst.TickTimer = eot.TickRate;
+                }
+            }
+        }
+        foreach (var id in expired)
+        {
+            var eot = EotRegistry.Get(id);
+            if (eot != null) RemoveEotEffect(eot);
+            _activeEots.Remove(id);
+        }
+    }
+
+    private void ApplyEotEffect(EotData eot)
+    {
+        if (eot.Id == "slow")
+            Speed = _baseSpeed * (1f - eot.SlowFraction);
+    }
+
+    private void RemoveEotEffect(EotData eot)
+    {
+        if (eot.Id == "slow")
+            Speed = _baseSpeed;
     }
 
     public void TakeDamage(float rawAmount, Items.DamageType type)
@@ -72,9 +137,9 @@ public partial class EnemyController : CharacterBody3D
         if (_player is Player.PlayerController pc)
             pc.CollectXp(MapLevel);
 
-        var gem = GemScene.Instantiate<Xp.XpGem>();
-        GetParent().AddChild(gem);
-        gem.GlobalPosition = GlobalPosition;
+        var shard = ShardScene.Instantiate<Xp.XpShard>();
+        GetParent().AddChild(shard);
+        shard.GlobalPosition = GlobalPosition;
 
         if (GD.Randf() < 0.25f)
         {
