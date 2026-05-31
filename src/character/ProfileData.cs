@@ -12,7 +12,8 @@ public class ProfileData
     public Dictionary<string, int>   Materials              { get; set; } = new();
     public List<GearItemInstance>    OwnedGearInstances     { get; set; } = new();
     public List<SkillItemInstance>   OwnedSkillInstances    { get; set; } = new();
-    public List<SupportItemInstance> OwnedSupportInstances  { get; set; } = new();
+    public List<SupportItemInstance>          OwnedSupportInstances            { get; set; } = new();
+    public List<EquipmentAugmentInstance>     OwnedEquipmentAugmentInstances   { get; set; } = new();
 
     public int  GetMaterial(string id)          => Materials.GetValueOrDefault(id, 0);
     public void AddMaterial(string id, int qty) => Materials[id] = GetMaterial(id) + qty;

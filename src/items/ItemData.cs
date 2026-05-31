@@ -15,4 +15,7 @@ public record ItemData(
     float          DamageReduction    = 0f,
     // Accessory fields
     float          PhysicalResistance = 0f
-);
+)
+{
+    public string[] Tags { get; init; } = System.Array.Empty<string>();
+}

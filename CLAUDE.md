@@ -3,13 +3,15 @@
 
 ## Project Overview
 
-Top-down auto-attack horde survival game (Vampire Survivors / Diablo style). Godot 4.6, C#, Forward Plus renderer. 3D world with KayKit 3D character models, perspective camera.
+Top-down auto-attack horde survival game (Vampire Survivors / Diablo style). Godot 4.6, C#, Forward Plus renderer. 3D world with custom voxel-art style characters, perspective camera.
 
 ## Docs
 
-- `docs/GDD.md` — Game design: mechanics, characters, enemies, progression, UI/menus
-- `docs/TECHNICAL.md` — Architecture: scene layout, systems, data types, signals, save layers, C# conventions, rendering decisions
-- `docs/PLAYTEST.md` — Playtest observations and feedback
+- `docs/gdd-mechanics.md` — Game design: combat, skills, EoT, characters, enemies, run structure, win/lose, future notes
+- `docs/gdd-progression.md` — Game design: meta-progression, gear, augments, crafting, currencies, UI/menus
+- `docs/technical-scene.md` — Architecture: scene layout, scene flow, core systems table, signals, C# conventions, rendering, third-party tools
+- `docs/technical-systems.md` — Architecture: data types, save format, crafting methods, EoT system, damage pipeline, enemy spawner, drop system
+- `docs/technical-assets.md` — 3D asset pipeline: visual style, proportions, rig standard, animation clip names, Blender export settings, Godot import settings
 
 **Read the relevant doc before making design or architectural decisions.**
 

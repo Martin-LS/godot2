@@ -1,10 +1,14 @@
+using System.Collections.Generic;
+
 namespace Godot1.Items;
 
 public class GearItemInstance
 {
-    public string Id           { get; set; } = System.Guid.NewGuid().ToString();
-    public string DefinitionId { get; set; } = "";
-    public int    Tier         { get; set; } = 1;
+    public string       Id                           { get; set; } = System.Guid.NewGuid().ToString();
+    public string       DefinitionId                 { get; set; } = "";
+    public int          Tier                         { get; set; } = 1;
+    public List<string> SocketedEquipmentAugmentIds  { get; set; } = new();
 
-    public ItemData? Definition => ItemRegistry.Get(DefinitionId);
+    public ItemData? Definition            => ItemRegistry.Get(DefinitionId);
+    public int       MaxEquipmentAugSlots  => Tier;
 }

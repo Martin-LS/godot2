@@ -22,21 +22,32 @@ public partial class WeaponController : Node
 
     private struct SkillSlot
     {
-        public SkillData?    Skill;
-        public float         CooldownTimer;
-        public float         SkillBonus;
-        public List<string>  EotIds;
+        public SkillData?   Skill;
+        public float        CooldownTimer;
+        public float        SkillBonus;
+        public List<string> EotIds;
+        public bool         HasSplash;
+        public bool         HasPierce;
     }
 
     private readonly SkillSlot[] _slots = new SkillSlot[3];
 
-    public void SetSlot(int slotIndex, SkillData skill, float weaponSkillBonus, List<string>? eotIds = null)
+    public void SetSlot(int slotIndex, SkillData skill, float weaponSkillBonus,
+        List<string>? eotIds = null, bool hasSplash = false, bool hasPierce = false)
     {
         if (slotIndex < 0 || slotIndex >= 3) return;
         _slots[slotIndex].Skill         = skill;
         _slots[slotIndex].SkillBonus    = weaponSkillBonus;
         _slots[slotIndex].CooldownTimer = 0f;
         _slots[slotIndex].EotIds        = eotIds ?? new List<string>();
+        _slots[slotIndex].HasSplash     = hasSplash;
+        _slots[slotIndex].HasPierce     = hasPierce;
+    }
+
+    public void ReduceCooldowns(float amount)
+    {
+        for (int i = 0; i < 3; i++)
+            _slots[i].CooldownTimer = Mathf.Max(0f, _slots[i].CooldownTimer - amount);
     }
 
     public override void _PhysicsProcess(double delta)
@@ -57,17 +68,17 @@ public partial class WeaponController : Node
 
     private void FireAt(int slotIndex, Enemies.EnemyController target)
     {
-        var slot   = _slots[slotIndex];
-        var origin = GetParent<Node3D>().GlobalPosition;
-        var diff   = target.GlobalPosition - origin;
+        var slot      = _slots[slotIndex];
+        var origin    = GetParent<Node3D>().GlobalPosition;
+        var diff      = target.GlobalPosition - origin;
         var direction = new Vector3(diff.X, 0f, diff.Z).Normalized();
 
-        bool isMagic = System.Array.Exists(slot.Skill!.Tags, t => t == "Magic");
-        var  dmgType = isMagic ? Items.DamageType.Magic : Items.DamageType.Physical;
+        bool  isMagic = System.Array.Exists(slot.Skill!.Tags, t => t == "Magic");
+        var   dmgType = isMagic ? Items.DamageType.Magic : Items.DamageType.Physical;
         float baseDmg = isMagic ? _magicDamage : _physicalDamage;
 
         var projectile = ProjectileScene.Instantiate<Projectile>();
-        projectile.Initialize(direction, baseDmg + slot.SkillBonus, dmgType, slot.EotIds);
+        projectile.Initialize(direction, baseDmg + slot.SkillBonus, dmgType, slot.EotIds, slot.HasSplash, slot.HasPierce);
         GetTree().Root.AddChild(projectile);
         projectile.GlobalPosition = origin;
 
