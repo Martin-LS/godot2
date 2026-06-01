@@ -20,8 +20,9 @@ public partial class CharacterScreen : Control
     private Label  _levelLabel = null!;
     private Label  _statsLabel = null!;
     private Button _weaponBtn  = null!;
-    private Button _armorBtn   = null!;
-    private Button _accBtn     = null!;
+    private Button _hatBtn     = null!;
+    private Button _bodyBtn    = null!;
+    private Button _ringBtn    = null!;
     private readonly Button[] _skillBtns = new Button[3];
 
     private VBoxContainer _craftVBox      = null!;
@@ -63,12 +64,14 @@ public partial class CharacterScreen : Control
         _levelLabel = GetNode<Label> ($"{CharViewBase}/HSplit/InfoVBox/LevelLabel");
         _statsLabel = GetNode<Label> ($"{CharViewBase}/HSplit/InfoVBox/StatsLabel");
         _weaponBtn  = GetNode<Button>($"{CharViewBase}/HSplit/GearPanel/WeaponSlot/WeaponSlotButton");
-        _armorBtn   = GetNode<Button>($"{CharViewBase}/HSplit/GearPanel/ArmorSlot/ArmorSlotButton");
-        _accBtn     = GetNode<Button>($"{CharViewBase}/HSplit/GearPanel/AccessorySlot/AccessorySlotButton");
+        _hatBtn     = GetNode<Button>($"{CharViewBase}/HSplit/GearPanel/HatSlot/HatSlotButton");
+        _bodyBtn    = GetNode<Button>($"{CharViewBase}/HSplit/GearPanel/BodySlot/BodySlotButton");
+        _ringBtn    = GetNode<Button>($"{CharViewBase}/HSplit/GearPanel/RingSlot/RingSlotButton");
 
         _weaponBtn.Pressed += () => OnGearSlotPressed(ItemSlot.Weapon);
-        _armorBtn.Pressed  += () => OnGearSlotPressed(ItemSlot.Armor);
-        _accBtn.Pressed    += () => OnGearSlotPressed(ItemSlot.Accessory);
+        _hatBtn.Pressed    += () => OnGearSlotPressed(ItemSlot.Hat);
+        _bodyBtn.Pressed   += () => OnGearSlotPressed(ItemSlot.Body);
+        _ringBtn.Pressed   += () => OnGearSlotPressed(ItemSlot.Ring);
 
         for (int i = 0; i < 3; i++)
         {
@@ -80,8 +83,8 @@ public partial class CharacterScreen : Control
         GetNode<Button>($"{CharViewBase}/Buttons/StartRunButton").Pressed += () =>
             GetTree().ChangeSceneToFile("res://main.tscn");
 
-        _craftVBox      = GetNode<VBoxContainer>($"{CraftingBase}/Create/VBox");
-        _skillCraftVBox = GetNode<VBoxContainer>($"{SkillCraftingBase}/Create/VBox");
+        _craftVBox      = GetNode<VBoxContainer>($"{CraftingBase}/Create/CraftScroll/VBox");
+        _skillCraftVBox = GetNode<VBoxContainer>($"{SkillCraftingBase}/Create/SkillCraftScroll/VBox");
 
         _gearModifySlotBtn  = GetNode<Button>       ($"{CraftingBase}/Modify/ModifyVBox/GearModifySlotBtn");
         _gearUpgradeBtn     = GetNode<Button>       ($"{CraftingBase}/Modify/ModifyVBox/GearUpgradeBtn");
@@ -134,9 +137,10 @@ public partial class CharacterScreen : Control
         _levelLabel.Text = $"Level {c.CurrentLevel}   XP: {c.CurrentXp}";
         _statsLabel.Text = $"HP {(int)stats.Get(StatId.MaxHp)}   Speed {stats.Get(StatId.Speed):F0}   P.Dmg {stats.Get(StatId.PhysicalDamage):F0}   M.Dmg {stats.Get(StatId.MagicDamage):F0}\nRuns: {c.RunsCompleted}";
 
-        RefreshSlotButton(_weaponBtn, c, ItemSlot.Weapon,    "Weapon");
-        RefreshSlotButton(_armorBtn,  c, ItemSlot.Armor,     "Armor");
-        RefreshSlotButton(_accBtn,    c, ItemSlot.Accessory, "Accessory");
+        RefreshSlotButton(_weaponBtn, c, ItemSlot.Weapon, "Weapon");
+        RefreshSlotButton(_hatBtn,    c, ItemSlot.Hat,    "Hat");
+        RefreshSlotButton(_bodyBtn,   c, ItemSlot.Body,   "Body");
+        RefreshSlotButton(_ringBtn,   c, ItemSlot.Ring,   "Ring");
 
         for (int i = 0; i < 3; i++)
             RefreshSkillSlotButton(_skillBtns[i], c, i);
@@ -197,7 +201,7 @@ public partial class CharacterScreen : Control
     private void RefreshInventory()
     {
         var profile = _manager.Profile;
-        int sa = profile.OwnedSupportInstances.Count;
+        int sa = profile.OwnedSkillAugmentInstances.Count;
         int ea = profile.OwnedEquipmentAugmentInstances.Count;
         _inventoryInfo.Text = $"Gear: {profile.OwnedGearInstances.Count}/50  Skills: {profile.OwnedSkillInstances.Count}/50  S.Augs: {sa}/50  E.Augs: {ea}/50  Coins: {profile.CoinBank}  Common: {profile.GetMaterial("crafting_common")}";
 
@@ -291,7 +295,7 @@ public partial class CharacterScreen : Control
         foreach (Node child in _augmentsGrid.GetChildren())
             child.QueueFree();
 
-        var skillAugs = _manager.Profile.OwnedSupportInstances;
+        var skillAugs = _manager.Profile.OwnedSkillAugmentInstances;
         var equipAugs = _manager.Profile.OwnedEquipmentAugmentInstances;
         int total     = System.Math.Max(skillAugs.Count + equipAugs.Count, Character.ProfileData.MaxInventory);
 
@@ -362,8 +366,10 @@ public partial class CharacterScreen : Control
 
             var btn = new Button
             {
-                Text     = $"{item.Name}  —  {costText}",
-                Disabled = !canAfford || gearFull,
+                Text                  = $"{item.Name}  —  {costText}",
+                Disabled              = !canAfford || gearFull,
+                SizeFlagsHorizontal   = SizeFlags.ShrinkBegin,
+                CustomMinimumSize     = new Vector2(0, 32),
             };
             string capturedId = recipe.Id;
             btn.Pressed += () => { _manager.CraftGearItem(capturedId); Refresh(); };
@@ -382,8 +388,10 @@ public partial class CharacterScreen : Control
 
             var btn = new Button
             {
-                Text     = $"{augment.Name}  [{string.Join(", ", augment.RequiredTags)}]  —  {costText}",
-                Disabled = !canAfford || equipAugFull,
+                Text                = $"{augment.Name}  [{string.Join(", ", augment.RequiredTags)}]  —  {costText}",
+                Disabled            = !canAfford || equipAugFull,
+                SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+                CustomMinimumSize   = new Vector2(0, 32),
             };
             string capturedId = recipe.Id;
             btn.Pressed += () => { _manager.CraftEquipmentAugmentItem(capturedId); Refresh(); };
@@ -400,7 +408,7 @@ public partial class CharacterScreen : Control
         _skillCraftVBox.AddChild(matsLabel);
 
         bool skillFull   = _manager.Profile.OwnedSkillInstances.Count   >= Character.ProfileData.MaxInventory;
-        bool supportFull = _manager.Profile.OwnedSupportInstances.Count >= Character.ProfileData.MaxInventory;
+        bool supportFull = _manager.Profile.OwnedSkillAugmentInstances.Count >= Character.ProfileData.MaxInventory;
 
         _skillCraftVBox.AddChild(new Label { Text = "— Skills —" });
         foreach (var recipe in RecipeRegistry.ForType(RecipeType.Skill))
@@ -414,8 +422,10 @@ public partial class CharacterScreen : Control
 
             var btn = new Button
             {
-                Text     = $"{skill.Name}  —  {costText}",
-                Disabled = !canAfford || skillFull,
+                Text                = $"{skill.Name}  —  {costText}",
+                Disabled            = !canAfford || skillFull,
+                SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+                CustomMinimumSize   = new Vector2(0, 32),
             };
             string capturedId = recipe.Id;
             btn.Pressed += () => { _manager.CraftSkillItem(capturedId); Refresh(); };
@@ -423,10 +433,10 @@ public partial class CharacterScreen : Control
         }
 
         _skillCraftVBox.AddChild(new Label { Text = "— Skill Augments —" });
-        foreach (var recipe in RecipeRegistry.ForType(RecipeType.Support))
+        foreach (var recipe in RecipeRegistry.ForType(RecipeType.SkillAugment))
         {
-            var support = SupportRegistry.Get(recipe.OutputItemId);
-            if (support == null) continue;
+            var augment = SkillAugmentRegistry.Get(recipe.OutputItemId);
+            if (augment == null) continue;
 
             string costText = string.Join(", ", recipe.MaterialCosts.Select(kv =>
                 $"{kv.Value}× {(kv.Key == "crafting_common" ? "Common" : kv.Key)}"));
@@ -434,11 +444,13 @@ public partial class CharacterScreen : Control
 
             var btn = new Button
             {
-                Text     = $"{support.Name}  [{string.Join(", ", support.RequiredTags)}]  —  {costText}",
-                Disabled = !canAfford || supportFull,
+                Text                = $"{augment.Name}  [{string.Join(", ", augment.RequiredTags)}]  —  {costText}",
+                Disabled            = !canAfford || supportFull,
+                SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+                CustomMinimumSize   = new Vector2(0, 32),
             };
             string capturedId = recipe.Id;
-            btn.Pressed += () => { _manager.CraftSupportItem(capturedId); Refresh(); };
+            btn.Pressed += () => { _manager.CraftSkillAugmentItem(capturedId); Refresh(); };
             _skillCraftVBox.AddChild(btn);
         }
     }
@@ -537,22 +549,22 @@ public partial class CharacterScreen : Control
         _skillUpgradeBtn.Text     = atMax ? "Max Tier" : $"Upgrade to {NextTierLabel(instance.Tier)}  [1 Common]";
         _skillUpgradeBtn.Disabled = atMax || !canAfford;
 
-        for (int i = 0; i < instance.MaxSupportSlots; i++)
+        for (int i = 0; i < instance.MaxSkillAugmentSlots; i++)
         {
             int     captured   = i;
-            string  socketedId = i < instance.SocketedSupportInstanceIds.Count
-                ? instance.SocketedSupportInstanceIds[i] : "";
-            var     support    = _manager.FindSupportInstance(socketedId);
+            string  socketedId = i < instance.SocketedSkillAugmentIds.Count
+                ? instance.SocketedSkillAugmentIds[i] : "";
+            var     augment    = _manager.FindSkillAugmentInstance(socketedId);
             var     btn        = new Button { CustomMinimumSize = new Vector2(60, 60) };
 
-            if (support?.Definition != null)
+            if (augment?.Definition != null)
             {
-                btn.Text        = support.Definition.Name;
-                btn.TooltipText = $"{support.Definition.Name}\nRequires: {string.Join(", ", support.Definition.RequiredTags)}";
+                btn.Text        = augment.Definition.Name;
+                btn.TooltipText = $"{augment.Definition.Name}\nRequires: {string.Join(", ", augment.Definition.RequiredTags)}";
                 btn.AddThemeFontSizeOverride("font_size", 9);
                 btn.Pressed += () =>
                 {
-                    _manager.RemoveSupport(_loadedSkillInstanceId!, captured);
+                    _manager.RemoveSkillAugment(_loadedSkillInstanceId!, captured);
                     RefreshSkillModify();
                 };
             }
@@ -561,7 +573,7 @@ public partial class CharacterScreen : Control
                 btn.Text        = $"S{i + 1}";
                 btn.TooltipText = "Empty skill augment slot";
                 btn.Modulate    = new Color(1f, 1f, 1f, 0.5f);
-                btn.Pressed     += () => OpenSupportPicker(_loadedSkillInstanceId!, captured);
+                btn.Pressed     += () => OpenSkillAugmentPicker(_loadedSkillInstanceId!, captured);
             }
 
             _supportSlotsRow.AddChild(btn);
@@ -603,8 +615,8 @@ public partial class CharacterScreen : Control
             var inst = allSkills[i];
             var def  = inst.Definition;
             if (def == null) continue;
-            int socketed = inst.SocketedSupportInstanceIds.Count(id => !string.IsNullOrEmpty(id));
-            popup.AddItem($"{def.Name}  [{ItemTier.Label(inst.Tier)}]  {socketed}/{inst.MaxSupportSlots} augments", i);
+            int socketed = inst.SocketedSkillAugmentIds.Count(id => !string.IsNullOrEmpty(id));
+            popup.AddItem($"{def.Name}  [{ItemTier.Label(inst.Tier)}]  {socketed}/{inst.MaxSkillAugmentSlots} augments", i);
         }
         popup.IdPressed += (long id) => { _loadedSkillInstanceId = allSkills[(int)id].Id; RefreshSkillModify(); };
         ShowPopupAt(popup, _skillModifySlotBtn);
@@ -634,8 +646,9 @@ public partial class CharacterScreen : Control
         var anchor = slot switch
         {
             ItemSlot.Weapon => _weaponBtn,
-            ItemSlot.Armor  => _armorBtn,
-            _               => _accBtn,
+            ItemSlot.Hat    => _hatBtn,
+            ItemSlot.Body   => _bodyBtn,
+            _               => _ringBtn,
         };
         if (c.EquippedGear.ContainsKey(slot.ToString()))
             ShowEquippedItemPopup(slot, anchor);
@@ -701,14 +714,14 @@ public partial class CharacterScreen : Control
         ShowPopupAt(popup, anchor);
     }
 
-    private void ShowSupportInventoryPopup(SupportItemInstance instance, Button anchor)
+    private void ShowSupportInventoryPopup(SkillAugmentInstance instance, Button anchor)
     {
         var popup = new PopupMenu();
         popup.AddItem("Delete", 0);
         popup.IdPressed += (long id) =>
         {
             if (id == 0)
-                _manager.Profile.OwnedSupportInstances.Remove(instance);
+                _manager.Profile.OwnedSkillAugmentInstances.Remove(instance);
             Refresh();
         };
         ShowPopupAt(popup, anchor);
@@ -797,12 +810,12 @@ public partial class CharacterScreen : Control
         AddChild(picker);
     }
 
-    private void OpenSupportPicker(string skillInstanceId, int slotIndex)
+    private void OpenSkillAugmentPicker(string skillInstanceId, int slotIndex)
     {
         var skill = _manager.FindSkillInstance(skillInstanceId);
         if (skill?.Definition == null) return;
 
-        var compatible = _manager.Profile.OwnedSupportInstances
+        var compatible = _manager.Profile.OwnedSkillAugmentInstances
             .Where(s => s.Definition != null &&
                         s.Definition.RequiredTags.Any(t => skill.Definition.Tags.Contains(t)))
             .ToList();
@@ -827,7 +840,7 @@ public partial class CharacterScreen : Control
 
         popup.IdPressed += (long id) =>
         {
-            _manager.SocketSupport(skillInstanceId, slotIndex, compatible[(int)id].Id);
+            _manager.SocketSkillAugment(skillInstanceId, slotIndex, compatible[(int)id].Id);
             RefreshSkillModify();
         };
 
@@ -925,7 +938,7 @@ public partial class CharacterScreen : Control
         sb.Append($"{skill.Name}  [{skill.Type}]  [{ItemTier.Label(instance.Tier)}]");
         sb.Append($"\nTags: {string.Join(", ", skill.Tags)}");
         sb.Append($"\nCD: {skill.Cooldown:F1}s");
-        sb.Append($"\nAugments: {instance.SocketedSupportInstanceIds.Count(id => !string.IsNullOrEmpty(id))}/{instance.MaxSupportSlots}");
+        sb.Append($"\nAugments: {instance.SocketedSkillAugmentIds.Count(id => !string.IsNullOrEmpty(id))}/{instance.MaxSkillAugmentSlots}");
         return sb.ToString();
     }
 }

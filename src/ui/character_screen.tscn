@@ -179,31 +179,46 @@ layout_mode = 2
 size_flags_horizontal = 0
 text = "—"
 
-[node name="ArmorSlot" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel" unique_id=6001000063]
+[node name="HatSlot" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel" unique_id=6001000067]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="ArmorLabel" type="Label" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel/ArmorSlot" unique_id=6001000064]
+[node name="HatLabel" type="Label" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel/HatSlot" unique_id=6001000068]
 layout_mode = 2
-text = "Armor"
+text = "Hat"
 theme_override_font_sizes/font_size = 13
 
-[node name="ArmorSlotButton" type="Button" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel/ArmorSlot" unique_id=6001000035]
+[node name="HatSlotButton" type="Button" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel/HatSlot" unique_id=6001000069]
 custom_minimum_size = Vector2(60, 60)
 layout_mode = 2
 size_flags_horizontal = 0
 text = "—"
 
-[node name="AccessorySlot" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel" unique_id=6001000065]
+[node name="BodySlot" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel" unique_id=6001000063]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="AccessoryLabel" type="Label" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel/AccessorySlot" unique_id=6001000066]
+[node name="BodyLabel" type="Label" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel/BodySlot" unique_id=6001000064]
 layout_mode = 2
-text = "Accessory"
+text = "Body"
 theme_override_font_sizes/font_size = 13
 
-[node name="AccessorySlotButton" type="Button" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel/AccessorySlot" unique_id=6001000036]
+[node name="BodySlotButton" type="Button" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel/BodySlot" unique_id=6001000035]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+size_flags_horizontal = 0
+text = "—"
+
+[node name="RingSlot" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel" unique_id=6001000065]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="RingLabel" type="Label" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel/RingSlot" unique_id=6001000066]
+layout_mode = 2
+text = "Ring"
+theme_override_font_sizes/font_size = 13
+
+[node name="RingSlotButton" type="Button" parent="VBox/HSplit/RightPanel/TabContainer/Loadout/CharacterView/HSplit/GearPanel/RingSlot" unique_id=6001000036]
 custom_minimum_size = Vector2(60, 60)
 layout_mode = 2
 size_flags_horizontal = 0
@@ -278,10 +293,18 @@ size_flags_vertical = 3
 
 [node name="Create" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/GearCrafting/CraftingTabs" unique_id=6001000201]
 layout_mode = 2
+size_flags_vertical = 3
 
-[node name="VBox" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/GearCrafting/CraftingTabs/Create" unique_id=6001000042]
+[node name="CraftScroll" type="ScrollContainer" parent="VBox/HSplit/RightPanel/TabContainer/GearCrafting/CraftingTabs/Create" unique_id=6001000220]
 layout_mode = 2
-theme_override_constants/separation = 12
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="VBox" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/GearCrafting/CraftingTabs/Create/CraftScroll" unique_id=6001000042]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="Modify" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/GearCrafting/CraftingTabs" unique_id=6001000202]
 layout_mode = 2
@@ -314,10 +337,18 @@ size_flags_vertical = 3
 
 [node name="Create" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs" unique_id=6001000211]
 layout_mode = 2
+size_flags_vertical = 3
 
-[node name="VBox" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs/Create" unique_id=6001000121]
+[node name="SkillCraftScroll" type="ScrollContainer" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs/Create" unique_id=6001000221]
 layout_mode = 2
-theme_override_constants/separation = 12
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="VBox" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs/Create/SkillCraftScroll" unique_id=6001000121]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="Modify" type="VBoxContainer" parent="VBox/HSplit/RightPanel/TabContainer/SkillCrafting/SkillCraftingTabs" unique_id=6001000212]
 layout_mode = 2

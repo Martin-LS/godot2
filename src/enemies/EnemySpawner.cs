@@ -7,8 +7,8 @@ public partial class EnemySpawner : Node
     private static readonly PackedScene EnemyScene =
         GD.Load<PackedScene>("res://src/enemies/enemy.tscn");
 
-    [Export] public float InitialInterval = 1f;
-    [Export] public float MinInterval     = 0.3f;
+    [Export] public float InitialInterval = 2f;
+    [Export] public float MinInterval     = 0.5f;
     [Export] public float SpawnRadius     = 350f;
 
     private float  _spawnTimer;
@@ -50,8 +50,8 @@ public partial class EnemySpawner : Node
 
         ApplyType(enemy, minutes);
 
-        enemy.Speed     += 10f * minutes;
-        enemy.MaxHealth += 5 * (int)minutes;
+        enemy.Speed     += 5f * minutes;
+        enemy.MaxHealth += 3 * (int)minutes;
         enemy.MapLevel   = _runSession?.MapLevel ?? 1;
 
         GetParent().AddChild(enemy);

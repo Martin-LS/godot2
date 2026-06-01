@@ -12,20 +12,23 @@ public static class RecipeRegistry
         ["recipe_sword_t1"]        = new("recipe_sword_t1",        "sword_t1",        RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
         ["recipe_bow_t1"]          = new("recipe_bow_t1",          "bow_t1",          RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
         ["recipe_wand_t1"]         = new("recipe_wand_t1",         "wand_t1",         RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
-        ["recipe_heavy_armor_t1"]  = new("recipe_heavy_armor_t1",  "heavy_armor_t1",  RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
-        ["recipe_medium_armor_t1"] = new("recipe_medium_armor_t1", "medium_armor_t1", RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
-        ["recipe_light_armor_t1"]  = new("recipe_light_armor_t1",  "light_armor_t1",  RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
-        ["recipe_accessory_t1"]    = new("recipe_accessory_t1",    "accessory_t1",    RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
+        ["recipe_heavy_hat_t1"]    = new("recipe_heavy_hat_t1",    "heavy_hat_t1",    RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
+        ["recipe_medium_hat_t1"]   = new("recipe_medium_hat_t1",   "medium_hat_t1",   RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
+        ["recipe_light_hat_t1"]    = new("recipe_light_hat_t1",    "light_hat_t1",    RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
+        ["recipe_heavy_body_t1"]   = new("recipe_heavy_body_t1",   "heavy_body_t1",   RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
+        ["recipe_medium_body_t1"]  = new("recipe_medium_body_t1",  "medium_body_t1",  RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
+        ["recipe_light_body_t1"]   = new("recipe_light_body_t1",   "light_body_t1",   RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
+        ["recipe_ring_t1"]         = new("recipe_ring_t1",         "ring_t1",         RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
 
         // Skill recipes
         ["recipe_strike"] = new("recipe_strike", "strike", RecipeType.Skill,   new() { ["crafting_common"] = 1 }),
         ["recipe_arrow"]  = new("recipe_arrow",  "arrow",  RecipeType.Skill,   new() { ["crafting_common"] = 1 }),
         ["recipe_bolt"]   = new("recipe_bolt",   "bolt",   RecipeType.Skill,   new() { ["crafting_common"] = 1 }),
 
-        // Support recipes
-        ["recipe_splash"] = new("recipe_splash", "splash", RecipeType.Support, new() { ["crafting_common"] = 1 }),
-        ["recipe_pierce"] = new("recipe_pierce", "pierce", RecipeType.Support, new() { ["crafting_common"] = 1 }),
-        ["recipe_slow"]   = new("recipe_slow",   "slow",   RecipeType.Support, new() { ["crafting_common"] = 1 }),
+        // Skill Augment recipes
+        ["recipe_splash"] = new("recipe_splash", "splash", RecipeType.SkillAugment, new() { ["crafting_common"] = 1 }),
+        ["recipe_pierce"] = new("recipe_pierce", "pierce", RecipeType.SkillAugment, new() { ["crafting_common"] = 1 }),
+        ["recipe_slow"]   = new("recipe_slow",   "slow",   RecipeType.SkillAugment, new() { ["crafting_common"] = 1 }),
 
         // Equipment Augment recipes
         ["recipe_retaliation"] = new("recipe_retaliation", "retaliation", RecipeType.EquipmentAugment, new() { ["crafting_common"] = 1 }),

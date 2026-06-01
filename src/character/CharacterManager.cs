@@ -31,17 +31,18 @@ public partial class CharacterManager : Node
 
     private void SeedStarterGear(CharacterData c)
     {
-        var (weapon, armor, accessory) = c.Type switch
+        var (weapon, hat, body, ring) = c.Type switch
         {
-            CharacterType.Warrior => ("sword_t1",  "heavy_armor_t1",  "accessory_t1"),
-            CharacterType.Rogue   => ("bow_t1",    "light_armor_t1",  "accessory_t1"),
-            CharacterType.Mage    => ("wand_t1",   "medium_armor_t1", "accessory_t1"),
-            _                     => ("sword_t1",  "heavy_armor_t1",  "accessory_t1"),
+            CharacterType.Warrior => ("sword_t1", "heavy_hat_t1",  "heavy_body_t1",  "ring_t1"),
+            CharacterType.Rogue   => ("bow_t1",   "light_hat_t1",  "light_body_t1",  "ring_t1"),
+            CharacterType.Mage    => ("wand_t1",  "medium_hat_t1", "medium_body_t1", "ring_t1"),
+            _                     => ("sword_t1", "heavy_hat_t1",  "heavy_body_t1",  "ring_t1"),
         };
 
-        c.EquippedGear[ItemSlot.Weapon.ToString()]    = new GearItemInstance { DefinitionId = weapon };
-        c.EquippedGear[ItemSlot.Armor.ToString()]     = new GearItemInstance { DefinitionId = armor };
-        c.EquippedGear[ItemSlot.Accessory.ToString()] = new GearItemInstance { DefinitionId = accessory };
+        c.EquippedGear[ItemSlot.Weapon.ToString()] = new GearItemInstance { DefinitionId = weapon };
+        c.EquippedGear[ItemSlot.Hat.ToString()]    = new GearItemInstance { DefinitionId = hat };
+        c.EquippedGear[ItemSlot.Body.ToString()]   = new GearItemInstance { DefinitionId = body };
+        c.EquippedGear[ItemSlot.Ring.ToString()]   = new GearItemInstance { DefinitionId = ring };
 
         var skillDefId = c.Type switch
         {
@@ -99,10 +100,10 @@ public partial class CharacterManager : Node
         return Profile.OwnedSkillInstances.FirstOrDefault(s => s.Id == id);
     }
 
-    public SupportItemInstance? FindSupportInstance(string? id)
+    public SkillAugmentInstance? FindSkillAugmentInstance(string? id)
     {
         if (string.IsNullOrEmpty(id)) return null;
-        return Profile.OwnedSupportInstances.FirstOrDefault(s => s.Id == id);
+        return Profile.OwnedSkillAugmentInstances.FirstOrDefault(s => s.Id == id);
     }
 
     public EquipmentAugmentInstance? FindEquipmentAugmentInstance(string? id)
@@ -255,9 +256,9 @@ public partial class CharacterManager : Node
         return CraftResult.Success;
     }
 
-    // ── Support (skill augment) inventory ─────────────────────────────────────
+    // ── Skill Augment inventory ───────────────────────────────────────────────
 
-    public CraftResult CraftSupportItem(string recipeId)
+    public CraftResult CraftSkillAugmentItem(string recipeId)
     {
         var recipe = RecipeRegistry.Get(recipeId);
         if (recipe == null) return CraftResult.InsufficientMaterials;
@@ -266,43 +267,43 @@ public partial class CharacterManager : Node
             if (Profile.GetMaterial(matId) < qty)
                 return CraftResult.InsufficientMaterials;
 
-        if (Profile.OwnedSupportInstances.Count >= ProfileData.MaxInventory)
+        if (Profile.OwnedSkillAugmentInstances.Count >= ProfileData.MaxInventory)
             return CraftResult.InventoryFull;
 
         foreach (var (matId, qty) in recipe.MaterialCosts)
             Profile.Materials[matId] -= qty;
 
-        Profile.OwnedSupportInstances.Add(new SupportItemInstance { DefinitionId = recipe.OutputItemId });
+        Profile.OwnedSkillAugmentInstances.Add(new SkillAugmentInstance { DefinitionId = recipe.OutputItemId });
         Save();
         return CraftResult.Success;
     }
 
-    public CraftResult SocketSupport(string skillInstanceId, int slotIndex, string supportInstanceId)
+    public CraftResult SocketSkillAugment(string skillInstanceId, int slotIndex, string augmentInstanceId)
     {
         var skill   = FindSkillInstance(skillInstanceId);
-        var support = FindSupportInstance(supportInstanceId);
-        if (skill == null || support == null) return CraftResult.InsufficientMaterials;
-        if (slotIndex >= skill.MaxSupportSlots) return CraftResult.InsufficientMaterials;
+        var augment = FindSkillAugmentInstance(augmentInstanceId);
+        if (skill == null || augment == null) return CraftResult.InsufficientMaterials;
+        if (slotIndex >= skill.MaxSkillAugmentSlots) return CraftResult.InsufficientMaterials;
 
-        var supportDef = SupportRegistry.Get(support.DefinitionId);
-        if (supportDef == null) return CraftResult.InsufficientMaterials;
+        var augmentDef = SkillAugmentRegistry.Get(augment.DefinitionId);
+        if (augmentDef == null) return CraftResult.InsufficientMaterials;
 
         var skillDef = skill.Definition;
-        if (skillDef == null || !skillDef.Tags.Any(t => supportDef.RequiredTags.Contains(t)))
+        if (skillDef == null || !skillDef.Tags.Any(t => augmentDef.RequiredTags.Contains(t)))
             return CraftResult.InsufficientMaterials;
 
-        while (skill.SocketedSupportInstanceIds.Count <= slotIndex)
-            skill.SocketedSupportInstanceIds.Add("");
-        skill.SocketedSupportInstanceIds[slotIndex] = supportInstanceId;
+        while (skill.SocketedSkillAugmentIds.Count <= slotIndex)
+            skill.SocketedSkillAugmentIds.Add("");
+        skill.SocketedSkillAugmentIds[slotIndex] = augmentInstanceId;
         Save();
         return CraftResult.Success;
     }
 
-    public void RemoveSupport(string skillInstanceId, int slotIndex)
+    public void RemoveSkillAugment(string skillInstanceId, int slotIndex)
     {
         var skill = FindSkillInstance(skillInstanceId);
-        if (skill == null || slotIndex >= skill.SocketedSupportInstanceIds.Count) return;
-        skill.SocketedSupportInstanceIds[slotIndex] = "";
+        if (skill == null || slotIndex >= skill.SocketedSkillAugmentIds.Count) return;
+        skill.SocketedSkillAugmentIds[slotIndex] = "";
         Save();
     }
 
@@ -375,18 +376,18 @@ public partial class CharacterManager : Node
 
     private static Godot.Collections.Dictionary SkillInstToDict(SkillItemInstance s)
     {
-        var supportArr = new Godot.Collections.Array();
-        foreach (var sid in s.SocketedSupportInstanceIds) supportArr.Add(sid);
+        var augArr = new Godot.Collections.Array();
+        foreach (var aid in s.SocketedSkillAugmentIds) augArr.Add(aid);
         return new Godot.Collections.Dictionary
         {
-            ["id"]                         = s.Id,
-            ["defId"]                      = s.DefinitionId,
-            ["tier"]                       = s.Tier,
-            ["socketedSupportInstanceIds"] = supportArr,
+            ["id"]                     = s.Id,
+            ["defId"]                  = s.DefinitionId,
+            ["tier"]                   = s.Tier,
+            ["socketedSkillAugmentIds"] = augArr,
         };
     }
 
-    private static Godot.Collections.Dictionary SupportInstToDict(SupportItemInstance s) => new()
+    private static Godot.Collections.Dictionary SkillAugInstToDict(SkillAugmentInstance s) => new()
     {
         ["id"]    = s.Id,
         ["defId"] = s.DefinitionId,
@@ -400,10 +401,11 @@ public partial class CharacterManager : Node
 
     private static GearItemInstance DictToGearInst(Godot.Collections.Dictionary d)
     {
+        var rawDefId = d["defId"].ToString()!;
         var inst = new GearItemInstance
         {
             Id           = d["id"].ToString()!,
-            DefinitionId = d["defId"].ToString()!,
+            DefinitionId = OldToNew.GetValueOrDefault(rawDefId, rawDefId),
             Tier         = System.Convert.ToInt32(d["tier"].Obj),
         };
         if (d.ContainsKey("socketedEquipmentAugmentIds") &&
@@ -421,16 +423,15 @@ public partial class CharacterManager : Node
             Tier         = d.ContainsKey("tier") ? System.Convert.ToInt32(d["tier"].Obj) : 1,
         };
 
-        if (d.ContainsKey("socketedSupportInstanceIds") &&
-            d["socketedSupportInstanceIds"].Obj is Godot.Collections.Array arr)
-        {
+        // Read new key; fall back to old key for saves written before the Support→SkillAugment rename
+        string socketKey = d.ContainsKey("socketedSkillAugmentIds") ? "socketedSkillAugmentIds" : "socketedSupportInstanceIds";
+        if (d.ContainsKey(socketKey) && d[socketKey].Obj is Godot.Collections.Array arr)
             foreach (var v in arr)
-                inst.SocketedSupportInstanceIds.Add(v.ToString()!);
-        }
+                inst.SocketedSkillAugmentIds.Add(v.ToString()!);
         return inst;
     }
 
-    private static SupportItemInstance DictToSupportInst(Godot.Collections.Dictionary d) => new()
+    private static SkillAugmentInstance DictToSkillAugInst(Godot.Collections.Dictionary d) => new()
     {
         Id           = d["id"].ToString()!,
         DefinitionId = d["defId"].ToString()!,
@@ -445,28 +446,28 @@ public partial class CharacterManager : Node
     private void Save()
     {
         var gearArr = new Godot.Collections.Array();
-        foreach (var g in Profile.OwnedGearInstances)              gearArr.Add(GearInstToDict(g));
+        foreach (var g in Profile.OwnedGearInstances)             gearArr.Add(GearInstToDict(g));
 
         var skillArr = new Godot.Collections.Array();
-        foreach (var s in Profile.OwnedSkillInstances)             skillArr.Add(SkillInstToDict(s));
+        foreach (var s in Profile.OwnedSkillInstances)            skillArr.Add(SkillInstToDict(s));
 
-        var supportArr = new Godot.Collections.Array();
-        foreach (var s in Profile.OwnedSupportInstances)           supportArr.Add(SupportInstToDict(s));
+        var skillAugArr = new Godot.Collections.Array();
+        foreach (var s in Profile.OwnedSkillAugmentInstances)     skillAugArr.Add(SkillAugInstToDict(s));
 
         var equipAugArr = new Godot.Collections.Array();
-        foreach (var a in Profile.OwnedEquipmentAugmentInstances)  equipAugArr.Add(EquipAugInstToDict(a));
+        foreach (var a in Profile.OwnedEquipmentAugmentInstances) equipAugArr.Add(EquipAugInstToDict(a));
 
         var matsDict = new Godot.Collections.Dictionary();
         foreach (var kv in Profile.Materials) matsDict[kv.Key] = kv.Value;
 
         var profileDict = new Godot.Collections.Dictionary
         {
-            ["coinBank"]                        = Profile.CoinBank,
-            ["materials"]                       = matsDict,
-            ["ownedGearInstances"]              = gearArr,
-            ["ownedSkillInstances"]             = skillArr,
-            ["ownedSupportInstances"]           = supportArr,
-            ["ownedEquipmentAugmentInstances"]  = equipAugArr,
+            ["coinBank"]                       = Profile.CoinBank,
+            ["materials"]                      = matsDict,
+            ["ownedGearInstances"]             = gearArr,
+            ["ownedSkillInstances"]            = skillArr,
+            ["ownedSkillAugmentInstances"]     = skillAugArr,
+            ["ownedEquipmentAugmentInstances"] = equipAugArr,
         };
 
         var charList = new Godot.Collections.Array();
@@ -529,9 +530,11 @@ public partial class CharacterManager : Node
                 foreach (var v in sa)
                     if (v.Obj is Godot.Collections.Dictionary sd) Profile.OwnedSkillInstances.Add(DictToSkillInst(sd));
 
-            if (pd.ContainsKey("ownedSupportInstances") && pd["ownedSupportInstances"].Obj is Godot.Collections.Array spa)
+            // Read new key first; fall back to old key for saves written before the Support→SkillAugment rename
+            string augKey = pd.ContainsKey("ownedSkillAugmentInstances") ? "ownedSkillAugmentInstances" : "ownedSupportInstances";
+            if (pd.ContainsKey(augKey) && pd[augKey].Obj is Godot.Collections.Array spa)
                 foreach (var v in spa)
-                    if (v.Obj is Godot.Collections.Dictionary spd) Profile.OwnedSupportInstances.Add(DictToSupportInst(spd));
+                    if (v.Obj is Godot.Collections.Dictionary spd) Profile.OwnedSkillAugmentInstances.Add(DictToSkillAugInst(spd));
 
             if (pd.ContainsKey("ownedEquipmentAugmentInstances") && pd["ownedEquipmentAugmentInstances"].Obj is Godot.Collections.Array eaa)
                 foreach (var v in eaa)
@@ -573,7 +576,10 @@ public partial class CharacterManager : Node
             if (gd.ContainsKey("equippedGear") && gd["equippedGear"].Obj is Godot.Collections.Dictionary eqGd)
                 foreach (var kv in eqGd)
                     if (kv.Value.Obj is Godot.Collections.Dictionary instDict)
-                        c.EquippedGear[kv.Key.ToString()!] = DictToGearInst(instDict);
+                    {
+                        string slotKey = MigrateSlotKey(kv.Key.ToString()!);
+                        c.EquippedGear[slotKey] = DictToGearInst(instDict);
+                    }
 
             // Migrate old format: equippedItems (slot → definition ID)
             if (gd.ContainsKey("equippedItems") && gd["equippedItems"].Obj is Godot.Collections.Dictionary oldEq)
@@ -622,6 +628,13 @@ public partial class CharacterManager : Node
         }
     }
 
+    private static string MigrateSlotKey(string oldKey) => oldKey switch
+    {
+        "Armor"     => "Body",
+        "Accessory" => "Ring",
+        _           => oldKey,
+    };
+
     private static string MigrateSkillId(string oldId) => oldId switch
     {
         "attack_melee"           => "strike",
@@ -635,11 +648,15 @@ public partial class CharacterManager : Node
         ["iron_sword"]      = "sword_t1",
         ["battle_axe"]      = "sword_t1",
         ["enchanted_blade"] = "wand_t1",
-        ["leather_vest"]    = "light_armor_t1",
-        ["chain_mail"]      = "heavy_armor_t1",
-        ["mage_robe"]       = "medium_armor_t1",
-        ["swift_ring"]      = "accessory_t1",
-        ["vitality_charm"]  = "accessory_t1",
-        ["war_band"]        = "accessory_t1",
+        ["leather_vest"]    = "light_body_t1",
+        ["chain_mail"]      = "heavy_body_t1",
+        ["mage_robe"]       = "medium_body_t1",
+        ["light_armor_t1"]  = "light_body_t1",
+        ["medium_armor_t1"] = "medium_body_t1",
+        ["heavy_armor_t1"]  = "heavy_body_t1",
+        ["swift_ring"]      = "ring_t1",
+        ["vitality_charm"]  = "ring_t1",
+        ["war_band"]        = "ring_t1",
+        ["accessory_t1"]    = "ring_t1",
     };
 }

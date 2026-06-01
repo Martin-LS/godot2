@@ -15,7 +15,7 @@
 | Shading | Flat-shaded (`shade_smooth` off). No normal maps. |
 | Textures | None. Solid flat-colour materials only, one material per body region |
 | Lighting response | Flat materials respond to scene lighting (not emission) — directional light gives depth |
-| Scale reference | Player character stands ~1.8 Blender units tall (maps to Godot scale 1.0) |
+| Scale reference | Player character imports with visuals node scale 9 in Godot (`visuals.Scale = Vector3(9,9,9)` in `PlayerController`). Author new characters to the same Blender scale as `player.blend` for consistent proportions. |
 
 ---
 
@@ -77,7 +77,7 @@ Each character has its own palette. Record it here when authoring so future modi
 
 ## Rig — Standard Bone Set
 
-> **Status: not yet built.** Current models are unrigged static meshes. The spec below is the target — implement when animations are scheduled.
+> **Status: Implemented for `player.glb`.** Enemy models are still unrigged static meshes. The spec below applies to all future humanoid characters.
 
 Every humanoid character uses this exact bone hierarchy and naming. Do not deviate — animation sharing and code lookups depend on consistent names.
 
@@ -111,7 +111,7 @@ Root
 
 ## Animation Clips
 
-> **Status: not yet built.** No animation data exists in any current GLB. The C# code has no AnimationPlayer integration yet. This section defines the target spec for when animations are scheduled.
+> **Status: Partial — player only.** `run` (looping) and `attack` (one-shot) clips exist in `player.glb`. `AnimationPlayer` is wired in `PlayerController` — run plays while moving, attack triggers on `SkillFired`. `idle`, `walk`, `hit`, `death` are not yet authored. Enemy models have no animations. The table below is the full target spec.
 
 These are the clip names the C# code will reference. Every character must have all clips that apply to their type. Names are case-sensitive.
 
@@ -205,6 +205,11 @@ assets/
       player.blend
       enemy_<type>.glb
       enemy_<type>.blend
+    equipment/
+      weapon_<type>.glb
+      weapon_<type>.blend
+      armour_<category>.glb
+      armour_<category>.blend
     props/
       <name>.glb
       <name>.blend

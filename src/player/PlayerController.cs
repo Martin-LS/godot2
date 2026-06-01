@@ -29,6 +29,9 @@ public partial class PlayerController : CharacterBody3D
     public int CurrentXp { get; private set; }
     public int XpToNextLevel { get; private set; } = 20;
 
+    private float _yaw;
+    private const float RotationSpeed = 20f;
+
     // Equipment augment state
     private readonly HashSet<string> _activeAugments = new();
     private bool  _fortifyActive;
@@ -56,9 +59,10 @@ public partial class PlayerController : CharacterBody3D
             XpToNextLevel = ComputeXpToNextLevel(Level);
 
             var weapon = GetEquippedItem(c, Items.ItemSlot.Weapon);
-            var armor  = GetEquippedItem(c, Items.ItemSlot.Armor);
+            var hat    = GetEquippedItem(c, Items.ItemSlot.Hat);
+            var body   = GetEquippedItem(c, Items.ItemSlot.Body);
 
-            DamageReduction = armor?.DamageReduction ?? 0f;
+            DamageReduction = (hat?.DamageReduction ?? 0f) + (body?.DamageReduction ?? 0f);
 
             var weaponController = GetNodeOrNull<Weapon.WeaponController>("Weapon");
             weaponController?.SetDamage(
@@ -80,13 +84,13 @@ public partial class PlayerController : CharacterBody3D
                 bool hasSplash = false, hasPierce = false;
                 if (instance != null)
                 {
-                    foreach (var supportInstId in instance.SocketedSupportInstanceIds)
+                    foreach (var augInstId in instance.SocketedSkillAugmentIds)
                     {
-                        if (string.IsNullOrEmpty(supportInstId)) continue;
-                        var supportInst = manager.FindSupportInstance(supportInstId);
-                        if (supportInst?.DefinitionId == "splash") hasSplash = true;
-                        if (supportInst?.DefinitionId == "pierce") hasPierce = true;
-                        var eotId = supportInst?.Definition?.EotId;
+                        if (string.IsNullOrEmpty(augInstId)) continue;
+                        var augInst = manager.FindSkillAugmentInstance(augInstId);
+                        if (augInst?.DefinitionId == "splash") hasSplash = true;
+                        if (augInst?.DefinitionId == "pierce") hasPierce = true;
+                        var eotId = augInst?.Definition?.EotId;
                         if (eotId != null) eotIds.Add(eotId);
                     }
                 }
@@ -152,19 +156,34 @@ public partial class PlayerController : CharacterBody3D
 
         if (_charData != null)
         {
-            var armorItem  = GetEquippedItem(_charData, Items.ItemSlot.Armor);
+            var hatItem    = GetEquippedItem(_charData, Items.ItemSlot.Hat);
+            var bodyItem   = GetEquippedItem(_charData, Items.ItemSlot.Body);
             var weaponItem = GetEquippedItem(_charData, Items.ItemSlot.Weapon);
 
-            var armourPath = armorItem?.ArmorCategory switch
+            var hatPath = hatItem?.ArmorCategory switch
             {
-                Items.ArmorCategory.Heavy  => "res://assets/models/equipment/armour_heavy.glb",
-                Items.ArmorCategory.Medium => "res://assets/models/equipment/armour_medium.glb",
-                Items.ArmorCategory.Light  => "res://assets/models/equipment/armour_light.glb",
+                Items.ArmorCategory.Heavy  => "res://assets/models/equipment/hat_heavy.glb",
+                Items.ArmorCategory.Medium => "res://assets/models/equipment/hat_medium.glb",
+                Items.ArmorCategory.Light  => "res://assets/models/equipment/hat_light.glb",
                 _                          => null,
             };
-            if (armourPath != null)
+            if (hatPath != null)
             {
-                var armourRoot = GD.Load<PackedScene>(armourPath).Instantiate<Node3D>();
+                var armourRoot = GD.Load<PackedScene>(hatPath).Instantiate<Node3D>();
+                visuals.AddChild(armourRoot);
+                if (skeleton != null) AttachArmourToSkeleton(armourRoot, skeleton);
+            }
+
+            var bodyPath = bodyItem?.ArmorCategory switch
+            {
+                Items.ArmorCategory.Heavy  => "res://assets/models/equipment/body_heavy.glb",
+                Items.ArmorCategory.Medium => "res://assets/models/equipment/body_medium.glb",
+                Items.ArmorCategory.Light  => "res://assets/models/equipment/body_light.glb",
+                _                          => null,
+            };
+            if (bodyPath != null)
+            {
+                var armourRoot = GD.Load<PackedScene>(bodyPath).Instantiate<Node3D>();
                 visuals.AddChild(armourRoot);
                 if (skeleton != null) AttachArmourToSkeleton(armourRoot, skeleton);
             }
@@ -196,7 +215,11 @@ public partial class PlayerController : CharacterBody3D
 
         bool moving = direction.LengthSquared() > 0.01f;
         if (moving)
-            _model.LookAt(GlobalPosition + direction, Vector3.Up);
+        {
+            float targetYaw = Mathf.Atan2(direction.X, -direction.Z);
+            _yaw = Mathf.LerpAngle(_yaw, targetYaw, Mathf.Min(1f, RotationSpeed * (float)delta));
+            _model.Rotation = new Vector3(0f, _yaw, 0f);
+        }
 
         if (_animPlayer != null)
         {

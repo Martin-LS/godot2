@@ -13,6 +13,6 @@ public record EnemyData(
 
 public static class EnemyRegistry
 {
-    public static readonly EnemyData Skeleton = new("skeleton",  65f, 2, 12, PhysicalResistance: 0.10f, MagicResistance: 0f,
+    public static readonly EnemyData Skeleton = new("skeleton",  65f, 2, 5, PhysicalResistance: 0.10f, MagicResistance: 0f,
         ModelPath: "res://assets/models/characters/enemy_skeleton.glb");
 }

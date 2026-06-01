@@ -57,8 +57,8 @@ public partial class SkillPickerPanel : Control
 
             bool   active    = instance.Id == currentId;
             string tierLabel = ItemTier.Label(instance.Tier);
-            int    socketed  = instance.SocketedSupportInstanceIds.Count(id => !string.IsNullOrEmpty(id));
-            string label     = $"{skill.Name}  [{tierLabel}]  {socketed}/{instance.MaxSupportSlots} supports  CD: {skill.Cooldown:F1}s{(active ? "  [active]" : "")}";
+            int    socketed  = instance.SocketedSkillAugmentIds.Count(id => !string.IsNullOrEmpty(id));
+            string label     = $"{skill.Name}  [{tierLabel}]  {socketed}/{instance.MaxSkillAugmentSlots} augments  CD: {skill.Cooldown:F1}s{(active ? "  [active]" : "")}";
             var    btn        = new Button { Text = label };
             string captured   = instance.Id;
             btn.Pressed += () => { _manager.EquipSkill(_character.Id, _slotIndex, captured); Close(); };

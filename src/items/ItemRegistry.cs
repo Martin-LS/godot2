@@ -18,19 +18,30 @@ public static class ItemRegistry
                 IconPath: "res://assets/icons/items/enchanted_blade.png",
                 WeaponAffinity: WeaponAffinity.Magic,  SkillBonus: 5f) { Tags = new[] { "Magic" } },
 
-            // Armor
-            ["heavy_armor_t1"]  = new("heavy_armor_t1",  "Heavy Armor",  ItemSlot.Armor,
+            // Hats
+            ["heavy_hat_t1"]  = new("heavy_hat_t1",  "Heavy Hat",  ItemSlot.Hat,
                 IconPath: "res://assets/icons/items/chain_mail.png",
                 ArmorCategory: ArmorCategory.Heavy,  BonusHp: 20, BonusSpeed: -20f, DamageReduction: 0.10f) { Tags = new[] { "Heavy" } },
-            ["medium_armor_t1"] = new("medium_armor_t1", "Medium Armor", ItemSlot.Armor,
+            ["medium_hat_t1"] = new("medium_hat_t1", "Medium Hat", ItemSlot.Hat,
                 IconPath: "res://assets/icons/items/mage_robe.png",
                 ArmorCategory: ArmorCategory.Medium, BonusHp: 10, BonusSpeed:   0f, DamageReduction: 0f)   { Tags = new[] { "Medium" } },
-            ["light_armor_t1"]  = new("light_armor_t1",  "Light Armor",  ItemSlot.Armor,
+            ["light_hat_t1"]  = new("light_hat_t1",  "Light Hat",  ItemSlot.Hat,
                 IconPath: "res://assets/icons/items/leather_vest.png",
                 ArmorCategory: ArmorCategory.Light,  BonusHp:  0, BonusSpeed:  20f, DamageReduction: 0f)   { Tags = new[] { "Light" } },
 
-            // Accessories (no tags — universal augments only)
-            ["accessory_t1"] = new("accessory_t1", "Amulet", ItemSlot.Accessory,
+            // Body armour
+            ["heavy_body_t1"]  = new("heavy_body_t1",  "Heavy Body",  ItemSlot.Body,
+                IconPath: "res://assets/icons/items/chain_mail.png",
+                ArmorCategory: ArmorCategory.Heavy,  BonusHp: 20, BonusSpeed: -20f, DamageReduction: 0.10f) { Tags = new[] { "Heavy" } },
+            ["medium_body_t1"] = new("medium_body_t1", "Medium Body", ItemSlot.Body,
+                IconPath: "res://assets/icons/items/mage_robe.png",
+                ArmorCategory: ArmorCategory.Medium, BonusHp: 10, BonusSpeed:   0f, DamageReduction: 0f)   { Tags = new[] { "Medium" } },
+            ["light_body_t1"]  = new("light_body_t1",  "Light Body",  ItemSlot.Body,
+                IconPath: "res://assets/icons/items/leather_vest.png",
+                ArmorCategory: ArmorCategory.Light,  BonusHp:  0, BonusSpeed:  20f, DamageReduction: 0f)   { Tags = new[] { "Light" } },
+
+            // Rings (no tags — universal augments only)
+            ["ring_t1"] = new("ring_t1", "Ring", ItemSlot.Ring,
                 IconPath: "res://assets/icons/items/swift_ring.png",
                 PhysicalResistance: 0.05f),
         };

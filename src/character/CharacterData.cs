@@ -57,7 +57,7 @@ public class CharacterData
             var item = instance.Definition;
             if (item == null) continue;
 
-            if (item.Slot == ItemSlot.Armor)
+            if (item.Slot == ItemSlot.Hat || item.Slot == ItemSlot.Body)
             {
                 if (item.BonusHp != 0)
                     block.AddModifier(new StatModifier(StatId.MaxHp, ModifierType.FlatAdd,
@@ -68,7 +68,7 @@ public class CharacterData
                         item.BonusSpeed * CurrentLevel * ArchetypeMultiplierRegistry.Get(Type, StatId.Speed),
                         ModifierSource.Item, instance.Id));
             }
-            else if (item.Slot == ItemSlot.Accessory && item.PhysicalResistance != 0f)
+            else if (item.Slot == ItemSlot.Ring && item.PhysicalResistance != 0f)
             {
                 block.AddModifier(new StatModifier(StatId.PhysicalResistance, ModifierType.FlatAdd,
                     item.PhysicalResistance * CurrentLevel * ArchetypeMultiplierRegistry.Get(Type, StatId.PhysicalResistance),

@@ -13,11 +13,12 @@ Top-down auto-attack horde survival game (Vampire Survivors / Diablo style). God
 - `docs/technical-systems.md` — Architecture: data types, save format, crafting methods, EoT system, damage pipeline, enemy spawner, drop system
 - `docs/technical-assets.md` — 3D asset pipeline: visual style, proportions, rig standard, animation clip names, Blender export settings, Godot import settings
 - `docs/tech-tips.md` — Hard-won lessons: Blender↔Godot axes, mesh origins, BoneAttachment3D, AnimationPlayer quirks, bone naming, log file location
+- `docs/color-scheme.md` — Iron & Slate color reference: full hex palette for world surfaces, UI, loot rarity, VFX, lighting, enemy coding, and biomes. Use this for all visual work.
 - `docs/todo.md` — Pending work: visuals, animation, gameplay, systems, tech. Check and update each session.
 
 **Read the relevant doc before making design or architectural decisions.**
 
-At the start of every session: read `docs/todo.md`, note what's pending, and tick off anything completed during the session. Read `docs/tech-tips.md` before any 3D asset, animation, or bone work.
+At the start of every session: read `docs/todo.md`, note what's pending, and tick off anything completed during the session. Read `docs/tech-tips.md` before any 3D asset, animation, or bone work. Read `docs/color-scheme.md` before any visual, UI, VFX, or material work.
 
 ## Scope Rules
 

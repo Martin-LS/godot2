@@ -24,13 +24,14 @@ Exact stat differences per tier are TBD. Higher tier also unlocks more augment s
 
 ### Gear Slots
 
-Characters can equip up to 3 gear items (one per gear slot) and up to 3 skill items (one per skill slot). All items persist between runs. Each slot has a distinct role:
+Characters can equip up to 4 gear items (one per gear slot) and up to 3 skill items (one per skill slot). All items persist between runs. Each slot has a distinct role:
 
 | Slot      | Role                                                             | Progression axis                    |
 |-----------|------------------------------------------------------------------|-------------------------------------|
 | Weapon    | Skill synergy — flat damage bonus to skills of matching affinity | Tier → larger bonus                 |
-| Armour    | Survival — HP, Speed, damage reduction (%) by category          | Tier → better stats within category |
-| Accessory | Mitigation — physical resistance (%)                             | Tier → higher resistance            |
+| Hat       | Survival — HP, Speed, damage reduction (%) by category          | Tier → better stats within category |
+| Body      | Survival — HP, Speed, damage reduction (%) by category          | Tier → better stats within category |
+| Ring      | Mitigation — physical resistance (%)                             | Tier → higher resistance            |
 | Skill ×3  | Active/passive ability used during a run                         | Tier → stronger effect / lower cooldown |
 
 #### Skill Slots
@@ -82,10 +83,10 @@ Equipment items have **tags** — the same concept as skill tags, applied to gea
 | Sword | `Melee` |
 | Bow | `Ranged` |
 | Wand | `Magic` |
-| Heavy armour | `Heavy` |
-| Medium armour | `Medium` |
-| Light armour | `Light` |
-| Accessory | *(no tags — universal augments only)* |
+| Hat / Body (Heavy) | `Heavy` |
+| Hat / Body (Medium) | `Medium` |
+| Hat / Body (Light) | `Light` |
+| Ring      | *(no tags — universal augments only)* |
 
 Weapon tags intentionally reuse the skill affinity tag names — players already know `Melee`, `Ranged`, `Magic` from skills.
 
@@ -116,7 +117,7 @@ Equipment Augments are craftable items that socket into an equipment item to add
 | Mending | `Medium` | Regenerate a small amount of HP every 3s |
 | Adaptation | `Medium` | On kill: reduce active skill cooldowns slightly |
 
-Weapon and accessory Equipment Augments (targeting `Melee`, `Ranged`, `Magic`, and universal tags) are TBD — designed when weapon and accessory depth is expanded.
+Weapon and ring Equipment Augments (targeting `Melee`, `Ranged`, `Magic`, and universal tags) are TBD — designed when weapon and ring depth is expanded.
 
 Exact values for all behaviours are TBD — owned by the Balancer.
 
@@ -136,9 +137,13 @@ Weapons have an **affinity** tied to one or more skill tags. Equipping a weapon 
 
 Any character can equip any weapon. The affinity bonus incentivises pairing weapon with matching skills — but mixing is valid. A skill with multiple tags (e.g. `Ranged`, `Magic`) benefits from any weapon whose affinity tag it shares.
 
-#### Armour
+**Visuals (in-run):** Weapon is rendered on the character model.
 
-Armour has a **category** that defines its identity and its equipment tag. Category is fixed per item — crafting a higher-tier heavy armour makes it stronger within that category, not a different category.
+#### Hat & Body
+
+Hat and Body are the two armour equipment slots. Each piece has a **category** that defines its identity and its equipment tag. Category is fixed per item — crafting a higher-tier Heavy hat makes it stronger within that category, not a different category.
+
+Any character can equip any category in any slot. Slots are independent — a character can mix freely (e.g. Heavy hat, Light body).
 
 | Category | Equipment tag | HP       | Speed   | Damage Reduction |
 |----------|---------------|----------|---------|------------------|
@@ -146,21 +151,25 @@ Armour has a **category** that defines its identity and its equipment tag. Categ
 | Medium   | `Medium`      | Moderate | Neutral | —                |
 | Light    | `Light`       | Low      | Bonus   | —                |
 
-Any character can equip any armour. Heavy suits close-range builds taking hits; light suits ranged builds that kite; medium suits mixed or flexible builds.
+Stats above apply per piece — each slot contributes its category's stats independently.
 
-#### Accessory
+**Visuals (in-run):** Hat, Body, and Weapon are rendered on the character model. Ring has no visual representation.
 
-Accessories grant **physical resistance (%)**. No category, no equipment tags — any character can equip any accessory, and accessories can only socket Equipment Augments with no tag requirement (universal augments). Tier is the only progression axis: higher-tier accessories give higher resistance.
+Heavy suits close-range builds taking hits; Light suits ranged builds that kite; Medium suits mixed or flexible builds.
+
+#### Ring
+
+Rings grant **physical resistance (%)**. No category, no equipment tags — any character can equip any ring, and rings can only socket Equipment Augments with no tag requirement (universal augments). Tier is the only progression axis: higher-tier rings give higher resistance.
 
 #### Starter Gear
 
 Each character starts with one item per slot, matched to their archetype:
 
-| Archetype | Weapon          | Armour               | Accessory          | Skill slots (all 3) |
-|-----------|-----------------|----------------------|--------------------|---------------------|
-| Warrior   | Sword (tier 1)  | Heavy armour (tier 1) | Accessory (tier 1) | Strike ×3 |
-| Rogue     | Bow (tier 1)    | Light armour (tier 1) | Accessory (tier 1) | Arrow ×3  |
-| Mage      | Wand (tier 1)   | Medium armour (tier 1)| Accessory (tier 1) | Bolt ×3   |
+| Archetype | Weapon         | Hat            | Body           | Ring          | Skill slots (all 3) |
+|-----------|----------------|----------------|----------------|---------------|---------------------|
+| Warrior   | Sword (tier 1) | Heavy (tier 1) | Heavy (tier 1) | Ring (tier 1) | Strike ×3 |
+| Rogue     | Bow (tier 1)   | Light (tier 1) | Light (tier 1) | Ring (tier 1) | Arrow ×3  |
+| Mage      | Wand (tier 1)  | Medium (tier 1)| Medium (tier 1)| Ring (tier 1) | Bolt ×3   |
 
 These are default starter loadouts only — any archetype can equip any skill. Skills are pre-equipped in all 3 slots and do not appear in the Skills inventory tab.
 
@@ -222,11 +231,11 @@ Crafting materials are tiered — common through exotic. Each tier drops at a di
 - **Account Screen** → the account-level hub. Always the first screen after Main Menu. Contains the character roster (list characters, create new, delete). Designed to grow — future account-level info (account stats, global progress, etc.) will live alongside the roster. Selecting a character navigates to their Character Screen.
 - **Character Screen** → full management hub for the selected character: inventory (left), character stats + gear + tabs (right), Start Run button
   - **Inventory** (left panel) — account-shared item pool, 5-column scrollable grid. Three tabs:
-    - *Equipment tab* — crafted gear (weapon, armour, accessory), 50-item cap
+    - *Equipment tab* — crafted gear (weapon, hat, body, ring), 50-item cap
     - *Skills tab* — crafted skill items, 50-item cap
     - *Augments tab* — crafted Skill Augments and Equipment Augments, 50-item cap
     - Clicking a filled slot opens a popup (Equip / Delete). Equipped items are not shown here — they live in the slots.
-  - **Loadout tab** *(default)* — where the player assembles their build for the run: gear slot buttons (Weapon / Armour / Accessory) and skill slot buttons (Skill 1 / Skill 2 / Skill 3) showing equipped items. Called "Loadout" rather than "Equipment" to reflect that this is where you set up everything you're taking into a run — gear and skills together. Clicking an occupied slot: popup (Unequip / Delete). Clicking an empty slot: item picker filtered to that slot type.
+  - **Loadout tab** *(default)* — where the player assembles their build for the run: gear slot buttons (Weapon / Hat / Body / Ring) and skill slot buttons (Skill 1 / Skill 2 / Skill 3) showing equipped items. Called "Loadout" rather than "Equipment" to reflect that this is where you set up everything you're taking into a run — gear and skills together. Clicking an occupied slot: popup (Unequip / Delete). Clicking an empty slot: item picker filtered to that slot type.
   - **Equipment Crafting tab** — two sub-tabs:
     - *Create* — craft new equipment items and Equipment Augments from materials (costs 1 Common material each)
     - *Modify* — load an existing equipment item into the slot; one **Upgrade** button to increase its tier (costs 1 Common material). Socketing an Equipment Augment into equipment: click an open augment slot on the item, pick a compatible Equipment Augment from the Augments inventory.
