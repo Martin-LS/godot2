@@ -12,8 +12,12 @@ Top-down auto-attack horde survival game (Vampire Survivors / Diablo style). God
 - `docs/technical-scene.md` — Architecture: scene layout, scene flow, core systems table, signals, C# conventions, rendering, third-party tools
 - `docs/technical-systems.md` — Architecture: data types, save format, crafting methods, EoT system, damage pipeline, enemy spawner, drop system
 - `docs/technical-assets.md` — 3D asset pipeline: visual style, proportions, rig standard, animation clip names, Blender export settings, Godot import settings
+- `docs/tech-tips.md` — Hard-won lessons: Blender↔Godot axes, mesh origins, BoneAttachment3D, AnimationPlayer quirks, bone naming, log file location
+- `docs/todo.md` — Pending work: visuals, animation, gameplay, systems, tech. Check and update each session.
 
 **Read the relevant doc before making design or architectural decisions.**
+
+At the start of every session: read `docs/todo.md`, note what's pending, and tick off anything completed during the session. Read `docs/tech-tips.md` before any 3D asset, animation, or bone work.
 
 ## Scope Rules
 
@@ -25,3 +29,4 @@ Top-down auto-attack horde survival game (Vampire Survivors / Diablo style). God
 - **Godot MCP Pro** is connected — use `mcp__godot-mcp-pro__*` tools to inspect/modify the live editor
 - MCP tools are auto-approved globally
 - Proactively use `play_scene`, `get_game_screenshot`, `get_output_log`, `get_editor_errors` to verify changes work before reporting done
+- When debugging runtime behaviour (animation, physics, signals, gameplay logic): invoke `/godot-debug` via the Skill tool to read the log file before drawing conclusions — do not guess from code alone

@@ -21,6 +21,8 @@ public partial class PlayerController : CharacterBody3D
     private Stats.StatBlock _statBlock = new();
     private Character.CharacterData? _charData;
     private Node3D _model = null!;
+    private AnimationPlayer? _animPlayer;
+    private bool _attackPlaying;
 
     public float CurrentHealth { get; private set; }
     public int Level { get; private set; } = 1;
@@ -129,7 +131,24 @@ public partial class PlayerController : CharacterBody3D
         AddChild(visuals);
         _model = visuals;
 
-        visuals.AddChild(GD.Load<PackedScene>("res://assets/models/characters/player.glb").Instantiate<Node3D>());
+        var playerModel = GD.Load<PackedScene>("res://assets/models/characters/player.glb").Instantiate<Node3D>();
+        visuals.AddChild(playerModel);
+        _animPlayer = playerModel.FindChild("AnimationPlayer", true, false) as AnimationPlayer;
+        if (_animPlayer != null)
+        {
+            var runAnim    = _animPlayer.GetAnimation("run");
+            var attackAnim = _animPlayer.GetAnimation("attack");
+            if (runAnim    != null) runAnim.LoopMode    = Animation.LoopModeEnum.Linear;
+            if (attackAnim != null) attackAnim.LoopMode = Animation.LoopModeEnum.None;
+            _animPlayer.Autoplay = "";
+            _animPlayer.CallDeferred("stop");
+        }
+
+        var skeleton = playerModel.FindChild("Skeleton3D", true, false) as Skeleton3D;
+
+        GetNodeOrNull<Weapon.WeaponController>("Weapon")?.Connect(
+            Weapon.WeaponController.SignalName.SkillFired,
+            Callable.From<int, float>(OnSkillFired));
 
         if (_charData != null)
         {
@@ -144,7 +163,11 @@ public partial class PlayerController : CharacterBody3D
                 _                          => null,
             };
             if (armourPath != null)
-                visuals.AddChild(GD.Load<PackedScene>(armourPath).Instantiate<Node3D>());
+            {
+                var armourRoot = GD.Load<PackedScene>(armourPath).Instantiate<Node3D>();
+                visuals.AddChild(armourRoot);
+                if (skeleton != null) AttachArmourToSkeleton(armourRoot, skeleton);
+            }
 
             var weaponPath = weaponItem?.WeaponAffinity switch
             {
@@ -153,8 +176,12 @@ public partial class PlayerController : CharacterBody3D
                 Items.WeaponAffinity.Magic  => "res://assets/models/equipment/weapon_wand.glb",
                 _                           => null,
             };
-            if (weaponPath != null)
-                visuals.AddChild(GD.Load<PackedScene>(weaponPath).Instantiate<Node3D>());
+            if (weaponPath != null && skeleton != null)
+            {
+                var weaponRoot = GD.Load<PackedScene>(weaponPath).Instantiate<Node3D>();
+                visuals.AddChild(weaponRoot);
+                AttachWeaponToSkeleton(weaponRoot, skeleton);
+            }
         }
     }
 
@@ -167,8 +194,32 @@ public partial class PlayerController : CharacterBody3D
         Velocity = direction * moveSpeed;
         MoveAndSlide();
 
-        if (direction.LengthSquared() > 0.01f)
+        bool moving = direction.LengthSquared() > 0.01f;
+        if (moving)
             _model.LookAt(GlobalPosition + direction, Vector3.Up);
+
+        if (_animPlayer != null)
+        {
+            if (_attackPlaying)
+            {
+                if (!_animPlayer.IsPlaying())
+                    _attackPlaying = false;
+            }
+
+            if (!_attackPlaying)
+            {
+                if (moving)
+                {
+                    if (_animPlayer.CurrentAnimation != "run")
+                        _animPlayer.Play("run");
+                }
+                else
+                {
+                    if (_animPlayer.IsPlaying())
+                        _animPlayer.Stop();
+                }
+            }
+        }
 
         float dt = (float)delta;
         if (_dashReflexTimer > 0f) _dashReflexTimer -= dt;
@@ -268,6 +319,81 @@ public partial class PlayerController : CharacterBody3D
     {
         c.EquippedGear.TryGetValue(slot.ToString(), out var instance);
         return instance?.Definition;
+    }
+
+    private void OnSkillFired(int slotIndex, float cooldown)
+    {
+        if (_animPlayer == null) return;
+        _attackPlaying = true;
+        _animPlayer.Stop();
+        _animPlayer.Play("attack");
+    }
+
+    private static int FindBone(Skeleton3D skeleton, string name)
+    {
+        int idx = skeleton.FindBone(name);
+        return idx >= 0 ? idx : skeleton.FindBone(name + "_2");
+    }
+
+    private static void AttachArmourToSkeleton(Node3D armourRoot, Skeleton3D skeleton)
+    {
+        int chestIdx = FindBone(skeleton, "Chest");
+        int headIdx  = FindBone(skeleton, "Head");
+        Vector3 chestOrigin = chestIdx >= 0 ? skeleton.GetBoneGlobalRest(chestIdx).Origin : Vector3.Zero;
+        Vector3 headOrigin  = headIdx  >= 0 ? skeleton.GetBoneGlobalRest(headIdx).Origin  : Vector3.Zero;
+
+        string chestBoneName = chestIdx >= 0 ? skeleton.GetBoneName(chestIdx) : "Chest";
+        string headBoneName  = headIdx  >= 0 ? skeleton.GetBoneName(headIdx)  : "Head";
+        var chestAttach = new BoneAttachment3D { BoneName = chestBoneName };
+        var headAttach  = new BoneAttachment3D { BoneName = headBoneName };
+        skeleton.AddChild(chestAttach);
+        skeleton.AddChild(headAttach);
+
+        var pieces = new List<(Node3D n, Vector3 pos)>();
+        foreach (var child in armourRoot.GetChildren())
+            if (child is Node3D n) pieces.Add((n, n.Position));
+
+        foreach (var (piece, origPos) in pieces)
+        {
+            string name = piece.Name.ToString();
+            bool isHead = name.Contains("Cap") || name.Contains("Hood") || name.Contains("Helm");
+            var attach = isHead ? headAttach : chestAttach;
+            Vector3 boneOrigin = isHead ? headOrigin : chestOrigin;
+
+            armourRoot.RemoveChild(piece);
+            attach.AddChild(piece);
+            piece.Position = origPos - boneOrigin;
+        }
+
+        armourRoot.GetParent()?.RemoveChild(armourRoot);
+        armourRoot.QueueFree();
+    }
+
+    private static void AttachWeaponToSkeleton(Node3D weaponRoot, Skeleton3D skeleton)
+    {
+        int handIdx = FindBone(skeleton, "Hand_R");
+        string handBoneName = handIdx >= 0 ? skeleton.GetBoneName(handIdx) : "Hand_R";
+        var attach = new BoneAttachment3D { BoneName = handBoneName };
+        skeleton.AddChild(attach);
+
+        var pieces = new List<(Node3D n, Vector3 pos)>();
+        foreach (var child in weaponRoot.GetChildren())
+            if (child is Node3D n) pieces.Add((n, n.Position));
+
+        // Anchor: use the Handle piece, or fall back to the first piece
+        Vector3 anchorPos = pieces.Count > 0 ? pieces[0].pos : Vector3.Zero;
+        foreach (var (n, p) in pieces)
+            if (n.Name.ToString().Contains("Handle")) { anchorPos = p; break; }
+
+        foreach (var (piece, origPos) in pieces)
+        {
+            weaponRoot.RemoveChild(piece);
+            attach.AddChild(piece);
+            piece.Position = origPos - anchorPos;
+        }
+
+        weaponRoot.GetParent()?.RemoveChild(weaponRoot);
+        weaponRoot.QueueFree();
     }
 
     private static int ComputeXpToNextLevel(int level)
