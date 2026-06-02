@@ -12,6 +12,7 @@ public partial class Projectile : Area3D
     public float             MaxRange    = 600f;
     public bool              HasSplash;
     public bool              HasPierce;
+    public bool              IsMelee;
 
     private const float SplashRadius = 60f;
 
@@ -61,10 +62,20 @@ public partial class Projectile : Area3D
             QueueFree();
     }
 
+    private static readonly PackedScene HitMeleeScene =
+        GD.Load<PackedScene>("res://src/vfx/hit_melee.tscn");
+
     private void HitEnemy(Enemies.EnemyController enemy, Vector3 hitPos)
     {
         enemy.TakeDamage(Damage, DamageType);
         ApplyEots(enemy);
+
+        if (IsMelee)
+        {
+            var fx = HitMeleeScene.Instantiate<Node3D>();
+            GetTree().Root.AddChild(fx);
+            fx.GlobalPosition = hitPos;
+        }
 
         if (HasSplash)
         {

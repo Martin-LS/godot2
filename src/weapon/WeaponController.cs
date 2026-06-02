@@ -74,11 +74,13 @@ public partial class WeaponController : Node
         var direction = new Vector3(diff.X, 0f, diff.Z).Normalized();
 
         bool  isMagic = System.Array.Exists(slot.Skill!.Tags, t => t == "Magic");
+        bool  isMelee = System.Array.Exists(slot.Skill!.Tags, t => t == "Melee");
         var   dmgType = isMagic ? Items.DamageType.Magic : Items.DamageType.Physical;
         float baseDmg = isMagic ? _magicDamage : _physicalDamage;
 
         var projectile = ProjectileScene.Instantiate<Projectile>();
         projectile.Initialize(direction, baseDmg + slot.SkillBonus, dmgType, slot.EotIds, slot.HasSplash, slot.HasPierce);
+        projectile.IsMelee = isMelee;
         GetTree().Root.AddChild(projectile);
         projectile.GlobalPosition = origin;
 
