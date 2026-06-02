@@ -31,3 +31,16 @@ At the start of every session: read `docs/todo.md`, note what's pending, and tic
 - MCP tools are auto-approved globally
 - Proactively use `play_scene`, `get_game_screenshot`, `get_output_log`, `get_editor_errors` to verify changes work before reporting done
 - When debugging runtime behaviour (animation, physics, signals, gameplay logic): invoke `/godot-debug` via the Skill tool to read the log file before drawing conclusions — do not guess from code alone
+
+## Blender Work
+
+- **Always use Blender MCP** (`mcp__blender__execute_blender_code`) for any editing of Blender files — modifying animations, keyframes, meshes, or exporting GLBs. Never use headless Python scripts (`blender --background --python`) to edit or save blend files; this was the root cause of lost animations in the past.
+- Running a Python script solely to open a `.blend` file is fine as a loading step. The rule is about edits.
+- **If Blender MCP is not connected** (i.e. `get_scene_info` fails or returns a default scene), stop immediately and tell the user to get Blender MCP working before proceeding. Do not fall back to headless scripts.
+
+## Animation
+
+- **Always use Godot MCP Pro to set up AnimationTree** in the editor — use `create_animation_tree`, `add_state_machine_state`, `add_state_machine_transition`. Never construct AnimationTree nodes, states, or transitions in C# code.
+- AnimationTree built dynamically in C# `_Ready()` silently breaks (`Travel()` fails, `GetCurrentNode()` never updates). Pre-creating the node in the scene via MCP/editor fixes this.
+- C# code is limited to: setting `animTree.AnimPlayer = animTree.GetPathTo(animPlayer)`, setting `animTree.Active = true`, and calling `Travel()` for state changes. Use `GetCurrentNode()` for state checks — no manual bool flags.
+- Set animation loop modes at runtime in C# (GLB import silently ignores `.import` subresource loop flags). Do not call `AnimationPlayer.Play()` directly when AnimationTree is active.

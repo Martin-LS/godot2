@@ -1,10 +1,43 @@
 [gd_scene format=3 uid="uid://b2jv4d1ynue3q"]
 
 [ext_resource type="Script" uid="uid://ef12dpfsn6oj" path="res://src/player/PlayerController.cs" id="1_4anbu"]
-[ext_resource type="Script" path="res://src/weapon/WeaponController.cs" id="2_rxibo"]
+[ext_resource type="Script" uid="uid://dnyqgacgf20l5" path="res://src/weapon/WeaponController.cs" id="2_rxibo"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_player"]
 radius = 16.0
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_rxibo"]
+animation = &"attack"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_mf2ua"]
+animation = &"idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_244u8"]
+animation = &"run"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_5f2sf"]
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_jiejy"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_o822w"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_x42xx"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_l271a"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_8ydov"]
+switch_mode = 2
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_ylhto"]
+states/attack/node = SubResource("AnimationNodeAnimation_rxibo")
+states/attack/position = Vector2(350, 300)
+states/idle/node = SubResource("AnimationNodeAnimation_mf2ua")
+states/idle/position = Vector2(200, 100)
+states/run/node = SubResource("AnimationNodeAnimation_244u8")
+states/run/position = Vector2(500, 100)
+transitions = ["Start", "idle", SubResource("AnimationNodeStateMachineTransition_5f2sf"), "idle", "run", SubResource("AnimationNodeStateMachineTransition_jiejy"), "run", "idle", SubResource("AnimationNodeStateMachineTransition_o822w"), "idle", "attack", SubResource("AnimationNodeStateMachineTransition_x42xx"), "run", "attack", SubResource("AnimationNodeStateMachineTransition_l271a"), "attack", "idle", SubResource("AnimationNodeStateMachineTransition_8ydov")]
 
 [node name="Player" type="CharacterBody3D" unique_id=1376160702]
 script = ExtResource("1_4anbu")
@@ -14,3 +47,6 @@ shape = SubResource("SphereShape3D_player")
 
 [node name="Weapon" type="Node" parent="." unique_id=1975373927]
 script = ExtResource("2_rxibo")
+
+[node name="AnimationTree" type="AnimationTree" parent="." unique_id=2125396885]
+tree_root = SubResource("AnimationNodeStateMachine_ylhto")

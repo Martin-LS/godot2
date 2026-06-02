@@ -9,7 +9,7 @@ Update this as tasks are completed or new work is identified.
 
 - [x] Armour colours — set distinct colours per tier; all three tiers use the same base model (armour_heavy.blend) recoloured: Heavy=iron dark, Medium=moss green, Light=ice blue. Hats scaled 1.1x so they wrap around the head.
 - [x] Idle animation — breathing cycle added to player.glb (Chest rises 0.06 units, shoulders lift 3°, 40-frame loop). PlayerController plays "idle" when standing still instead of stopping.
-- [ ] Attack animation arm swing — current swing is subtle from top-down camera. Consider exaggerating UpperArm_R rotation in the attack clip
+- [x] Attack animation arm swing — UpperArm_R X scaled 1.5×, Z sweep channel added (−20°→+40° horizontal arc), Chest X scaled 1.5×
 - [ ] Armour models — armour_light/medium/heavy glbs need review; chest/head attachment offsets may need tuning once armour is coloured and visible
 - [ ] Enemy variety — only Skeleton in v1. GDD lists runner and ranged types as TBD
 

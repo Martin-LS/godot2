@@ -75,13 +75,37 @@ _animPlayer.GetAnimation("attack").LoopMode = Animation.LoopModeEnum.None;
 
 ---
 
-## AnimationTree / AnimationNodeBlend2 — `AddFilter` not in C# bindings
+## AnimationTree must be set up in the Godot editor, not in C# `_Ready`
 
-`AnimationNodeBlend2.AddFilter()` does not exist in the Godot 4.6 C# API. Upper-body masking via `AnimationTree` is not straightforward from C#.
+Creating an `AnimationTree` dynamically in C# `_Ready()` causes `Travel()` and `Start()` to silently fail — `GetCurrentNode()` never updates from the initial state.
 
-**v1 solution**: raw `AnimationPlayer` state machine. One bool (`_attackPlaying`) gates transitions:
-- `SkillFired` → set flag, `Play("attack")`
-- `_PhysicsProcess`: if flag set and `!IsPlaying()` → clear flag; else play "run" when moving, `Stop()` when still
+**Fix**: Create the `AnimationTree` node in the Godot editor (or via MCP). In `_Ready`, only configure its `AnimPlayer` path and set `Active = true`:
+
+```csharp
+var animTree = GetNodeOrNull<AnimationTree>("AnimationTree");
+if (animTree != null)
+{
+    animTree.AnimPlayer = animTree.GetPathTo(animPlayer); // animPlayer found via FindChild
+    animTree.Active = true;
+    _smPlayback = (AnimationNodeStateMachinePlayback)animTree.Get("parameters/playback");
+}
+```
+
+When the AnimationTree node pre-exists in the scene, `Travel()` works correctly and `GetCurrentNode()` reflects the live state.
+
+**Setting AnimPlayer path at runtime**: When the AnimationPlayer is inside a dynamically-loaded GLB, use `animTree.GetPathTo(animPlayer)` to resolve the correct path — do not hardcode it.
+
+**State machine setup** (via MCP `add_state_machine_state` / `add_state_machine_transition`):
+- States: `idle`, `run`, `attack`
+- `Start → idle`: advance_mode=auto
+- `idle ↔ run`: advance_mode=enabled (Travel-driven)
+- `idle → attack`, `run → attack`: advance_mode=enabled
+- `attack → idle`: switch_mode=at_end, advance_mode=auto (auto-returns when clip finishes)
+
+**C# usage**:
+- `_PhysicsProcess`: if current != "attack" → Travel("run") or Travel("idle")
+- `OnSkillFired`: Travel("attack")
+- No bool flag needed — state machine tracks state
 
 ---
 
