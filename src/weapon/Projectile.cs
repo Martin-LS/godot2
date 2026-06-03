@@ -62,19 +62,29 @@ public partial class Projectile : Area3D
             QueueFree();
     }
 
-    private static readonly PackedScene HitMeleeScene =
-        GD.Load<PackedScene>("res://src/vfx/hit_melee.tscn");
+    private static readonly PackedScene ImpactHitScene =
+        GD.Load<PackedScene>("res://PolyBlocks/EffectBlocks/assets/impacts/impact_5.tscn");
 
     private void HitEnemy(Enemies.EnemyController enemy, Vector3 hitPos)
     {
         enemy.TakeDamage(Damage, DamageType);
         ApplyEots(enemy);
 
-        if (IsMelee)
+        try
         {
-            var fx = HitMeleeScene.Instantiate<Node3D>();
+            var fx = ImpactHitScene.Instantiate<GpuParticles3D>();
+            var mat = (ParticleProcessMaterial)fx.ProcessMaterial.Duplicate();
+            mat.ScaleMin = 40f;
+            mat.ScaleMax = 80f;
+            fx.ProcessMaterial = mat;
             GetTree().Root.AddChild(fx);
             fx.GlobalPosition = hitPos;
+            fx.Call("activate_effects");
+            GetTree().CreateTimer(2.0).Timeout += fx.QueueFree;
+        }
+        catch (System.Exception e)
+        {
+            GD.PrintErr($"HitEffect failed: {e.Message}");
         }
 
         if (HasSplash)

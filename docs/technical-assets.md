@@ -237,6 +237,51 @@ Commit the `.import` file after configuring — Godot regenerates it from source
 
 ---
 
+## EffectBlocks VFX Pack
+
+EffectBlocks by Bukkbeek — pre-built Godot 4 VFX scenes. Full pack extracted at `C:\work\my\assets\effectblocks\`. **Not committed to git.** The `PolyBlocks/` folder is copied into the project root (`res://PolyBlocks/`) and **is** committed — it contains the scenes and assets the game references directly.
+
+When a new effect is needed, copy the relevant scene from the extracted pack or from `res://PolyBlocks/EffectBlocks/assets/<category>/` if already present.
+
+### Packs available
+
+| Pack | Folder |
+|---|---|
+| EffectBlocks v4 | `effectblocks\EffectBlocks v4\` |
+| EffectBlocks v3 | `effectblocks\PolyBlocks_EffectBlocks_v3\` |
+| EffectBlocks PixelRenderer v2 | `effectblocks\PolyBlocks_EffectBlocks_PixelRenderer_v2\` |
+
+### In-project contents (`res://PolyBlocks/EffectBlocks/`)
+
+| Category | Scenes | Notes |
+|---|---|---|
+| `assets/impacts/` | `impact_1` – `impact_8` | Hit flash effects — billboard sparkles, circles, spikes |
+| `assets/attacks/` | `attack_crystal`, `attack_earth`, `attack_fire` | Larger area attack effects |
+| `assets/explosions/` | various | Explosion blasts |
+| `assets/fire/` | various | Fire/burn effects |
+| `assets/energy/` | various | Magic/energy effects |
+| `source_files/scripts/` | `impacts.gd`, `impact_single.gd`, etc. | Scripts referenced by effect scenes — do not move |
+| `source_files/textures/` | `sparkle.png`, `circle_1.png`, etc. | Textures referenced by effect scenes — do not move |
+
+### Triggering effects — two script patterns
+
+**`impact_single.gd`** (root IS `GPUParticles3D` — impacts 3–8):
+```csharp
+var fx = scene.Instantiate<GpuParticles3D>();
+// modify ProcessMaterial before AddChild
+fx.Call("activate_effects");  // sets self.emitting = true
+```
+
+**`impacts.gd`** (root is `Node3D`, children Effect1/Effect2/Light — impacts 1–2):
+```csharp
+var fx = scene.Instantiate<Node3D>();
+fx.Call("activate_effects");  // sets Effect1.emitting, Effect2.emitting, tweens Light
+```
+
+**Scale note** — `Node3D.Scale` does not affect rendered particle size. Set `ProcessMaterial.ScaleMin/Max` directly (always `.Duplicate()` the material first). Current hit effect uses `ScaleMin = 40, ScaleMax = 80`.
+
+---
+
 ## KayKit Asset Library
 
 KayKit packs are used for prototyping. They live outside the project at `C:\work\my\assets\kaykit\` and are **not committed to git**.

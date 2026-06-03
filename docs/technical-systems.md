@@ -330,19 +330,27 @@ Effects are applied/removed by id — no subclassing:
 
 ## VFX
 
-Visual effects are self-contained scenes under `res://src/vfx/`. Each scene has a root `Node3D` with a GDScript that auto-frees the node after the effect finishes. Effects are spawned by game code directly: instantiate, add to scene root, set `GlobalPosition`.
+Hit effects use pre-built scenes from the **EffectBlocks** pack (see `technical-assets.md`). Custom effects live under `res://src/vfx/`. All effects are spawned by C# code: instantiate, add to scene root, set `GlobalPosition`, then schedule `QueueFree` via a timer.
 
 | Scene | Trigger | Description |
 |---|---|---|
-| `hit_melee.tscn` | `Projectile.HitEnemy()` when `IsMelee = true` | Red burst at hit position — `GPUParticles3D`, 12 particles, 0.4s lifetime, one-shot. Auto-frees after 0.6s via `create_timer`. |
+| `res://PolyBlocks/EffectBlocks/assets/impacts/impact_5.tscn` | `Projectile.HitEnemy()` — every hit, melee and ranged | Orange + blue billboard sparkle burst at hit position. 4 particles, 0.5s lifetime. `activate_effects()` called via `Call()` after spawn. Auto-freed after 2s via C# `CreateTimer`. |
 
-**Auto-free pattern** — `finished` signal on `GPUParticles3D` is unreliable in Godot 4. Use a timer instead:
-```gdscript
-func _ready() -> void:
-    get_tree().create_timer(lifetime + buffer).timeout.connect(queue_free)
+**Spawning from C#**:
+```csharp
+var fx = ImpactHitScene.Instantiate<GpuParticles3D>();
+var mat = (ParticleProcessMaterial)fx.ProcessMaterial.Duplicate();  // duplicate — never modify the shared resource
+mat.ScaleMin = 40f;
+mat.ScaleMax = 80f;
+fx.ProcessMaterial = mat;
+GetTree().Root.AddChild(fx);
+fx.GlobalPosition = hitPos;
+fx.Call("activate_effects");
+GetTree().CreateTimer(2.0).Timeout += fx.QueueFree;
 ```
+Always wrap in `try/catch` — if VFX instantiation throws, the exception must not prevent `QueueFree()` in the calling `OnBodyEntered` from running (projectile would otherwise stay alive and appear to pass through enemies).
 
-**World scale note** — player model is scale 9. Default particle velocity (8–16) and scale (0.1–0.3) are invisible. For this project use velocity_min ≈ 200, velocity_max ≈ 400, scale_min ≈ 4, scale_max ≈ 8.
+**World scale note** — player model is scale 9. Node-level `Scale` on `GPUParticles3D` does not reliably affect rendered particle size. Set `ProcessMaterial.ScaleMin/Max` directly at runtime (duplicate first). Current hit effect: `ScaleMin = 40, ScaleMax = 80`.
 
 ---
 
