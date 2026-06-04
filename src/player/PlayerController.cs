@@ -17,6 +17,7 @@ public partial class PlayerController : CharacterBody3D
     public float DamageReduction    { get; private set; }
     public float PhysicalResistance { get; private set; }
     public float MagicResistance    { get; private set; }
+    public float EffectiveRange     { get; private set; }
 
     private Stats.StatBlock _statBlock = new();
     private Character.CharacterData? _charData;
@@ -62,11 +63,13 @@ public partial class PlayerController : CharacterBody3D
             var body   = GetEquippedItem(c, Items.ItemSlot.Body);
 
             DamageReduction = (hat?.DamageReduction ?? 0f) + (body?.DamageReduction ?? 0f);
+            EffectiveRange  = (weapon?.WeaponRange ?? 200f) + (hat?.RangeModifier ?? 0f) + (body?.RangeModifier ?? 0f);
 
             var weaponController = GetNodeOrNull<Weapon.WeaponController>("Weapon");
             weaponController?.SetDamage(
                 _statBlock.Get(Stats.StatId.PhysicalDamage),
                 _statBlock.Get(Stats.StatId.MagicDamage));
+            weaponController?.SetRange(EffectiveRange);
 
             for (int i = 0; i < 3 && i < c.SlottedSkillInstanceIds.Count; i++)
             {
@@ -75,9 +78,6 @@ public partial class PlayerController : CharacterBody3D
                 var instance = manager.FindSkillInstance(instanceId);
                 var skill    = instance?.Definition;
                 if (skill == null) continue;
-                bool matches = weapon != null
-                    && weapon.WeaponAffinity != Items.WeaponAffinity.None
-                    && System.Array.Exists(skill.Tags, t => t == weapon.WeaponAffinity.ToString());
 
                 var eotIds   = new List<string>();
                 bool hasSplash = false, hasPierce = false;
@@ -94,7 +94,7 @@ public partial class PlayerController : CharacterBody3D
                     }
                 }
 
-                weaponController?.SetSlot(i, skill, matches ? weapon!.SkillBonus : 0f, eotIds, hasSplash, hasPierce);
+                weaponController?.SetSlot(i, skill, eotIds, hasSplash, hasPierce);
             }
 
             // Seed equipment augments from all equipped gear
@@ -120,7 +120,7 @@ public partial class PlayerController : CharacterBody3D
             var wc = GetNodeOrNull<Weapon.WeaponController>("Weapon");
             wc?.SetDamage(20f, 0f);
             var fallback = SkillRegistry.Get("strike");
-            if (fallback != null) wc?.SetSlot(0, fallback, 0f);
+            if (fallback != null) wc?.SetSlot(0, fallback);
         }
 
         _mendingTimer = 3.0f;

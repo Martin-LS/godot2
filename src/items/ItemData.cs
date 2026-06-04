@@ -6,13 +6,13 @@ public record ItemData(
     ItemSlot       Slot,
     string         IconPath           = "",
     // Weapon fields
-    WeaponAffinity WeaponAffinity     = WeaponAffinity.None,
-    float          SkillBonus         = 0f,
+    float          WeaponRange        = 0f,
     // Armor fields
     ArmorCategory  ArmorCategory      = ArmorCategory.None,
     int            BonusHp            = 0,
     float          BonusSpeed         = 0f,
     float          DamageReduction    = 0f,
+    float          RangeModifier      = 0f,
     // Accessory fields
     float          PhysicalResistance = 0f
 )

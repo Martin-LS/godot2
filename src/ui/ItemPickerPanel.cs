@@ -78,7 +78,8 @@ public partial class ItemPickerPanel : Control
         string parts = "";
         if (item.BonusHp            != 0)  parts += $" HP {item.BonusHp:+#;-#;0}";
         if (item.BonusSpeed         != 0f) parts += $" Spd {item.BonusSpeed:+#;-#;0}";
-        if (item.SkillBonus         != 0f) parts += $" Skill {item.SkillBonus:+#;-#;0}";
+        if (item.WeaponRange        != 0f) parts += $" Range {item.WeaponRange:0}";
+        if (item.RangeModifier      != 0f) parts += $" RngMod {item.RangeModifier:+#;-#;0}";
         if (item.DamageReduction    != 0f) parts += $" DR {item.DamageReduction:P0}";
         if (item.PhysicalResistance != 0f) parts += $" PR {item.PhysicalResistance:P0}";
         string tierLabel = ItemTier.Label(tier);

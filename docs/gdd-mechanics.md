@@ -34,11 +34,19 @@ The **skill bar** on the run HUD shows all slotted skills and their cooldown / t
 
 **v1:** Three skill slots, each firing independently on its own cooldown. v1 has three skills (Strike, Arrow, Bolt). Starter characters have all 3 slots pre-filled with the same skill; players can mix freely. Cooldown: 0.8s per slot.
 
-Every skill has one or more **tags** — descriptors that other systems react to (e.g. `Melee`, `Ranged`, `Magic`, `Attack`, `Spell`). Tags are not restrictions — any character can equip any skill. Tags determine which Skill Augments are compatible with a skill and which weapon affinity bonuses apply.
+Every skill has one or more **tags** — descriptors that other systems react to. Tags are not restrictions — any character can equip any skill. Tags serve two distinct roles:
+
+**Delivery tags** determine how a skill physically fires and which Weapon Range applies:
+- `Melee` — skill fires as a melee contact attack using the equipped weapon
+- `Ranged` — skill fires as a projectile using the equipped weapon asset (sword throw, arrow, wand throw, etc.) at the weapon's range
+
+Skills with neither delivery tag play the weapon's default attack animation and activate exactly as their definition specifies — AoE lands at target, aura activates on self, etc.
+
+**Descriptor tags** determine augment compatibility, damage type, and visual effects layered on top of the delivery. They do not affect animation or range: `Magic`, `Attack`, `Spell`.
 
 **v1 tags:** `Melee`, `Ranged`, `Magic`, `Attack`, `Spell` (expand as more skills and Skill Augments are added).
 
-Character damage scales with character level (via level-up bonuses) and archetype base damage. Weapons do not contribute base damage — they provide a flat bonus to skills with matching tags (see Gear Slots).
+Character damage scales with character level (via level-up bonuses) and archetype base damage. Weapons do not contribute base damage — they set Weapon Range and determine the visual delivery of skills (see Gear Slots).
 
 ### Damage Types
 

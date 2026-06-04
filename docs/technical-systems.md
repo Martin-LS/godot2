@@ -15,11 +15,10 @@
 | `StatId`            | C# enum     | MaxHp, Speed, PhysicalDamage, MagicDamage, PhysicalResistance, MagicResistance |
 | `StatModifier`      | Plain C#    | StatId, ModifierType (FlatAdd), Value (float), ModifierSource (Level, Item) |
 | `StatBlock`         | Plain C#    | Internal flat modifier list per `StatId`. `Get(StatId)` returns the sum of all flat modifiers for that stat — archetype multiplier is applied in `BuildStatBlock()` before the block is returned, so callers always get effective values. |
-| `ItemData`          | C# record   | Id, Name, Slot (enum), IconPath, Tags (string[] — equipment tags for augment compatibility; e.g. `["Melee"]` for Sword, `["Heavy"]` for heavy armour, `[]` for Accessory) — plus slot-specific fields: `WeaponAffinity`, `SkillBonus (float)` for Weapon; `ArmorCategory`, `BonusHp`, `BonusSpeed`, `DamageReduction (float)` for Armor; `PhysicalResistance (float)` for Accessory. Unused fields default to zero. `Tier` removed — tier lives on `GearItemInstance`, not the definition. |
+| `ItemData`          | C# record   | Id, Name, Slot (enum), IconPath, Tags (string[] — equipment tags for augment compatibility; e.g. `["Melee"]` for Sword, `["Heavy"]` for heavy armour, `[]` for Accessory) — plus slot-specific fields: `WeaponRange (float)` for Weapon; `ArmorCategory`, `BonusHp`, `BonusSpeed`, `DamageReduction (float)`, `RangeModifier (float)` for Armor; `PhysicalResistance (float)` for Accessory. Unused fields default to zero. `Tier` removed — tier lives on `GearItemInstance`, not the definition. |
 | `ItemSlot`          | C# enum     | Weapon, Hat, Body, Ring                                        |
 | `SkillData`         | C# record   | Id, Name, Type (SkillType enum), Tags (string[]) — e.g. `["Melee","Attack"]`, `["Ranged","Attack"]`, `["Ranged","Magic","Spell"]`. Cooldown (float, seconds; 0 for Passive), Range (float), IconPath (string, default ""). No Tier — tier lives on `SkillItemInstance`. |
 | `SkillType`         | C# enum     | Active, Passive                                                |
-| `WeaponAffinity`    | C# enum     | None, Melee, Ranged, Magic                                     |
 | `ArmorCategory`     | C# enum     | None, Heavy, Medium, Light                                     |
 | `DamageType`        | C# enum     | Physical, Magic                                                |
 | `ItemTier`          | C# static class (const ints) | Common = 1, Uncommon = 2, Rare = 3, Max = 3. `Label(int)` → display name. `BackgroundColor(int)` → Godot `Color`. Used for tier background colour in UI. |
@@ -108,14 +107,14 @@ If multi-user slots or cloud saves are ever needed, evaluate wrapping save data 
 Single weapon per character (v1). `WeaponController` manages:
 
 - `PhysicalBaseDamage (float)` and `MagicBaseDamage (float)` — both set at run start from `CharacterData.BuildStatBlock()` after the archetype multiplier formula is applied. The equipped weapon item does **not** contribute to base damage. At fire time, the slot uses `PhysicalBaseDamage` or `MagicBaseDamage` based on whether the skill has the `Magic` tag.
-- `_slots[3]` — internal array of 3 slot states, each holding `{ SkillData Skill, float CooldownTimer, float SkillBonus }`. Each slot fires independently when its timer reaches 0. Empty slots (null Skill) are skipped.
-- Per slot: `SkillBonus` is non-zero only when the weapon's affinity tag appears in the slot's skill Tags array. `DamageType` per slot: skill has `Magic` tag → `Magic`, else `Physical`. `CooldownTimer` counts down independently from each slot's `Skill.Cooldown`.
+- `_slots[3]` — internal array of 3 slot states, each holding `{ SkillData Skill, float CooldownTimer }`. Each slot fires independently when its timer reaches 0. Empty slots (null Skill) are skipped.
+- Per slot: `DamageType`: skill has `Magic` tag → `Magic`, else `Physical`. `CooldownTimer` counts down independently from each slot's `Skill.Cooldown`. Delivery mode (`Melee` or `Ranged`) is read from `Skill.Tags` at fire time to select the appropriate projectile visual.
 
-Exposes: `SetDamage(float physicalDamage, float magicDamage)`, `SetSlot(int slotIndex, SkillData, float weaponSkillBonus)`.
+Exposes: `SetDamage(float physicalDamage, float magicDamage)`, `SetSlot(int slotIndex, SkillData)`.
 
-`SetSlot` replaces `SetSkill` — called once per slot at run start. Stores `SkillData`, pre-computed `SkillBonus`, and seeds `CooldownTimer` to 0 so each slot fires immediately on the first frame.
+`SetSlot` is called once per slot at run start. Stores `SkillData` and seeds `CooldownTimer` to 0 so each slot fires immediately on the first frame.
 
-Effective damage per shot: `BaseDamage + slot.SkillBonus`.
+Effective damage per shot: `BaseDamage`.
 
 Emits: `SkillFired(int slotIndex, float cooldown, bool isMelee)` when a slot fires — consumed by the HUD skill bar and by `PlayerController` to trigger the melee swing VFX.
 
@@ -399,6 +398,7 @@ MagicDamage        = statBlock.Get(MagicDamage)
 PhysicalResistance = statBlock.Get(PhysicalResistance)
 MagicResistance    = statBlock.Get(MagicResistance)
 DamageReduction    = hat.DamageReduction + body.DamageReduction  // flat sum of hat + body, not multiplied
+EffectiveRange     = weapon.WeaponRange + hat.RangeModifier + body.RangeModifier  // standalone float, not part of StatId
 
 WeaponController.SetDamage(PhysicalDamage, MagicDamage)
 
@@ -406,8 +406,7 @@ for i in 0..2:
     instanceId = character.SlottedSkillInstanceIds[i]   // "" = skip
     if instanceId is non-empty:
         skill = CharacterManager.FindSkillInstance(instanceId).Definition
-        bonus = skill.Tags.Contains(weapon.WeaponAffinity.ToString()) ? weapon.SkillBonus : 0
-        WeaponController.SetSlot(i, skill, bonus)
+        WeaponController.SetSlot(i, skill)
 ```
 
 ### Archetype Multiplier System

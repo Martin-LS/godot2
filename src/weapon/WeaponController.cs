@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using Godot1.Eot;
 using Godot1.Skills;
 
 namespace Godot1.Weapon;
@@ -10,6 +11,11 @@ public partial class WeaponController : Node
 
     private static readonly PackedScene ProjectileScene =
         GD.Load<PackedScene>("res://src/weapon/projectile.tscn");
+
+    private static readonly PackedScene ImpactHitScene =
+        GD.Load<PackedScene>("res://PolyBlocks/EffectBlocks/assets/impacts/impact_5.tscn");
+
+    private const float SplashRadius = 60f;
 
     private float _physicalDamage = 20f;
     private float _magicDamage    = 0f;
@@ -24,20 +30,21 @@ public partial class WeaponController : Node
     {
         public SkillData?   Skill;
         public float        CooldownTimer;
-        public float        SkillBonus;
         public List<string> EotIds;
         public bool         HasSplash;
         public bool         HasPierce;
     }
 
     private readonly SkillSlot[] _slots = new SkillSlot[3];
+    private float _range = 200f;
 
-    public void SetSlot(int slotIndex, SkillData skill, float weaponSkillBonus,
+    public void SetRange(float effectiveRange) => _range = effectiveRange;
+
+    public void SetSlot(int slotIndex, SkillData skill,
         List<string>? eotIds = null, bool hasSplash = false, bool hasPierce = false)
     {
         if (slotIndex < 0 || slotIndex >= 3) return;
         _slots[slotIndex].Skill         = skill;
-        _slots[slotIndex].SkillBonus    = weaponSkillBonus;
         _slots[slotIndex].CooldownTimer = 0f;
         _slots[slotIndex].EotIds        = eotIds ?? new List<string>();
         _slots[slotIndex].HasSplash     = hasSplash;
@@ -58,7 +65,7 @@ public partial class WeaponController : Node
             _slots[i].CooldownTimer -= (float)delta;
             if (_slots[i].CooldownTimer > 0f) continue;
 
-            var target = FindNearestEnemy(_slots[i].Skill!.Range);
+            var target = FindNearestEnemy(_range);
             if (target == null) continue;
 
             FireAt(i, target);
@@ -68,23 +75,82 @@ public partial class WeaponController : Node
 
     private void FireAt(int slotIndex, Enemies.EnemyController target)
     {
-        var slot      = _slots[slotIndex];
-        var origin    = GetParent<Node3D>().GlobalPosition;
-        var diff      = target.GlobalPosition - origin;
-        var direction = new Vector3(diff.X, 0f, diff.Z).Normalized();
+        var slot = _slots[slotIndex];
 
         bool  isMagic = System.Array.Exists(slot.Skill!.Tags, t => t == "Magic");
         bool  isMelee = System.Array.Exists(slot.Skill!.Tags, t => t == "Melee");
         var   dmgType = isMagic ? Items.DamageType.Magic : Items.DamageType.Physical;
         float baseDmg = isMagic ? _magicDamage : _physicalDamage;
 
-        var projectile = ProjectileScene.Instantiate<Projectile>();
-        projectile.Initialize(direction, baseDmg + slot.SkillBonus, dmgType, slot.EotIds, slot.HasSplash, slot.HasPierce);
-        projectile.IsMelee = isMelee;
-        GetTree().Root.AddChild(projectile);
-        projectile.GlobalPosition = origin;
+        if (isMelee)
+        {
+            HitMelee(target, baseDmg, dmgType, slot.EotIds, slot.HasSplash);
+        }
+        else
+        {
+            var origin    = GetParent<Node3D>().GlobalPosition;
+            var diff      = target.GlobalPosition - origin;
+            var direction = new Vector3(diff.X, 0f, diff.Z).Normalized();
+
+            var projectile = ProjectileScene.Instantiate<Projectile>();
+            projectile.Initialize(direction, baseDmg, dmgType, slot.EotIds, slot.HasSplash, slot.HasPierce);
+            GetTree().Root.AddChild(projectile);
+            projectile.GlobalPosition = origin;
+        }
 
         EmitSignal(SignalName.SkillFired, slotIndex, slot.Skill.Cooldown, isMelee);
+    }
+
+    private void HitMelee(Enemies.EnemyController target, float damage, Items.DamageType dmgType,
+        List<string> eotIds, bool hasSplash)
+    {
+        var hitPos = target.GlobalPosition;
+        target.TakeDamage(damage, dmgType);
+        ApplyEots(target, eotIds);
+        SpawnHitVfx(hitPos);
+
+        if (hasSplash)
+        {
+            foreach (var node in GetTree().GetNodesInGroup("enemies"))
+            {
+                if (node is not Enemies.EnemyController splash) continue;
+                if (splash.GlobalPosition.DistanceTo(hitPos) <= SplashRadius)
+                {
+                    splash.TakeDamage(damage, dmgType);
+                    ApplyEots(splash, eotIds);
+                }
+            }
+        }
+    }
+
+    private void ApplyEots(Enemies.EnemyController enemy, List<string> eotIds)
+    {
+        foreach (var eotId in eotIds)
+        {
+            var eot = EotRegistry.Get(eotId);
+            if (eot != null && GD.Randf() < eot.ApplyChance)
+                enemy.ApplyEot(eot);
+        }
+    }
+
+    private void SpawnHitVfx(Vector3 hitPos)
+    {
+        try
+        {
+            var fx  = ImpactHitScene.Instantiate<GpuParticles3D>();
+            var mat = (ParticleProcessMaterial)fx.ProcessMaterial.Duplicate();
+            mat.ScaleMin = 40f;
+            mat.ScaleMax = 80f;
+            fx.ProcessMaterial = mat;
+            GetTree().Root.AddChild(fx);
+            fx.GlobalPosition = hitPos;
+            fx.Call("activate_effects");
+            GetTree().CreateTimer(2.0).Timeout += fx.QueueFree;
+        }
+        catch (System.Exception e)
+        {
+            GD.PrintErr($"HitEffect failed: {e.Message}");
+        }
     }
 
     private Enemies.EnemyController? FindNearestEnemy(float range)

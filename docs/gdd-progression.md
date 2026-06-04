@@ -28,9 +28,9 @@ Characters can equip up to 4 gear items (one per gear slot) and up to 3 skill it
 
 | Slot      | Role                                                             | Progression axis                    |
 |-----------|------------------------------------------------------------------|-------------------------------------|
-| Weapon    | Skill synergy — flat damage bonus to skills of matching affinity | Tier → larger bonus                 |
-| Hat       | Survival — HP, Speed, damage reduction (%) by category          | Tier → better stats within category |
-| Body      | Survival — HP, Speed, damage reduction (%) by category          | Tier → better stats within category |
+| Weapon    | Sets Weapon Range for all skills; determines visual delivery of skill animations | Tier → higher Weapon Range          |
+| Hat       | Survival — HP, Speed, damage reduction (%) by category; Range Modifier by category | Tier → better stats within category |
+| Body      | Survival — HP, Speed, damage reduction (%) by category; Range Modifier by category | Tier → better stats within category |
 | Ring      | Mitigation — physical resistance (%)                             | Tier → higher resistance            |
 | Skill ×3  | Active/passive ability used during a run                         | Tier → stronger effect / lower cooldown |
 
@@ -88,7 +88,7 @@ Equipment items have **tags** — the same concept as skill tags, applied to gea
 | Hat / Body (Light) | `Light` |
 | Ring      | *(no tags — universal augments only)* |
 
-Weapon tags intentionally reuse the skill affinity tag names — players already know `Melee`, `Ranged`, `Magic` from skills.
+Weapon tags intentionally reuse the skill tag names — players already know `Melee`, `Ranged`, `Magic` from skills.
 
 #### Equipment Augments
 
@@ -127,15 +127,24 @@ Equipment Augments are crafted from the **Equipment Crafting tab** and live in t
 
 #### Weapon
 
-Weapons have an **affinity** tied to one or more skill tags. Equipping a weapon gives a flat damage bonus to all skills that share at least one matching tag. Weapons contribute no base damage — they enhance skills only. Weapons also carry equipment tags (matching their affinity) for Equipment Augment compatibility.
+Weapons do two things: set the **Weapon Range** for all your skills, and determine the **visual expression** of skill delivery. No weapon gates any skill — every skill fires regardless of what is equipped.
 
-| Weapon type | Affinity / Equipment tag | Enhances                  |
-|-------------|--------------------------|---------------------------|
-| Sword       | `Melee`                  | Skills with Melee tag     |
-| Bow         | `Ranged`                 | Skills with Ranged tag    |
-| Wand        | `Magic`                  | Skills with Magic tag     |
+**Weapon Range** is a flat number stat visible on the weapon item. When a skill with the `Ranged` delivery tag fires, it uses the equipped weapon's Weapon Range value. Effective Range on the character sheet reflects this after armour modifiers are applied (see Hat & Body).
 
-Any character can equip any weapon. The affinity bonus incentivises pairing weapon with matching skills — but mixing is valid. A skill with multiple tags (e.g. `Ranged`, `Magic`) benefits from any weapon whose affinity tag it shares.
+**Visual expression:** the equipped weapon determines what is thrown or swung when a skill fires:
+- `Ranged` skill + sword → sword throw
+- `Ranged` skill + bow → arrow
+- `Ranged` skill + wand → wand throw
+- `Melee` skill + any weapon → weapon swing / contact animation
+- No delivery tag → weapon's default attack animation; skill activates as defined (AoE at target, aura on self, etc.)
+
+| Weapon type | Equipment tag | Weapon Range |
+|-------------|---------------|--------------|
+| Sword       | `Melee`       | TBD (short)  |
+| Bow         | `Ranged`      | TBD (long)   |
+| Wand        | `Magic`       | TBD (medium) |
+
+Any character can equip any weapon. Weapons carry equipment tags for Equipment Augment compatibility.
 
 **Visuals (in-run):** Weapon is rendered on the character model.
 
@@ -145,17 +154,19 @@ Hat and Body are the two armour equipment slots. Each piece has a **category** t
 
 Any character can equip any category in any slot. Slots are independent — a character can mix freely (e.g. Heavy hat, Light body).
 
-| Category | Equipment tag | HP       | Speed   | Damage Reduction |
-|----------|---------------|----------|---------|------------------|
-| Heavy    | `Heavy`       | High     | Penalty | Yes (%)          |
-| Medium   | `Medium`      | Moderate | Neutral | —                |
-| Light    | `Light`       | Low      | Bonus   | —                |
+| Category | Equipment tag | HP       | Speed   | Damage Reduction | Range Modifier |
+|----------|---------------|----------|---------|------------------|----------------|
+| Heavy    | `Heavy`       | High     | Penalty | Yes (%)          | Penalty (TBD)  |
+| Medium   | `Medium`      | Moderate | Neutral | —                | None           |
+| Light    | `Light`       | Low      | Bonus   | —                | Bonus (TBD)    |
 
-Stats above apply per piece — each slot contributes its category's stats independently.
+Stats above apply per piece — each slot contributes its category's stats independently. Range Modifier from hat and body both apply to Effective Range.
+
+**Effective Range** (visible on the character sheet) = Weapon Range + hat Range Modifier + body Range Modifier.
 
 **Visuals (in-run):** Hat, Body, and Weapon are rendered on the character model. Ring has no visual representation.
 
-Heavy suits close-range builds taking hits; Light suits ranged builds that kite; Medium suits mixed or flexible builds.
+Heavy suits close-range builds taking hits; Light suits ranged builds that kite; Medium suits mixed or flexible builds. Mixing categories (e.g. Heavy hat, Light body) produces a middle-ground Effective Range.
 
 #### Ring
 

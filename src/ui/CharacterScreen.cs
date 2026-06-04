@@ -925,7 +925,8 @@ public partial class CharacterScreen : Control
         sb.Append($"{item.Name}  [{item.Slot}]  [{ItemTier.Label(tier)}]");
         if (item.BonusHp            != 0)  sb.Append($"\nHP {item.BonusHp:+#;-#;0}");
         if (item.BonusSpeed         != 0f) sb.Append($"\nSpeed {item.BonusSpeed:+#;-#;0}");
-        if (item.SkillBonus         != 0f) sb.Append($"\nSkill Bonus {item.SkillBonus:+#;-#;0}");
+        if (item.WeaponRange        != 0f) sb.Append($"\nWeapon Range {item.WeaponRange:0}");
+        if (item.RangeModifier      != 0f) sb.Append($"\nRange Modifier {item.RangeModifier:+#;-#;0}");
         if (item.DamageReduction    != 0f) sb.Append($"\nDamage Reduction {item.DamageReduction:P0}");
         if (item.PhysicalResistance != 0f) sb.Append($"\nPhys. Resist {item.PhysicalResistance:P0}");
         if (item.Tags.Length        > 0)   sb.Append($"\nTags: {string.Join(", ", item.Tags)}");
