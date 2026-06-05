@@ -11,8 +11,8 @@ public partial class TooltipButton : Button
 
     private static FontFile? _fontRegular;
     private static FontFile? _fontBold;
-    private static FontFile FontRegular => _fontRegular ??= GD.Load<FontFile>("res://assets/fonts/Exo_2/Exo_2_1.woff2");
-    private static FontFile FontBold    => _fontBold    ??= GD.Load<FontFile>("res://assets/fonts/Exo_2/Exo_2_2.woff2");
+    private static FontFile FontRegular => _fontRegular ??= GD.Load<FontFile>("res://assets/fonts/Exo_2/Exo_2_1.ttf");
+    private static FontFile FontBold    => _fontBold    ??= GD.Load<FontFile>("res://assets/fonts/Exo_2/Exo_2_2.ttf");
 
     public override Control _MakeCustomTooltip(string forText)
     {
