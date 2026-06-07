@@ -50,7 +50,7 @@ Skills with no delivery tag are **weapon-adaptive**: they inherit the weapon's `
 
 ### Skills
 
-**v1 has one skill: Strike.** Arrow and Bolt are not separate skills — they are Strike pre-socketed with augments, used as the Rogue and Mage starter loadouts respectively. This keeps the skill list minimal while demonstrating the augment system from the first run.
+**v1 has one skill: Strike.** All archetypes start with plain Strike in slot 1, no augments pre-socketed. Damage type and delivery are determined by the equipped weapon — a Mage's Strike fires as a Magic wand bolt; a Rogue's fires as a Physical arrow with crit (from the bow's identity bonus). This keeps the skill list minimal while letting the weapon communicate archetype identity.
 
 #### Strike
 

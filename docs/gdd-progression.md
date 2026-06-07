@@ -40,7 +40,7 @@ Characters can equip up to 4 gear items (one per gear slot) and up to 3 skill it
 
 Three skill slots map directly to the 3 skill bar slots shown during a run. Whatever is equipped in skill slots 1–3 is what fires during the run.
 
-The same skill item can be equipped in multiple slots simultaneously. Any archetype can equip any skill — there are no restrictions. v1 has one skill: **Strike** (tags: `Attack`). Arrow and Bolt are not separate skills — see Starter Gear for how they are constructed from Strike + augments.
+The same skill item can be equipped in multiple slots simultaneously. Any archetype can equip any skill — there are no restrictions. v1 has one skill: **Strike** (tags: `Attack`). All archetypes start with plain Strike — no pre-socketed augments. Weapon type determines damage type and delivery.
 
 Skill items are crafted (Craft New — accessible from an empty skill slot, left-click → Craft New; not yet implemented in v1) and equipped from the **Skills inventory tab**.
 
@@ -217,13 +217,13 @@ Rings grant **physical resistance (%)**. No category, no equipment tags — any 
 
 Each character starts with one item per slot, matched to their archetype:
 
-| Archetype | Weapon         | Hat            | Body           | Ring          | Skill slot 1                                    | Slots 2 & 3 |
-|-----------|----------------|----------------|----------------|---------------|-------------------------------------------------|-------------|
-| Warrior   | Sword (tier 1) | Heavy (tier 1) | Heavy (tier 1) | Ring (tier 1) | Strike (no augment)                             | Empty       |
-| Rogue     | Bow (tier 1)   | Light (tier 1) | Light (tier 1) | Ring (tier 1) | Strike (Critical Strike augment pre-socketed)   | Empty       |
-| Mage      | Wand (tier 1)  | Medium (tier 1)| Medium (tier 1)| Ring (tier 1) | Strike (Magic Damage augment pre-socketed)      | Empty       |
+| Archetype | Weapon         | Hat            | Body           | Ring          | Skill slot 1        | Slots 2 & 3 |
+|-----------|----------------|----------------|----------------|---------------|---------------------|-------------|
+| Warrior   | Sword (tier 1) | Heavy (tier 1) | Heavy (tier 1) | Ring (tier 1) | Strike (no augment) | Empty       |
+| Rogue     | Bow (tier 1)   | Light (tier 1) | Light (tier 1) | Ring (tier 1) | Strike (no augment) | Empty       |
+| Mage      | Wand (tier 1)  | Medium (tier 1)| Medium (tier 1)| Ring (tier 1) | Strike (no augment) | Empty       |
 
-New characters start with slot 1 filled and slots 2–3 empty. Filling them requires crafting additional skill items — the first craft is the natural next step after a new character's first run. Skills pre-equipped in slot 1 do not appear in the Skills inventory tab. "Arrow" and "Bolt" are informal names for the Rogue and Mage starter configurations; there are no separate Arrow or Bolt skill items.
+New characters start with slot 1 filled and slots 2–3 empty. Filling them requires crafting additional skill items — the first craft is the natural next step after a new character's first run. Skills pre-equipped in slot 1 do not appear in the Skills inventory tab. All three starters use plain Strike with no augments — damage type and delivery are determined by the equipped weapon, not by pre-socketed augments. Crit is a bow identity (the bow's +8% crit identity bonus), not a Rogue identity; magic damage is a wand identity, not a Mage identity.
 
 Specific item names and exact stat values are TBD.
 
