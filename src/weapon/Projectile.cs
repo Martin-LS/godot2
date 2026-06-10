@@ -69,7 +69,7 @@ public partial class Projectile : Area3D
 
     private void HitEnemy(Enemies.EnemyController enemy, Vector3 hitPos)
     {
-        enemy.TakeDamage(Damage, DamageType);
+        enemy.TakeDamage(Damage, DamageType, _critMultiplier > 1f);
         ApplyEots(enemy);
 
         try
@@ -97,7 +97,7 @@ public partial class Projectile : Area3D
                 if (!_hitIds.Add(splash.GetInstanceId())) continue;
                 if (splash.GlobalPosition.DistanceTo(hitPos) <= SplashRadius)
                 {
-                    splash.TakeDamage(Damage, DamageType);
+                    splash.TakeDamage(Damage, DamageType, _critMultiplier > 1f);
                     ApplyEots(splash);
                 }
             }

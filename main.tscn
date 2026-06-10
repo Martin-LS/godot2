@@ -3,9 +3,12 @@
 [ext_resource type="PackedScene" uid="uid://b2jv4d1ynue3q" path="res://src/player/player.tscn" id="1_0xm2m"]
 [ext_resource type="Script" uid="uid://bpey7ysst6hsh" path="res://src/enemies/EnemySpawner.cs" id="6_7mycd"]
 [ext_resource type="PackedScene" uid="uid://c000f6ave0x4q" path="res://src/hud/hud.tscn" id="6_272bh"]
+[ext_resource type="PackedScene" uid="uid://wpa5tn0s7nyp" path="res://src/hud/world_hud.tscn" id="9_efxa6"]
 [ext_resource type="Script" uid="uid://drs7mknbpx3t" path="res://src/run/RunSession.cs" id="9_rsess"]
+[ext_resource type="Script" uid="uid://dv7ox1yhjtova" path="res://src/dev/DevOverlay.cs" id="10_dg77c"]
 [ext_resource type="PackedScene" uid="uid://drend0vrlay1" path="res://src/ui/run_end_overlay.tscn" id="10_rend"]
 [ext_resource type="Script" uid="uid://jmt4n4cl5jb1" path="res://src/CameraFollow.cs" id="11_camf"]
+[ext_resource type="Script" uid="uid://clvc3ypi7ty0y" path="res://src/hud/WorldHud.cs" id="11_ycdy4"]
 [ext_resource type="PackedScene" uid="uid://dpausemenu01" path="res://src/ui/pause_menu.tscn" id="12_pause"]
 [ext_resource type="Script" uid="uid://bkbuyt8udd24v" path="res://src/world/DungeonGenerator.cs" id="14_dungeon"]
 
@@ -37,3 +40,63 @@ script = ExtResource("9_rsess")
 [node name="RunEndOverlay" parent="." unique_id=1662657642 instance=ExtResource("10_rend")]
 
 [node name="PauseMenu" parent="." unique_id=1059022373 instance=ExtResource("12_pause")]
+
+[node name="WorldHud" type="CanvasLayer" parent="." unique_id=713671818 instance=ExtResource("9_efxa6")]
+layer = 10
+script = ExtResource("10_dg77c")
+
+[node name="ToggleButton" type="Button" parent="WorldHud" unique_id=160316599]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -50.0
+offset_top = 5.0
+offset_right = 50.0
+offset_bottom = 33.0
+grow_horizontal = 2
+text = "[ Dev ]"
+
+[node name="DevPanel" type="PanelContainer" parent="WorldHud" unique_id=1305970860]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -175.0
+offset_top = 38.0
+offset_right = 175.0
+offset_bottom = 88.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="WorldHud/DevPanel" unique_id=1955350479]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SpeedRow" type="HBoxContainer" parent="WorldHud/DevPanel/VBox" unique_id=87377584]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SpeedLabel" type="Label" parent="WorldHud/DevPanel/VBox/SpeedRow" unique_id=1411352554]
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+vertical_alignment = 1
+
+[node name="SpeedSlider" type="HSlider" parent="WorldHud/DevPanel/VBox/SpeedRow" unique_id=224866539]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 50.0
+max_value = 500.0
+step = 10.0
+value = 200.0
+
+[node name="RangeToggle" type="CheckBox" parent="WorldHud/DevPanel/VBox" unique_id=85467075]
+layout_mode = 2
+text = "Attack Range"
+
+[node name="GodModeToggle" type="CheckBox" parent="WorldHud/DevPanel/VBox" unique_id=672313677]
+layout_mode = 2
+text = "God Mode"
+
+[node name="WorldHud" type="Node2D" parent="WorldHud" unique_id=534818003]
+script = ExtResource("11_ycdy4")

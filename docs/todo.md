@@ -79,6 +79,8 @@ Update this as tasks are completed or new work is identified.
 
 - [x] Screen flash — add full-screen `ColorRect` to `hud.tscn`; wire `PlayerHit` signal from `PlayerController`; tween alpha 0.3 → 0 over 0.15s in `Hud.cs`
 - [x] Hit stop — add `Engine.TimeScale = 0` + real-time restore timer in `PlayerController.TakeDamage` (3 lines; `ignoreTimeScale: true` on the restore timer)
+- [x] HP bars — floating bar above player (always on, `#A32D2D`) and enemies (on-hit, 2s timer, `#8C2E2E`); `WorldHud.cs` Node2D in CanvasLayer projects 3D positions to screen via `Camera3D.UnprojectPosition`
+- [x] Damage numbers — floating text above hit entity; physical = bone white, magic = ice shimmer, crit = gold (+50% larger); individual per hit, fade over 0.8s; `DamageTaken` signal added to `EnemyController` and `PlayerController`; `isCrit` propagated through full damage pipeline (WeaponController, Projectile, EoT ticks)
 
 ---
 

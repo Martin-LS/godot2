@@ -1,11 +1,11 @@
-[gd_scene format=3 uid="uid://ctkdn3mjk72f"]
+[gd_scene format=3 uid="uid://wpa5tn0s7nyp"]
 
-[ext_resource type="Script" uid="uid://dv7ox1yhjtova" path="res://src/dev/DevOverlay.cs" id="1_devov"]
-[ext_resource type="Script" uid="uid://clvc3ypi7ty0y" path="res://src/hud/WorldHud.cs" id="2_e6nwe"]
+[ext_resource type="Script" uid="uid://dv7ox1yhjtova" path="res://src/dev/DevOverlay.cs" id="1_o2wnm"]
+[ext_resource type="Script" uid="uid://clvc3ypi7ty0y" path="res://src/hud/WorldHud.cs" id="2_0v3ph"]
 
 [node name="DevOverlay" type="CanvasLayer" unique_id=713671818]
 layer = 10
-script = ExtResource("1_devov")
+script = ExtResource("1_o2wnm")
 
 [node name="ToggleButton" type="Button" parent="." unique_id=160316599]
 anchors_preset = 5
@@ -61,4 +61,4 @@ layout_mode = 2
 text = "God Mode"
 
 [node name="WorldHud" type="Node2D" parent="." unique_id=534818003]
-script = ExtResource("2_e6nwe")
+script = ExtResource("2_0v3ph")

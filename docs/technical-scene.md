@@ -15,8 +15,8 @@ Godot 4.6, C#, Forward Plus renderer. Game world is 3D (CharacterBody3D, XZ move
 |------------------|-------------------------------|---------------------------------------------------------------------------|
 | World dimensions | 3D, XZ movement plane, Y-up   | Standard for top-down 3D; gravity, navmesh, and lighting all assume Y-up  |
 | Camera type      | `Camera3D`, perspective       | Subtle depth like Diablo 4; fixed angle, no player rotation               |
-| Camera angle     | Fixed ~60° from horizontal    | Closer to overhead than classic 45° isometric; Diablo 4 reference         |
-| Character render | Custom voxel `.glb` loaded as `PackedScene`, instanced as child `Node3D` | Player = KayKit character GLB by archetype (scale 9), enemies = `kaykit_enemy_skeleton.glb` (scale 9). Model child rotates independently via `_model.LookAt()` — CharacterBody3D stays unrotated so camera doesn't spin. |
+| Camera angle     | Fixed ~60° from horizontal, offset (0, 350, 200) | Closer to overhead than classic 45° isometric; Diablo 4 reference. Set in `CameraFollow.cs` `_Ready()`. |
+| Character render | Custom voxel `.glb` loaded as `PackedScene`, instanced as child `Node3D` | Player = `player.glb` (Mixamo stickman rig, scale 9 applied in code). Enemies = `kaykit_enemy_skeleton.glb` (scale 9 applied in code). The 9× scale bridges Blender's meter units to the game's centimeter-scale world — do not remove it. Model child rotates independently via `_model.LookAt()` — CharacterBody3D stays unrotated so camera doesn't spin. |
 | Lighting         | Single `DirectionalLight3D` parented to `Camera3D` | Global main light source, moves with camera; one light for now |
 | Projectiles      | Physical traveling objects    | Visible projectile travel is core to ARPG feel (not raycasts)              |
 | Target aspect ratio | 16:9, PC primary           | All UI scenes must use Godot anchor presets (no absolute offsets) — makes ratio changes free later. Mobile not in scope. |

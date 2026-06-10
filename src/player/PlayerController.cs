@@ -14,6 +14,7 @@ public partial class PlayerController : CharacterBody3D
     [Signal] public delegate void LeveledUpEventHandler(int newLevel);
     [Signal] public delegate void FocusChangedEventHandler(float current, float max);
     [Signal] public delegate void ShieldChangedEventHandler(float current, float max);
+    [Signal] public delegate void DamageTakenEventHandler(float effectiveDamage, bool isMagic);
 
     [Export] public float Speed = 200f;
     [Export] public int MaxHealth = 100;
@@ -370,6 +371,8 @@ public partial class PlayerController : CharacterBody3D
             _fortifyActive = true;
         }
 
+        float damageToShow = effective;
+
         // Focus Shield absorbs damage before HP
         if (_currentFocusShield > 0f)
         {
@@ -381,6 +384,9 @@ public partial class PlayerController : CharacterBody3D
 
         CurrentHealth = Mathf.Max(0f, CurrentHealth - effective);
         EmitSignal(SignalName.HealthChanged, CurrentHealth);
+
+        if (damageToShow > 0f)
+            EmitSignal(SignalName.DamageTaken, damageToShow, type == Items.DamageType.Magic);
 
         if (effective > 0f)
         {

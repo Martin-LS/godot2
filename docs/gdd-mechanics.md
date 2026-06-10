@@ -85,6 +85,35 @@ Idle and run animations are shared across all weapon types in v1.
 
 Danger is communicated through health/shield depletion, not through action interruption. This keeps horde combat fluid regardless of difficulty.
 
+#### HP Bars
+
+Both the player and enemies display a floating HP bar above their head.
+
+| Entity | Visibility | Fill colour | Hex |
+|---|---|---|---|
+| Player | Always visible | Danger Red | `#A32D2D` |
+| Enemy | Appears on hit; fades after ~2s of no damage | Muted Red | `#8C2E2E` |
+
+Both bars use Iron Black (`#181C1F`) as the track background. Bar width scales proportionally to entity size. The player's floating bar coexists with the HUD health bar — both are always present during a run.
+
+Enemy bars are on-hit only to preserve readability during large hordes: bars only appear where hits are landing, keeping the screen uncluttered at peak density.
+
+#### Damage Numbers
+
+Every hit displays a floating damage number above the struck entity's head. Numbers float upward and fade out over ~0.8s.
+
+| Case | Colour | Hex | Size |
+|---|---|---|---|
+| Physical hit | Bone White | `#E8DCC8` | Normal |
+| Magic hit | Ice Shimmer | `#B8D8E8` | Normal |
+| Critical hit | Gold | `#D4A017` | ~50% larger |
+
+Critical hit colour overrides the damage-type colour — a magic crit shows gold, not blue. This makes crits immediately legible regardless of damage type.
+
+Numbers are individual per hit — no stacking. Cyclone ticks each pop their own number; this preserves tick-rate readability and lets the player feel the difference between a fast and slow attack speed.
+
+Both player-received and enemy-received hits produce damage numbers. There is no threshold — all damage shows.
+
 ### Skills
 
 **v1 skills: Strike, Cyclone, Damage Aura, Nova.** Four skills covering the full test matrix — Active single-target (Strike), Channeled multi-target (Cyclone), Aura persistent (Damage Aura), Active multi-target (Nova). All archetypes start with plain Strike in slot 1, no augments pre-socketed. Damage type is determined by the equipped weapon across all skills.

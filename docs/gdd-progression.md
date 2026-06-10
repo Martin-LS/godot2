@@ -269,7 +269,7 @@ Crafting materials are tiered — common through exotic. Each tier drops at a di
 
 ## UI / HUD
 
-- Health bar
+- Health bar (HUD, bottom-left)
 - XP bar + current level
 - Coin counter (this run)
 - Elapsed time / countdown
@@ -278,6 +278,8 @@ Crafting materials are tiered — common through exotic. Each tier drops at a di
   - Active skill ready: slot fully lit
   - Passive skill: lit when toggled on, greyed when off
   - Empty slot: visually empty (no icon)
+- **Floating HP bar** — above both player and enemies (see Hit Feedback in `gdd-mechanics.md` for colours and visibility rules)
+- **Damage numbers** — float upward from the hit point on every hit, colour-coded by damage type and crit (see Hit Feedback in `gdd-mechanics.md`)
 - [TBD] Minimap
 
 ### Menus

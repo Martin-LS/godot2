@@ -302,7 +302,7 @@ public partial class WeaponController : Node
         {
             if (node is not Enemies.EnemyController enemy || enemy.IsQueuedForDeletion()) continue;
             if (origin.DistanceTo(enemy.GlobalPosition) > slot.Skill!.Range) continue;
-            enemy.TakeDamage(baseDmg, dmgType);
+            enemy.TakeDamage(baseDmg, dmgType, critMult > 1f);
             ApplyEots(enemy, slot.EotIds, critMult);
             hit = true;
         }
@@ -330,7 +330,7 @@ public partial class WeaponController : Node
         {
             if (node is not Enemies.EnemyController enemy || enemy.IsQueuedForDeletion()) continue;
             if (origin.DistanceTo(enemy.GlobalPosition) > slot.Skill!.Range) continue;
-            enemy.TakeDamage(baseDmg, dmgType);
+            enemy.TakeDamage(baseDmg, dmgType, critMult > 1f);
             ApplyEots(enemy, slot.EotIds, critMult);
         }
 
@@ -340,8 +340,9 @@ public partial class WeaponController : Node
     private void HitMelee(Enemies.EnemyController target, float damage, Items.DamageType dmgType,
         List<string> eotIds, bool hasSplash, float critMultiplier)
     {
-        var hitPos = target.GlobalPosition;
-        target.TakeDamage(damage, dmgType);
+        bool   isCrit  = critMultiplier > 1f;
+        var    hitPos  = target.GlobalPosition;
+        target.TakeDamage(damage, dmgType, isCrit);
         ApplyEots(target, eotIds, critMultiplier);
         SpawnHitVfx(hitPos);
 
@@ -352,7 +353,7 @@ public partial class WeaponController : Node
                 if (node is not Enemies.EnemyController splash) continue;
                 if (splash.GlobalPosition.DistanceTo(hitPos) <= SplashRadius)
                 {
-                    splash.TakeDamage(damage, dmgType);
+                    splash.TakeDamage(damage, dmgType, isCrit);
                     ApplyEots(splash, eotIds, critMultiplier);
                 }
             }

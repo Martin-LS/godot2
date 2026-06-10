@@ -136,7 +136,7 @@ public partial class Hud : CanvasLayer
     private void OnPlayerHit()
     {
         _hitFlash.Color = new Color(0.8f, 0.05f, 0.05f, 0.3f);
-        var tween = CreateTween().SetProcessMode(Tween.TweenProcessMode.Realtime);
+        var tween = CreateTween();
         tween.TweenProperty(_hitFlash, "color:a", 0f, 0.15f);
     }
 

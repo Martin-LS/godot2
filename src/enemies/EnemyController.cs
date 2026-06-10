@@ -14,6 +14,7 @@ public partial class EnemyController : CharacterBody3D
     private static readonly PackedScene HealthScene =
         GD.Load<PackedScene>("res://src/health/health_pickup.tscn");
     [Signal] public delegate void DiedEventHandler(Vector3 position);
+    [Signal] public delegate void DamageTakenEventHandler(float effectiveDamage, bool isMagic, bool isCrit);
 
     [Export] public float Speed = 160f;
     [Export] public int MaxHealth = 1;
@@ -25,6 +26,7 @@ public partial class EnemyController : CharacterBody3D
     public string ModelPath = "res://assets/models/characters/enemy_generic.glb";
 
     private int _currentHealth;
+    public  int CurrentHealth => _currentHealth;
     private CharacterBody3D? _player;
     private float _damageCooldown;
     private readonly Dictionary<string, EotInstance> _activeEots = new();
@@ -129,7 +131,7 @@ public partial class EnemyController : CharacterBody3D
                 inst.TickTimer -= delta;
                 if (inst.TickTimer <= 0f)
                 {
-                    TakeDamage(eot.DamagePerTick * inst.CritMultiplier, Items.DamageType.Magic);
+                    TakeDamage(eot.DamagePerTick * inst.CritMultiplier, Items.DamageType.Magic, inst.CritMultiplier > 1f);
                     inst.TickTimer = eot.TickRate;
                 }
             }
@@ -154,10 +156,11 @@ public partial class EnemyController : CharacterBody3D
             Speed = _baseSpeed;
     }
 
-    public void TakeDamage(float rawAmount, Items.DamageType type)
+    public void TakeDamage(float rawAmount, Items.DamageType type, bool isCrit = false)
     {
         float resistance = type == Items.DamageType.Physical ? PhysicalResistance : MagicResistance;
         float effective  = rawAmount * (1f - resistance);
+        EmitSignal(SignalName.DamageTaken, effective, type == Items.DamageType.Magic, isCrit);
         _currentHealth  -= Mathf.CeilToInt(effective);
         if (_currentHealth <= 0)
             Die();
