@@ -10,6 +10,7 @@ Update this as tasks are completed or new work is identified.
 - [x] Armour colours — set distinct colours per tier; all three tiers use the same base model (armour_heavy.blend) recoloured: Heavy=iron dark, Medium=moss green, Light=ice blue. Hats scaled 1.1x so they wrap around the head.
 - [x] Idle animation — breathing cycle added to player.glb (Chest rises 0.06 units, shoulders lift 3°, 40-frame loop). PlayerController plays "idle" when standing still instead of stopping.
 - [x] Attack animation arm swing — UpperArm_R X scaled 1.5×, Z sweep channel added (−20°→+40° horizontal arc), Chest X scaled 1.5×
+- [x] Cyclone VFX — spinning ring of elongated capsule particles (CapsuleMesh, radius=0.8, height=5) around the player; tangential accel + particle_flag_align_y so shards orient along the ring curve; anti-clockwise rotation driven by RotateY in WeaponController._PhysicsProcess; instant particle kill on release via Restart()+Emitting=false. Saved reference copy as effect1.tscn.
 - [ ] Armour models — attachment offsets will need tuning against the new box character proportions (KayKit warrior retired). Chest/Head/Hand_R bone names match; positions differ.
 - [ ] Enemy variety — only Skeleton in v1. GDD lists runner and ranged types as TBD
 
@@ -18,7 +19,7 @@ Update this as tasks are completed or new work is identified.
 ## Animation / Equipment
 
 - [ ] Weapon rotation fine-tuning — sword blade currently oriented along bone -Z; may need a Blender rotation tweak depending on how it looks in-game during attack
-- [ ] Cyclone animation — needs a full-body spin (not partial body blend). Legs running + upper body spinning 360° looks wrong. Discuss animation architecture when the clip is ready: likely a separate blend layer that overrides the full body while IsChanneling. Also decide: when both Cyclone and Strike are auto-active simultaneously, does Strike OneShot interrupt the spin every 0.8s (alternating), or does Cyclone suppress Strike's animation while channeling?
+- [ ] Cyclone animation — needs a full-body spin (not partial body blend). Legs running + upper body spinning 360° looks wrong. VFX ring is done (see Visuals). Animation architecture TBD: likely a separate blend layer that overrides the full body while IsChanneling. Also decide: when both Cyclone and Strike are auto-active simultaneously, does Strike OneShot interrupt the spin every 0.8s (alternating), or does Cyclone suppress Strike's animation while channeling?
 - [x] Weapon attach-bone system — bow attaches to `Hand_L` (left hand holds bow, right arm draws); sword/wand attach to `Hand_R`. `AttachWeaponToSkeleton` takes a `boneName` param; call site passes `Hand_L` for `bow_t1`, `Hand_R` otherwise.
 - [x] Review & approve all 3 animations in Blender before exporting GLB: run (frames 1–40), melee_atack (1–40), range_atack (1–40). All saved in player.blend. DO NOT export until approved.
 - [x] Export player.glb from player.blend after animation approval (use Blender MCP, export_nla_strips=True)
@@ -37,6 +38,7 @@ Update this as tasks are completed or new work is identified.
 
 - [x] Channeled skill auto-activate behaves like an Active skill — fires, waits cooldown, fires again instead of holding `IsChanneling = true` continuously. Auto-activate on a Channeled slot should keep it channeling as long as there are enemies and Focus is available.
 - [x] Channeled skill exclusivity — while a Channeled skill is active (`IsChanneling = true`), all Active skills (Strike, Nova) must be suppressed entirely (no damage, no animation). Auras are unaffected. The opening slot 1 skill gets one hit in before Cyclone takes over; after that Active skills are locked out until channeling stops. Fix together with the auto-activate bug above.
+- [x] Channeled skill does not stop at 0 Focus — `IsChanneling` stayed true when `TrySpendFocus` failed; VFX kept spinning and skill bar stayed active. Fixed: `ProcessChanneledSlot` now sets `IsChanneling = false` when focus is exhausted.
 
 ---
 
@@ -55,6 +57,16 @@ Update this as tasks are completed or new work is identified.
 
 ## Systems / Features
 
+- [x] Skill data contract — new `SkillData` fields (Description, IsPrototype, TargetingShape, WindUp, DamagePattern, StackLimit, ZoneTracksEntity, Duration, TriggerRadius, ArmTime, TriggerCount), enums SkillTargetingShape/SkillDamagePattern, 4 skills renamed (strike→entity_burst, cyclone→self_channeled_tick, nova→self_burst, damage_aura→self_aura_tick), RecipeRegistry outputs updated, save migration entries added in CharacterManager.MigrateSkillId().
+- [x] Targeting system runtime — `PlayerController.LockedTarget` + `TargetPosition` (Vector3). Mouse raycast to ground plane updates `TargetPosition` every frame; controller support ready (swap raycast for right-stick vector, nothing else changes). Entity skills→LockedTarget (Effective Range check); Position skills→mouse cursor clamped to skill Range (fires at boundary if out of range, never blocked); Self/Channeled→player position. LockedTarget auto-picks nearest enemy to cursor. Aim reticle (white ring) visible when a Position skill is slotted. `RecalculateEffectiveRange()` public for mid-run range buffs.
+- [x] Prototype skills — library confirmed complete for v2 planning (covers all major ARPG archetypes). Full specs in gdd-mechanics.md § Base Skill Templates. Test order: Burst shapes first, then Entity targeting, then Stackable/Trap.
+  - [x] Fixed-Zone-Burst — instant explosion at LockedTarget position; proves Position targeting resolves to enemy location not player
+  - [x] Fixed-Zone-Tick — ticking zone at position; proves persistent zone with duration and tick damage
+  - [x] Windup-Burst — 1.5s telegraphed delay then burst; proves wind-up mechanic
+  - [x] Entity-Debuff — slow applied to locked target for 6s; proves Entity targeting with no damage output
+  - [x] Tracked-Tick — ticking zone follows locked enemy; proves ZoneTracksEntity and entity death expiry
+  - [x] Stackable-Zone — up to 3 independent ticking zones; proves StackLimit and oldest-despawn on cap
+  - [x] Triggered-Zone-Burst — dormant trap fires once on enemy proximity; proves TriggerRadius/ArmTime/TriggerCount
 - [x] Pause screen — ESC toggles PauseMenu (CanvasLayer, process_mode=Always); GetTree().Paused set on show/hide; Resume + End Run buttons; debug section (speed slider, range toggle) hidden in non-debug builds
 - [ ] Boss mechanic — run win condition triggers when timer expires but boss is TBD
 - [x] Map generation — single 24×24 KayKit dungeon arena; floor tiles, perimeter walls, corner pieces, scattered props (pillars, barrels, crates, torches); collision boundary; player spawns at centre; enemies spawn on floor tiles
@@ -81,6 +93,17 @@ Update this as tasks are completed or new work is identified.
 - [x] Hit stop — add `Engine.TimeScale = 0` + real-time restore timer in `PlayerController.TakeDamage` (3 lines; `ignoreTimeScale: true` on the restore timer)
 - [x] HP bars — floating bar above player (always on, `#A32D2D`) and enemies (on-hit, 2s timer, `#8C2E2E`); `WorldHud.cs` Node2D in CanvasLayer projects 3D positions to screen via `Camera3D.UnprojectPosition`
 - [x] Damage numbers — floating text above hit entity; physical = bone white, magic = ice shimmer, crit = gold (+50% larger); individual per hit, fade over 0.8s; `DamageTaken` signal added to `EnemyController` and `PlayerController`; `isCrit` propagated through full damage pipeline (WeaponController, Projectile, EoT ticks)
+
+---
+
+## GDD v1 Verified Complete (2026-06-12)
+
+- [x] Focus Shield — absorbs hits before HP (30% of Max Focus); passive regen; `ShieldChanged` signal wired to blue shield bar in HUD. All archetypes.
+- [x] Equipment Augment behaviors — all 6 v1 behaviors implemented in `PlayerController.cs`: Retaliation, Fortify, Dash Reflex, Ghost Step, Mending, Adaptation.
+- [x] Skill bar cooldown visualization — `FillMode=3` (bottom-to-top), fills over cooldown duration per slot; aura toggle highlights green border.
+- [x] Main Menu — `MainMenu.cs` + scene; Play button navigates to Account Screen.
+- [x] All 4 v1 skills implemented — Strike, Cyclone, Damage Aura, Nova.
+- [x] All 5 v1 Skill Augments implemented — Splash, Pierce, Slow, Critical Strike, Magic Damage.
 
 ---
 

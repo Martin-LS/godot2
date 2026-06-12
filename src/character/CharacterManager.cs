@@ -44,7 +44,7 @@ public partial class CharacterManager : Node
         c.EquippedGear[ItemSlot.Body.ToString()]   = new GearItemInstance { DefinitionId = body };
         c.EquippedGear[ItemSlot.Ring.ToString()]   = new GearItemInstance { DefinitionId = ring };
 
-        var skillInst = new SkillItemInstance { DefinitionId = "strike" };
+        var skillInst = new SkillItemInstance { DefinitionId = "entity_burst" };
 
         string? starterAugId = c.Type switch
         {
@@ -521,7 +521,11 @@ public partial class CharacterManager : Node
 
     private void Load()
     {
-        if (!FileAccess.FileExists(SavePath)) return;
+        if (!FileAccess.FileExists(SavePath))
+        {
+            Profile.AddMaterial("crafting_common", 10);
+            return;
+        }
         using var file = FileAccess.Open(SavePath, FileAccess.ModeFlags.Read);
         if (file == null) return;
 
@@ -659,11 +663,15 @@ public partial class CharacterManager : Node
 
     private static string MigrateSkillId(string oldId) => oldId switch
     {
-        "attack_melee"           => "strike",
-        "attack_ranged_physical" => "strike",
-        "attack_ranged_magic"    => "strike",
-        "arrow"                  => "strike",
-        "bolt"                   => "strike",
+        "attack_melee"           => "entity_burst",
+        "attack_ranged_physical" => "entity_burst",
+        "attack_ranged_magic"    => "entity_burst",
+        "arrow"                  => "entity_burst",
+        "bolt"                   => "entity_burst",
+        "strike"                 => "entity_burst",
+        "cyclone"                => "self_channeled_tick",
+        "nova"                   => "self_burst",
+        "damage_aura"            => "self_aura_tick",
         _                        => oldId,
     };
 

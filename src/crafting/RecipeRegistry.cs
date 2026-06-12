@@ -20,11 +20,14 @@ public static class RecipeRegistry
         ["recipe_light_body_t1"]   = new("recipe_light_body_t1",   "light_body_t1",   RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
         ["recipe_ring_t1"]         = new("recipe_ring_t1",         "ring_t1",         RecipeType.Gear,    new() { ["crafting_common"] = 1 }),
 
-        // Skill recipes
-        ["recipe_strike"]      = new("recipe_strike",      "strike",      RecipeType.Skill, new() { ["crafting_common"] = 1 }),
-        ["recipe_cyclone"]     = new("recipe_cyclone",     "cyclone",     RecipeType.Skill, new() { ["crafting_common"] = 1 }),
-        ["recipe_nova"]        = new("recipe_nova",        "nova",        RecipeType.Skill, new() { ["crafting_common"] = 1 }),
-        ["recipe_damage_aura"] = new("recipe_damage_aura", "damage_aura", RecipeType.Skill, new() { ["crafting_common"] = 1 }),
+        // Skill recipes — prototype library (one added per test session)
+        ["recipe_tracked_tick"]     = new("recipe_tracked_tick",     "tracked_tick",     RecipeType.Skill, new() { ["crafting_common"] = 1 }),
+        ["recipe_stackable_zone"]       = new("recipe_stackable_zone",       "stackable_zone",       RecipeType.Skill, new() { ["crafting_common"] = 1 }),
+        ["recipe_triggered_zone_burst"] = new("recipe_triggered_zone_burst", "triggered_zone_burst", RecipeType.Skill, new() { ["crafting_common"] = 1 }),
+        ["recipe_entity_debuff"]    = new("recipe_entity_debuff",    "entity_debuff",    RecipeType.Skill, new() { ["crafting_common"] = 1 }),
+        ["recipe_windup_burst"]     = new("recipe_windup_burst",     "windup_burst",     RecipeType.Skill, new() { ["crafting_common"] = 1 }),
+        ["recipe_fixed_zone_burst"] = new("recipe_fixed_zone_burst", "fixed_zone_burst", RecipeType.Skill, new() { ["crafting_common"] = 1 }),
+        ["recipe_fixed_zone_tick"]  = new("recipe_fixed_zone_tick",  "fixed_zone_tick",  RecipeType.Skill, new() { ["crafting_common"] = 1 }),
 
         // Skill Augment recipes
         ["recipe_splash"]          = new("recipe_splash",          "splash",          RecipeType.SkillAugment, new() { ["crafting_common"] = 1 }),

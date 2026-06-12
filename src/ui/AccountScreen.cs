@@ -19,7 +19,7 @@ public partial class AccountScreen : Control
         _characterList = GetNode<VBoxContainer>($"{RosterBase}/Scroll/CharacterList");
         _createPanel   = GetNode<Control>      ($"{RosterBase}/CreatePanel");
 
-        GetNode<Button>($"{RosterBase}/NewCharacterButton").Pressed          += () => _createPanel.Visible = true;
+        GetNode<Button>($"{RosterBase}/NewCharacterButton").Pressed          += () => GetTree().ChangeSceneToFile("res://src/ui/character_create.tscn");
         GetNode<Button>($"{RosterBase}/CreatePanel/VBox/WarriorBtn").Pressed += () => CreateAndSelect(Character.CharacterType.Warrior);
         GetNode<Button>($"{RosterBase}/CreatePanel/VBox/RogueBtn").Pressed   += () => CreateAndSelect(Character.CharacterType.Rogue);
         GetNode<Button>($"{RosterBase}/CreatePanel/VBox/MageBtn").Pressed    += () => CreateAndSelect(Character.CharacterType.Mage);

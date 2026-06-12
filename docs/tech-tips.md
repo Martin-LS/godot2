@@ -159,6 +159,20 @@ Use the `/godot-debug` skill (`.claude/commands/godot-debug.md`) to automate thi
 
 ---
 
+## Ground-plane meshes are nearly invisible from this game's camera angle
+
+The camera is perspective and oblique (not straight-down). A flat mesh lying in the XZ plane (e.g. `PlaneMesh`, flat `TorusMesh`, thin `CylinderMesh`) is seen nearly edge-on from the near side — the visible surface area is tiny, so it looks invisible even if it's rendering correctly.
+
+**What works**: `CylinderMesh` with enough `Height` that the side walls are clearly visible. For AoE zone indicators a height of ~20 world units is the practical minimum at the current camera angle.
+
+**What doesn't work**: flat discs, `PlaneMesh` (zero thickness), or thin cylinders (height < ~15). `depth_draw_never` and `CullMode.Disabled` do not fix this — the geometry itself is the problem, not culling.
+
+**Long-term fix**: use `Decal` nodes projected onto the floor mesh (GPU handles perspective correctly). Not wired up for v1.
+
+**Torus orientation note**: `TorusMesh` default is flat in the XZ plane. `RotateX(Pi/2)` makes it stand vertical — the ring is then clearly visible but wrong for most ground indicators. The aim reticle uses `RotateX` intentionally because it's small enough (~12 units) that the vertical orientation is unnoticeable.
+
+---
+
 ## New files copied into the project must be scanned before Godot can load them
 
 Godot only knows about files it has imported (`.import` sidecar exists). Files copied in via PowerShell/Explorer after the editor last opened will fail with `No loader found for resource` at runtime — even if the path is correct.

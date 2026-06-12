@@ -40,7 +40,7 @@ Characters can equip up to 4 gear items (one per gear slot) and up to 3 skill it
 
 Three skill slots map directly to the 3 skill bar slots shown during a run. Whatever is equipped in skill slots 1–3 is what fires during the run.
 
-The same skill item can be equipped in multiple slots simultaneously. Any archetype can equip any skill — there are no restrictions. v1 has one skill: **Strike** (tags: `Attack`). All archetypes start with plain Strike — no pre-socketed augments. Weapon type determines damage type and delivery.
+The same skill item can be equipped in multiple slots simultaneously. Any archetype can equip any skill — there are no restrictions. v1 starter skill: **Entity-Burst** (formerly Strike; tags: `Attack`). All archetypes start with plain Entity-Burst — no pre-socketed augments. Weapon type determines damage type and delivery.
 
 Skill items are crafted (Craft New — accessible from an empty skill slot, left-click → Craft New; not yet implemented in v1) and equipped from the **Skills inventory tab**.
 
@@ -202,10 +202,12 @@ Stats above apply per piece — each slot contributes its category's stats indep
 **Range Modifier only applies to ranged weapons** — this is a universal rule for all armour categories. If the equipped weapon's `PreferredDelivery` is `Ranged`, both hat and body Range Modifiers are added to Effective Range. If `PreferredDelivery` is `Melee`, Range Modifier has no effect regardless of armour category — a sword's reach is not shortened by heavy plate, and a Light archer's range bonus doesn't extend a sword swing.
 
 **Effective Range** (visible on the character sheet):
-- Ranged weapon: `Weapon Range + hat Range Modifier + body Range Modifier` (in tiles)
+- Ranged weapon: `Weapon Range + hat Range Modifier + body Range Modifier + range buff bonus` (in tiles)
 - Melee weapon: `Weapon Range` (Range Modifiers ignored)
 
 Displayed as tiles in the UI.
+
+**Range buffs (v2+):** Skills may temporarily or permanently modify Effective Range mid-run (e.g. a Shout that increases attack range for X seconds). Any such buff adds a flat tile bonus on top of the baseline formula. Effective Range is therefore not fixed at run start — the baseline is calculated at run start, but it is recalculated whenever a range buff is applied or expires. All skill cast distance checks use the current Effective Range at the moment of firing.
 
 **Visuals (in-run):** Hat, Body, and Weapon are rendered on the character model. Ring has no visual representation.
 
@@ -221,11 +223,11 @@ Each character starts with one item per slot, matched to their archetype:
 
 | Archetype | Weapon         | Hat            | Body           | Ring          | Skill slot 1        | Slots 2 & 3 |
 |-----------|----------------|----------------|----------------|---------------|---------------------|-------------|
-| Warrior   | Sword (tier 1) | Heavy (tier 1) | Heavy (tier 1) | Ring (tier 1) | Strike (no augment) | Empty       |
-| Rogue     | Bow (tier 1)   | Light (tier 1) | Light (tier 1) | Ring (tier 1) | Strike (no augment) | Empty       |
-| Mage      | Wand (tier 1)  | Medium (tier 1)| Medium (tier 1)| Ring (tier 1) | Strike (no augment) | Empty       |
+| Warrior   | Sword (tier 1) | Heavy (tier 1) | Heavy (tier 1) | Ring (tier 1) | Entity-Burst (no augment) | Empty       |
+| Rogue     | Bow (tier 1)   | Light (tier 1) | Light (tier 1) | Ring (tier 1) | Entity-Burst (no augment) | Empty       |
+| Mage      | Wand (tier 1)  | Medium (tier 1)| Medium (tier 1)| Ring (tier 1) | Entity-Burst (no augment) | Empty       |
 
-New characters start with slot 1 filled and slots 2–3 empty. Filling them requires crafting additional skill items — the first craft is the natural next step after a new character's first run. Skills pre-equipped in slot 1 do not appear in the Skills inventory tab. All three starters use plain Strike with no augments — damage type and delivery are determined by the equipped weapon, not by pre-socketed augments. Crit is a bow identity (the bow's +8% crit identity bonus), not a Rogue identity; magic damage is a wand identity, not a Mage identity.
+New characters start with slot 1 filled and slots 2–3 empty. Filling them requires crafting additional skill items — the first craft is the natural next step after a new character's first run. Skills pre-equipped in slot 1 do not appear in the Skills inventory tab. All three starters use plain Entity-Burst with no augments — damage type and delivery are determined by the equipped weapon, not by pre-socketed augments. Crit is a bow identity (the bow's +8% crit identity bonus), not a Rogue identity; magic damage is a wand identity, not a Mage identity.
 
 Specific item names and exact stat values are TBD.
 
@@ -285,6 +287,7 @@ Crafting materials are tiered — common through exotic. Each tier drops at a di
 ### Menus
 - **Main Menu** → title screen, Play button
 - **Account Screen** → the account-level hub. Always the first screen after Main Menu. Contains the character roster (list characters, create new, delete). Designed to grow — future account-level info (account stats, global progress, etc.) will live alongside the roster. Selecting a character navigates to their Character Screen.
+  - **Character creation — name rules:** Required (non-empty). Alphanumeric only — no spaces or special characters. Must be unique across all characters on the account. Confirm button is disabled until all rules pass; inline error message explains which rule is violated.
 - **Character Screen** → full management hub for the selected character. Two tabs: **Loadout** (default) and **Sigils**. Start Run button at the bottom. Back button returns to Account Screen.
   - **Loadout tab** — two-column layout:
     - *Left/centre* — character name, archetype, stats, and equipped slots: Weapon / Hat / Body / Ring / Skill 1 / Skill 2 / Skill 3

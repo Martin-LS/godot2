@@ -1,8 +1,13 @@
-[gd_scene format=3 uid="uid://char_create_v1"]
+[gd_scene format=3 uid="uid://c87kfvxsgw6un"]
 
-[ext_resource type="Script" path="res://src/ui/CharacterCreate.cs" id="1_chrcr"]
+[ext_resource type="Script" uid="uid://b2yrnyqd5lq5v" path="res://src/ui/CharacterCreate.cs" id="1_chrcr"]
 
-[node name="CharacterCreate" type="Control"]
+[sub_resource type="TorusMesh" id="TorusMesh_c5o5d"]
+inner_radius = 18.0
+outer_radius = 22.0
+rings = 6
+
+[node name="CharacterCreate" type="Control" unique_id=1204254592]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +16,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_chrcr")
 
-[node name="VBox" type="VBoxContainer" parent="."]
+[node name="VBox" type="VBoxContainer" parent="." unique_id=958795652]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -26,39 +31,47 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 16
 
-[node name="TitleLabel" type="Label" parent="VBox"]
+[node name="TitleLabel" type="Label" parent="VBox" unique_id=192456661]
 layout_mode = 2
+theme_override_font_sizes/font_size = 28
 text = "Create Character"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 28
 
-[node name="NameInput" type="LineEdit" parent="VBox"]
+[node name="NameInput" type="LineEdit" parent="VBox" unique_id=650873837]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 placeholder_text = "Character name..."
 
-[node name="WarriorBtn" type="Button" parent="VBox"]
+[node name="ErrorLabel" type="Label" parent="VBox" unique_id=823842511]
+visible = false
+modulate = Color(1, 0.3, 0.3, 1)
+layout_mode = 2
+
+[node name="WarriorBtn" type="Button" parent="VBox" unique_id=1220365682]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Warrior  —  150 HP   170 Spd   20 DMG"
 
-[node name="RogueBtn" type="Button" parent="VBox"]
+[node name="RogueBtn" type="Button" parent="VBox" unique_id=185550695]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Rogue  —  80 HP   260 Spd   15 DMG"
 
-[node name="MageBtn" type="Button" parent="VBox"]
+[node name="MageBtn" type="Button" parent="VBox" unique_id=708368072]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Mage  —  100 HP   200 Spd   35 DMG"
 
-[node name="ConfirmBtn" type="Button" parent="VBox"]
+[node name="ConfirmBtn" type="Button" parent="VBox" unique_id=1342389569]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 disabled = true
 text = "Create"
 
-[node name="CancelBtn" type="Button" parent="VBox"]
+[node name="CancelBtn" type="Button" parent="VBox" unique_id=147827323]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "← Cancel"
+
+[node name="Ring" type="MeshInstance3D" parent="." unique_id=75633]
+mesh = SubResource("TorusMesh_c5o5d")

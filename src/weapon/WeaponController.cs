@@ -19,6 +19,12 @@ public partial class WeaponController : Node
     private static readonly PackedScene CycloneVfxScene =
         GD.Load<PackedScene>("res://src/vfx/cyclone_vfx.tscn");
 
+    private static readonly PackedScene FixedZoneBurstVfxScene =
+        GD.Load<PackedScene>("res://src/vfx/fixed_zone_burst_vfx.tscn");
+
+    private static readonly PackedScene FixedZoneTickVfxScene =
+        GD.Load<PackedScene>("res://src/vfx/fixed_zone_tick_vfx.tscn");
+
     private const float SplashRadius = 60f;
 
     private Player.PlayerController? _player;
@@ -68,6 +74,7 @@ public partial class WeaponController : Node
         public float        AuraReserved;
         public float        DamageMultiplier;
         public bool         IsChanneling;
+        public List<Node3D> ActiveZones;
     }
 
     private readonly SkillSlot[] _slots = new SkillSlot[3];
@@ -84,7 +91,10 @@ public partial class WeaponController : Node
         if (slotIndex < 0 || slotIndex >= 3) return;
         _slots[slotIndex].Skill            = skill;
         _slots[slotIndex].CooldownTimer    = 0f;
-        _slots[slotIndex].EotIds           = eotIds ?? new List<string>();
+        var inherent = skill.InherentEotIds ?? System.Array.Empty<string>();
+        var merged   = new List<string>(inherent);
+        if (eotIds != null) merged.AddRange(eotIds);
+        _slots[slotIndex].EotIds           = merged;
         _slots[slotIndex].HasSplash        = hasSplash;
         _slots[slotIndex].HasPierce        = hasPierce;
         _slots[slotIndex].HasMagicDamage   = hasMagicDamage;
@@ -93,6 +103,7 @@ public partial class WeaponController : Node
         _slots[slotIndex].AuraActive    = false;
         _slots[slotIndex].AuraReserved  = 0f;
         _slots[slotIndex].IsChanneling  = false;
+        _slots[slotIndex].ActiveZones   = new List<Node3D>();
         _slots[slotIndex].DamageMultiplier = skill.Type switch
         {
             SkillType.Channeled => BalanceConfig.Focus.CycloneDamageMultiplier,
@@ -105,6 +116,13 @@ public partial class WeaponController : Node
     {
         if (slotIndex < 0 || slotIndex >= 3) return;
         _slots[slotIndex].AutoActivate = autoActivate;
+    }
+
+    public bool HasAnyPositionSkill()
+    {
+        for (int i = 0; i < 3; i++)
+            if (_slots[i].Skill?.TargetingShape == SkillTargetingShape.Position) return true;
+        return false;
     }
 
     public void ReduceCooldowns(float amount)
@@ -176,20 +194,33 @@ public partial class WeaponController : Node
         if (IsAnySlotChanneling()) return;
         if (_slots[i].CooldownTimer > 0f) return;
 
-        bool isBurst = System.Array.Exists(_slots[i].Skill!.Tags, t => t == "Burst");
-        if (isBurst)
+        var shape = _slots[i].Skill!.TargetingShape;
+
+        if (shape == SkillTargetingShape.Self)
         {
             if (FindNearestEnemy(_slots[i].Skill!.Range) == null) return;
             if (_player != null && !_player.TrySpendFocus(_slots[i].Skill!.FocusCost)) return;
             FireNova(i);
             _slots[i].CooldownTimer = _slots[i].Skill!.Cooldown;
         }
-        else
+        else if (shape == SkillTargetingShape.Entity)
         {
-            var target = FindNearestEnemy(_range);
-            if (target == null) return;
+            var target = _player?.LockedTarget;
+            if (target == null || target.IsQueuedForDeletion()) return;
+            var origin    = GetParent<Node3D>().GlobalPosition;
+            float maxRange = _slots[i].Skill!.Range > 0f ? _slots[i].Skill!.Range : _range;
+            if (origin.DistanceTo(target.GlobalPosition) > maxRange) return;
             if (_player != null && !_player.TrySpendFocus(_slots[i].Skill!.FocusCost)) return;
             FireAt(i, target);
+            _slots[i].CooldownTimer = _slots[i].Skill!.Cooldown;
+        }
+        else if (shape == SkillTargetingShape.Position)
+        {
+            if (_player == null) return;
+            var origin  = GetParent<Node3D>().GlobalPosition;
+            var firePos = ClampToSkillRange(origin, _player.TargetPosition, _slots[i].Skill!.Range);
+            if (!_player.TrySpendFocus(_slots[i].Skill!.FocusCost)) return;
+            FireAtPosition(i, firePos);
             _slots[i].CooldownTimer = _slots[i].Skill!.Cooldown;
         }
     }
@@ -199,7 +230,7 @@ public partial class WeaponController : Node
         if (_slots[i].CooldownTimer > 0f) return;
         if (FindNearestEnemy(_slots[i].Skill!.Range) == null) return;
         float drain = _slots[i].Skill!.FocusCost * _slots[i].Skill!.Cooldown;
-        if (_player != null && !_player.TrySpendFocus(drain)) return;
+        if (_player != null && !_player.TrySpendFocus(drain)) { _slots[i].IsChanneling = false; return; }
         FireCyclone(i);
         _slots[i].CooldownTimer = _slots[i].Skill!.Cooldown;
     }
@@ -286,7 +317,9 @@ public partial class WeaponController : Node
             return;
         }
 
-        if (System.Array.Exists(slot.Skill.Tags, t => t == "Burst"))
+        var shape = slot.Skill.TargetingShape;
+
+        if (shape == SkillTargetingShape.Self)
         {
             if (FindNearestEnemy(slot.Skill.Range) == null) return;
             if (_player != null && !_player.TrySpendFocus(slot.Skill.FocusCost)) return;
@@ -295,16 +328,74 @@ public partial class WeaponController : Node
             return;
         }
 
-        if (_player != null && !_player.TrySpendFocus(slot.Skill.FocusCost)) return;
-        var tgt = FindNearestEnemy(_range);
-        if (tgt == null) return;
-        FireAt(slotIndex, tgt);
-        slot.CooldownTimer = slot.Skill.Cooldown;
+        if (shape == SkillTargetingShape.Entity)
+        {
+            var tgt = _player?.LockedTarget;
+            if (tgt == null || tgt.IsQueuedForDeletion()) return;
+            var origin    = GetParent<Node3D>().GlobalPosition;
+            float maxRange = slot.Skill.Range > 0f ? slot.Skill.Range : _range;
+            if (origin.DistanceTo(tgt.GlobalPosition) > maxRange) return;
+            if (_player != null && !_player.TrySpendFocus(slot.Skill.FocusCost)) return;
+            FireAt(slotIndex, tgt);
+            slot.CooldownTimer = slot.Skill.Cooldown;
+            return;
+        }
+
+        if (shape == SkillTargetingShape.Position)
+        {
+            if (_player == null) return;
+            var origin  = GetParent<Node3D>().GlobalPosition;
+            var firePos = ClampToSkillRange(origin, _player.TargetPosition, slot.Skill.Range);
+            if (!_player.TrySpendFocus(slot.Skill.FocusCost)) return;
+            FireAtPosition(slotIndex, firePos);
+            slot.CooldownTimer = slot.Skill.Cooldown;
+        }
     }
 
     private void FireAt(int slotIndex, Enemies.EnemyController target)
     {
         var slot = _slots[slotIndex];
+
+        if (slot.Skill!.DamagePattern == SkillDamagePattern.None)
+        {
+            // Pure debuff: apply inherent EoTs at 100% chance (no probability roll)
+            foreach (var eotId in slot.EotIds)
+            {
+                var eot = EotRegistry.Get(eotId);
+                if (eot != null) target.ApplyEot(eot, 1.0f);
+            }
+            EmitSignal(SignalName.SkillFired, slotIndex, slot.Skill.Cooldown, "Debuff");
+            return;
+        }
+
+        if (slot.Skill.DamagePattern == SkillDamagePattern.Tick && slot.Skill.ZoneTracksEntity)
+        {
+            bool  ttMagic  = (_baseDamageType == Items.DamageType.Magic) || slot.HasMagicDamage;
+            var   ttType   = ttMagic ? Items.DamageType.Magic : Items.DamageType.Physical;
+            float ttDmg    = (ttMagic ? _magicDamage : _physicalDamage)
+                             * slot.DamageMultiplier * BalanceConfig.Skills.TrackedTickDamageMult;
+            float ttCritChance = _globalCritChance + slot.CritChanceBonus;
+            float ttCrit   = 1.0f;
+            if (ttCritChance > 0f && GD.Randf() < ttCritChance)
+                ttCrit = _critMultiplier;
+            float radius = slot.Skill.ZoneRadius > 0f ? slot.Skill.ZoneRadius : _range;
+
+            var zone = new TrackedTick
+            {
+                Target         = target,
+                Damage         = ttDmg * ttCrit,
+                DmgType        = ttType,
+                Radius         = radius,
+                Duration       = slot.Skill.Duration,
+                TickInterval   = BalanceConfig.Skills.TrackedTickRate,
+                EotIds         = slot.EotIds,
+                CritMultiplier = ttCrit,
+            };
+            GetTree().Root.AddChild(zone);
+            zone.GlobalPosition = new Vector3(target.GlobalPosition.X, 10.0f, target.GlobalPosition.Z);
+            EmitSignal(SignalName.SkillFired, slotIndex, slot.Skill.Cooldown, "Attack");
+            return;
+        }
 
         bool  isMagic   = (_baseDamageType == Items.DamageType.Magic) || slot.HasMagicDamage;
         bool  hasMelee  = System.Array.Exists(slot.Skill!.Tags, t => t == "Melee");
@@ -398,6 +489,165 @@ public partial class WeaponController : Node
         EmitSignal(SignalName.SkillFired, slotIndex, slot.Skill!.Cooldown, "Nova");
     }
 
+    private void FireAtPosition(int slotIndex, Vector3 worldPos)
+    {
+        ref var slot = ref _slots[slotIndex];
+
+        if (slot.Skill!.TriggerRadius > 0f)
+        {
+            bool  isMagic  = (_baseDamageType == Items.DamageType.Magic) || slot.HasMagicDamage;
+            var   dmgType  = isMagic ? Items.DamageType.Magic : Items.DamageType.Physical;
+            float baseDmg  = (isMagic ? _magicDamage : _physicalDamage)
+                             * BalanceConfig.Skills.TriggeredZoneBurstDamageMult;
+
+            float critChance = _globalCritChance + slot.CritChanceBonus;
+            float critMult   = 1.0f;
+            if (critChance > 0f && GD.Randf() < critChance)
+                critMult = _critMultiplier;
+            baseDmg *= critMult;
+
+            slot.ActiveZones.RemoveAll(z => z == null || !GodotObject.IsInstanceValid(z) || z.IsQueuedForDeletion());
+            if (slot.Skill.StackLimit > 1 && slot.ActiveZones.Count >= slot.Skill.StackLimit)
+            {
+                slot.ActiveZones[0].QueueFree();
+                slot.ActiveZones.RemoveAt(0);
+            }
+
+            float blastRadius = slot.Skill.ZoneRadius > 0f ? slot.Skill.ZoneRadius : _range;
+            var trap = new TriggerZone
+            {
+                Damage        = baseDmg,
+                DmgType       = dmgType,
+                BlastRadius   = blastRadius,
+                TriggerRadius = slot.Skill.TriggerRadius,
+                Duration      = slot.Skill.Duration,
+                ArmTime       = slot.Skill.ArmTime,
+                EotIds        = slot.EotIds,
+                CritMultiplier = critMult,
+            };
+            GetTree().Root.AddChild(trap);
+            trap.GlobalPosition = new Vector3(worldPos.X, 10.0f, worldPos.Z);
+            slot.ActiveZones.Add(trap);
+        }
+        else if (slot.Skill!.DamagePattern == SkillDamagePattern.Burst)
+        {
+            bool  isMagic    = (_baseDamageType == Items.DamageType.Magic) || slot.HasMagicDamage;
+            var   dmgType    = isMagic ? Items.DamageType.Magic : Items.DamageType.Physical;
+            float burstMult  = slot.Skill.WindUp > 0f
+                ? BalanceConfig.Skills.WindupBurstDamageMult
+                : BalanceConfig.Skills.FixedZoneBurstDamageMult;
+            float baseDmg    = (isMagic ? _magicDamage : _physicalDamage) * burstMult;
+
+            float critChance = _globalCritChance + slot.CritChanceBonus;
+            float critMult   = 1.0f;
+            if (critChance > 0f && GD.Randf() < critChance)
+                critMult = _critMultiplier;
+            baseDmg *= critMult;
+
+            float radius = slot.Skill!.ZoneRadius > 0f ? slot.Skill!.ZoneRadius : _range;
+            bool  isCrit = critMult > 1f;
+
+            if (slot.Skill.WindUp > 0f)
+            {
+                // Capture everything — lambdas can't close over ref locals
+                float            capDmg    = baseDmg;
+                Items.DamageType capType   = dmgType;
+                float            capCrit   = critMult;
+                bool             capIsCrit = isCrit;
+                float            capRadius = radius;
+                var              capEots   = slot.EotIds;
+                Vector3          capPos    = worldPos;
+                float            capWindUp = slot.Skill.WindUp;
+
+                var telegraph = new WindupTelegraph { Radius = capRadius, Duration = capWindUp };
+                GetTree().Root.AddChild(telegraph);
+                telegraph.GlobalPosition = new Vector3(capPos.X, 10.0f, capPos.Z);
+
+                GetTree().CreateTimer(capWindUp).Timeout += () =>
+                {
+                    foreach (var node in GetTree().GetNodesInGroup("enemies"))
+                    {
+                        if (node is not Enemies.EnemyController enemy || enemy.IsQueuedForDeletion()) continue;
+                        if (capPos.DistanceTo(enemy.GlobalPosition) > capRadius) continue;
+                        enemy.TakeDamage(capDmg, capType, capIsCrit);
+                        ApplyEots(enemy, capEots, capCrit);
+                    }
+                    SpawnZoneBurstVfx(capPos);
+                };
+            }
+            else
+            {
+                foreach (var node in GetTree().GetNodesInGroup("enemies"))
+                {
+                    if (node is not Enemies.EnemyController enemy || enemy.IsQueuedForDeletion()) continue;
+                    if (worldPos.DistanceTo(enemy.GlobalPosition) > radius) continue;
+                    enemy.TakeDamage(baseDmg, dmgType, isCrit);
+                    ApplyEots(enemy, slot.EotIds, critMult);
+                }
+                SpawnZoneBurstVfx(worldPos);
+            }
+        }
+        else if (slot.Skill!.DamagePattern == SkillDamagePattern.Tick)
+        {
+            bool  isMagic = (_baseDamageType == Items.DamageType.Magic) || slot.HasMagicDamage;
+            var   dmgType = isMagic ? Items.DamageType.Magic : Items.DamageType.Physical;
+            float damageMult = slot.Skill.StackLimit > 1
+                ? BalanceConfig.Skills.StackableZoneDamageMult
+                : BalanceConfig.Skills.FixedZoneTickDamageMult;
+            float baseDmg = (isMagic ? _magicDamage : _physicalDamage) * damageMult;
+
+            float critChance = _globalCritChance + slot.CritChanceBonus;
+            float critMult   = 1.0f;
+            if (critChance > 0f && GD.Randf() < critChance)
+                critMult = _critMultiplier;
+            baseDmg *= critMult;
+
+            float radius = slot.Skill!.ZoneRadius > 0f ? slot.Skill!.ZoneRadius : _range;
+
+            if (slot.Skill.StackLimit > 1)
+            {
+                slot.ActiveZones.RemoveAll(z => z == null || !GodotObject.IsInstanceValid(z) || z.IsQueuedForDeletion());
+                if (slot.ActiveZones.Count >= slot.Skill.StackLimit)
+                {
+                    slot.ActiveZones[0].QueueFree();
+                    slot.ActiveZones.RemoveAt(0);
+                }
+
+                var zone = new StackableZone
+                {
+                    Damage         = baseDmg,
+                    DmgType        = dmgType,
+                    Radius         = radius,
+                    Duration       = slot.Skill!.Duration,
+                    TickInterval   = BalanceConfig.Skills.StackableZoneRate,
+                    EotIds         = slot.EotIds,
+                    CritMultiplier = critMult,
+                };
+                GetTree().Root.AddChild(zone);
+                zone.GlobalPosition = new Vector3(worldPos.X, 10.0f, worldPos.Z);
+                slot.ActiveZones.Add(zone);
+            }
+            else
+            {
+                var zone = new FixedZoneTick
+                {
+                    Damage         = baseDmg,
+                    DmgType        = dmgType,
+                    Radius         = radius,
+                    Duration       = slot.Skill!.Duration,
+                    TickInterval   = BalanceConfig.Skills.FixedZoneTickRate,
+                    EotIds         = slot.EotIds,
+                    CritMultiplier = critMult,
+                };
+                GetTree().Root.AddChild(zone);
+                zone.GlobalPosition = worldPos;
+                SpawnZoneTickVfx(worldPos, slot.Skill!.Duration);
+            }
+        }
+
+        EmitSignal(SignalName.SkillFired, slotIndex, slot.Skill!.Cooldown, "Nova");
+    }
+
     private void HitMelee(Enemies.EnemyController target, float damage, Items.DamageType dmgType,
         List<string> eotIds, bool hasSplash, float critMultiplier)
     {
@@ -449,6 +699,36 @@ public partial class WeaponController : Node
         {
             GD.PrintErr($"HitEffect failed: {e.Message}");
         }
+    }
+
+    private void SpawnZoneBurstVfx(Vector3 worldPos)
+    {
+        if (FixedZoneBurstVfxScene == null) return;
+        var vfx   = FixedZoneBurstVfxScene.Instantiate<Node3D>();
+        var whirl = vfx.GetNodeOrNull<GpuParticles3D>("Whirl");
+        GetTree().Root.AddChild(vfx);
+        vfx.GlobalPosition = worldPos;
+        if (whirl != null) whirl.Emitting = true;
+        GetTree().CreateTimer(1.5).Timeout += vfx.QueueFree;
+    }
+
+    private void SpawnZoneTickVfx(Vector3 worldPos, float duration)
+    {
+        if (FixedZoneTickVfxScene == null) return;
+        var vfx   = FixedZoneTickVfxScene.Instantiate<Node3D>();
+        var whirl = vfx.GetNodeOrNull<GpuParticles3D>("Whirl");
+        GetTree().Root.AddChild(vfx);
+        vfx.GlobalPosition = worldPos;
+        if (whirl != null) whirl.Emitting = true;
+        GetTree().CreateTimer(duration + 0.5).Timeout += vfx.QueueFree;
+    }
+
+    private static Vector3 ClampToSkillRange(Vector3 origin, Vector3 target, float range)
+    {
+        var flat = new Vector3(target.X - origin.X, 0f, target.Z - origin.Z);
+        float dist = flat.Length();
+        if (dist <= range || dist < 0.001f) return target;
+        return origin + flat / dist * range;
     }
 
     private Enemies.EnemyController? FindNearestEnemy(float range)

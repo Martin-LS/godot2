@@ -42,7 +42,7 @@ The **skill bar** on the run HUD shows all slotted skills, their cooldown state,
 
 **v1:** Three skill slots (keys 1 / 2 / 3). Slots can be empty — an empty slot does nothing. New characters start with **1 skill slotted** (slot 1); slots 2 and 3 are empty. Players fill them by crafting additional skill items. This makes the first craft feel meaningful — it literally opens a new slot. Each skill has its own cooldown or drain rate — there is no shared slot cooldown.
 
-**Attack / cast speed is a skill attribute, not a character stat.** There is no global attack speed multiplier on the character or on gear. A skill's cooldown belongs to the skill item — it is tuned per skill, reduced by tier upgrades, and can be modified by future Skill Augments (e.g. a Haste support). This keeps the PoE2 philosophy intact: skills are self-contained items with their own tempo, not extensions of a character stat. A Warrior's Strike and a Mage's Bolt have independent rhythms that do not interact.
+**Attack / cast speed is a skill attribute, not a character stat.** There is no global attack speed multiplier on the character or on gear. A skill's cooldown belongs to the skill item — it is tuned per skill, reduced by tier upgrades, and can be modified by future Skill Augments (e.g. a Haste support). This keeps the PoE2 philosophy intact: skills are self-contained items with their own tempo, not extensions of a character stat. Two skills with different cooldowns have independent rhythms that do not interact.
 
 Every skill has one or more **tags** — descriptors that other systems react to. Tags are not restrictions — any character can equip any skill. Tags serve two distinct roles:
 
@@ -56,9 +56,58 @@ Skills with no delivery tag are **weapon-adaptive**: they inherit the weapon's `
 
 **v1 tags:** `Melee`, `Attack`, `Aura` (expand as more skills and Skill Augments are added).
 
+### Targeting
+
+All skills fire at the **locked target** — a single enemy that has a persistent target marker on them. The targeting system is always active; players on keyboard experience it as "skills just work." Controller players can redirect it with the right stick.
+
+**How the lock works:**
+
+1. **Auto-pick** — at run start, when no lock exists, or when the current target dies, the game silently picks the nearest enemy in the player's facing or movement direction.
+2. **Soft lock** — the marker persists on that enemy until it dies. Skills fire at the locked target regardless of player facing or movement direction.
+3. **Right stick override (controller)** — pushing the right stick sweeps the target marker through nearby enemies in that direction. Aim assist magnetises to the nearest enemy in the pushed direction. Releasing the stick holds the last selected target.
+4. **Skill targeting shape** — each skill declares one of three targeting shapes (see below); the targeting system resolves the correct input per shape and per input device automatically.
+5. **Character facing** — the character faces the locked target during skill casts, decoupled from movement direction (see Combat Facing).
+
+**Priority rules:** nearest enemy wins. If multiple enemies are equidistant, the one closest to the player's current facing direction is preferred.
+
+**Keyboard behaviour:** steps 1–2 handle everything automatically. No manual targeting input exists or is needed — the system is invisible.
+
+**Controller behaviour:** same auto-pick foundation; right stick adds voluntary override without changing anything else.
+
+#### Skill Targeting Shapes
+
+Every skill declares one of three targeting shapes. The targeting system resolves the correct position or entity per shape and per input device:
+
+| Shape | Description | Mouse (PC) | Controller / Keyboard |
+|---|---|---|---|
+| **Self** | Effect originates from or is centered on the player | Player position | Player position |
+| **Position** | Effect lands at a location; no enemy required | Cursor world position | Locked target's world position |
+| **Entity** | Effect is applied to a specific enemy; blocked if no valid target | Nearest enemy to cursor | Locked target |
+
+- **Self:** Self-Burst, Self-Channeled-Tick, Self-Aura-Tick — no targeting input needed, always fires from the player.
+- **Position:** skills that drop a zone (e.g. Cascade) — on PC falls at the cursor, even into empty space; on controller/keyboard falls at the locked target's position.
+- **Entity:** debuffs, attached effects (e.g. Brand) — must land on an enemy. On PC snaps to the nearest enemy to the cursor. On controller/keyboard fires at the locked target. Skill is blocked if no valid target exists.
+
+#### Range resolution per targeting shape
+
+**This is a firm design rule — push back if a proposed skill violates it.**
+
+| Shape | Cast range source | Rationale |
+|---|---|---|
+| **Entity** | Effective Range (weapon + armour + buffs) | You are reaching out to hit an enemy — your weapon's reach determines how far you can do that |
+| **Position** | Skill's own `Range` field | You are placing an effect on the ground — this is a skill property, not a weapon property. A sword warrior can drop a zone as far as a wand mage if the skill allows it. |
+| **Self** | Skill's own `Range` field | The skill defines its own radius — a wide Aura on a sword warrior should not be shrunk by the sword's 1-tile reach |
+
+- **Entity skills always use Effective Range.** A new Entity skill must not define a separate cast range — it inherits the character's gear-driven range automatically.
+- **Position, Self, and Channeled skills always use their own `Range` field.** This is a skill property, not a gear property. Weapon and armour have no influence on zone placement distance or self/channeled radius.
+- **Buffs that modify range** (e.g. a future Shout skill) must call `AddRangeBuffBonus` / `RemoveRangeBuffBonus` on the player — they affect Effective Range, which propagates to Entity skills only. Position/Self/Channeled ranges are unaffected.
+- **Out-of-range clamping (Position skills):** if the cursor is beyond the skill's cast range, the zone lands at the range boundary in the direction of the cursor — never blocked, never silent. This matches standard ARPG behaviour (Diablo 4, PoE).
+
+---
+
 ### Combat Facing
 
-While **not attacking**, the character faces their movement direction. While **attacking** (OneShot animation active), the character always rotates to face the nearest enemy — even if the player is moving in the opposite direction. This ensures attacks always connect visually and lets players kite while staying engaged with targets behind them.
+While **not attacking**, the character faces their movement direction. While **attacking** (OneShot animation active), the character always rotates to face the **locked target** — even if the player is moving in the opposite direction. This ensures attacks always connect visually and lets players kite while staying engaged with targets behind them.
 
 ### Weapon Animations & Handedness
 
@@ -110,20 +159,49 @@ Every hit displays a floating damage number above the struck entity's head. Numb
 
 Critical hit colour overrides the damage-type colour — a magic crit shows gold, not blue. This makes crits immediately legible regardless of damage type.
 
-Numbers are individual per hit — no stacking. Cyclone ticks each pop their own number; this preserves tick-rate readability and lets the player feel the difference between a fast and slow attack speed.
+Numbers are individual per hit — no stacking. Self-Channeled-Tick ticks each pop their own number; this preserves tick-rate readability and lets the player feel the difference between a fast and slow attack speed.
 
 Both player-received and enemy-received hits produce damage numbers. There is no threshold — all damage shows.
 
 ### Skills
 
-**v1 skills: Strike, Cyclone, Damage Aura, Nova.** Four skills covering the full test matrix — Active single-target (Strike), Channeled multi-target (Cyclone), Aura persistent (Damage Aura), Active multi-target (Nova). All archetypes start with plain Strike in slot 1, no augments pre-socketed. Damage type is determined by the equipped weapon across all skills.
+**v1 skills: Entity-Burst, Self-Channeled-Tick, Self-Aura-Tick, Self-Burst** — plus seven targeting system test skills (Fixed-Zone-Tick, Fixed-Zone-Burst, Windup-Burst, Tracked-Tick, Entity-Debuff, Stackable-Zone, Triggered-Zone-Burst). All eleven are base skill templates. All archetypes start with plain Entity-Burst in slot 1, no augments pre-socketed.
 
-#### Strike
+> **Tech note — renames, not new skills:** Entity-Burst, Self-Channeled-Tick, Self-Aura-Tick, and Self-Burst are renames of the existing Strike, Cyclone, Damage Aura, and Nova implementations. Rename in code and data — do not create new skill objects. v2 will create the real named versions (Strike, Cyclone, etc.) derived from these prototypes.
 
-The universal skill. Hits the nearest enemy using whatever the character has equipped — a sword swing, an arrow, a wand bolt. All archetypes start with plain Strike, no augments pre-socketed. As players acquire new skills, Strike slots get replaced. Strike can still be kept in any slot intentionally.
+**Universal skill properties** — every skill in the game has these fields:
+
+| Property | Description |
+|---|---|
+| Description | What this skill is designed to prove or do (v1: mechanic proof; future: player-facing flavour) |
+| isPrototype | `true` = base template skill. v1: fully playable and craftable. v2: hidden from all player-facing systems (cannot be crafted, does not appear in drops or pickers). |
+| Targeting shape | Self / Position / Entity — how the skill resolves its target (see Targeting) |
+| Wind-up | Seconds of delay before effect lands; 0 = instant |
+| Damage pattern | Burst (single hit) / Tick (over duration) / None (debuff or utility only) |
+| Stack limit | Max simultaneous active instances; configurable per skill; — = not a zone skill |
+| Zone tracks entity | Whether a zone follows a target entity after placement; — = not applicable |
+| Duration | How long a placed zone or summon persists (seconds). `0` = permanent — lives until replaced by the stack cap or the run ends. Self skills and instant bursts always use 0. Zone and summon skills set this to prevent permanent effects (e.g. a Blizzard zone running forever would be broken). |
+| Trigger radius | Detection radius that fires a trap when an enemy enters it (in tiles). `—` = not a trap skill. Default: 1 tile. |
+| Arm time | Delay after placement before the trap becomes active (seconds). Prevents self-triggering. `—` = not a trap skill. |
+| Trigger | How many times the trap fires before despawning. `Single` = fires once then despawns. `—` = not a trap skill. |
+
+**Future field — Dispellable (not in v1):** whether a zone or effect can be removed before its duration expires — by an enemy cleanse ability, a player counter-skill, or a future mechanic. Not added until something in the game actually reads it. Note here so the axis is not forgotten when designing elite enemies or player utility skills.|
+
+#### Entity-Burst
+
+*(Renamed from Strike. Do not create a new skill — rename the existing implementation.)*
+
+The universal starter prototype. Hits the locked target using whatever the character has equipped — a sword swing, an arrow, a wand bolt. All archetypes start with plain Entity-Burst, no augments pre-socketed. As players acquire new skills, Entity-Burst slots get replaced. Entity-Burst can still be kept in any slot intentionally.
 
 | Property | Value |
 |---|---|
+| Description | Proves Entity targeting and weapon-adaptive delivery. Universal starter — fires at locked target using equipped weapon. |
+| isPrototype | true |
+| Targeting shape | Entity |
+| Wind-up | 0 (instant) |
+| Damage pattern | Burst |
+| Stack limit | — |
+| Zone tracks entity | — |
 | Delivery | Weapon-adaptive — no delivery tag; inherits weapon's `PreferredDelivery` |
 | Descriptor tags | `Attack` |
 | Cooldown | 0.8s (tier 1) — lower at higher tiers |
@@ -132,12 +210,21 @@ The universal skill. Hits the nearest enemy using whatever the character has equ
 | Splash | No |
 | Acquire | Free — slot 1 pre-filled at character creation; slots 2 and 3 start empty |
 
-#### Cyclone
+#### Self-Channeled-Tick
 
-Spin continuously in place, hitting all enemies within melee range on each tick. A Channeled skill — hold to spin, release to stop. Drains Focus while held, stops automatically at 0 Focus. Lower damage per hit than Strike; the value is continuous multi-target coverage.
+*(Renamed from Cyclone. Do not create a new skill — rename the existing implementation.)*
+
+Spin continuously in place, hitting all enemies within melee range on each tick. A Channeled skill — hold to spin, release to stop. Drains Focus while held, stops automatically at 0 Focus. Lower damage per hit than Entity-Burst; the value is continuous multi-target coverage.
 
 | Property | Value |
 |---|---|
+| Description | Proves Channeled skill type with Self targeting. Continuous ticking damage while held; drains Focus over time. |
+| isPrototype | true |
+| Targeting shape | Self |
+| Wind-up | 0 (instant) |
+| Damage pattern | Tick |
+| Stack limit | — |
+| Zone tracks entity | — |
 | Type | Channeled |
 | Delivery | Melee |
 | Descriptor tags | `Attack` |
@@ -146,12 +233,21 @@ Spin continuously in place, hitting all enemies within melee range on each tick.
 | Tick rate | 4 hits/sec |
 | Acquire | Craft |
 
-#### Damage Aura
+#### Self-Aura-Tick
 
-Pulses damage to all nearby enemies once per second while active. An Aura skill — reserves a portion of Max Focus permanently while toggled on, shrinking the pool available for other skills. Simple and testable: verifies the Aura type, Focus reservation, and area damage pulse.
+*(Renamed from Damage Aura. Do not create a new skill — rename the existing implementation.)*
+
+Pulses damage to all nearby enemies once per second while active. An Aura skill — reserves a portion of Max Focus permanently while toggled on, shrinking the pool available for other skills. Proves the Aura type, Focus reservation, and area damage pulse.
 
 | Property | Value |
 |---|---|
+| Description | Proves Aura skill type with Focus reservation. Always-on Self zone that ticks damage while toggled on. |
+| isPrototype | true |
+| Targeting shape | Self |
+| Wind-up | 0 (instant) |
+| Damage pattern | Tick |
+| Stack limit | — |
+| Zone tracks entity | — |
 | Type | Aura |
 | Delivery | None — ambient area pulse, not weapon-based |
 | Descriptor tags | `Aura` |
@@ -161,12 +257,21 @@ Pulses damage to all nearby enemies once per second while active. An Aura skill 
 | Range | Short radius around player |
 | Acquire | Craft |
 
-#### Nova
+#### Self-Burst
 
-An instant explosion centered on the player — hits all enemies within a medium radius simultaneously, then enters cooldown. The Active multi-target skill. Panic button feel — surrounded, pop it, create space.
+*(Renamed from Nova. Do not create a new skill — rename the existing implementation.)*
+
+An instant explosion centered on the player — hits all enemies within a medium radius simultaneously, then enters cooldown. Proves Active Self burst. Panic button feel — surrounded, pop it, create space.
 
 | Property | Value |
 |---|---|
+| Description | Proves Active Self burst. Instant explosion centered on player; flat Focus cost. |
+| isPrototype | true |
+| Targeting shape | Self |
+| Wind-up | 0 (instant) |
+| Damage pattern | Burst |
+| Stack limit | — |
+| Zone tracks entity | — |
 | Type | Active |
 | Delivery | None — centered radius burst, not weapon-based delivery |
 | Descriptor tags | `Attack` |
@@ -175,6 +280,141 @@ An instant explosion centered on the player — hits all enemies within a medium
 | Cooldown | 1.5s |
 | Radius | Medium (larger than melee range) |
 | Acquire | Craft |
+
+---
+
+#### Base Skill Templates
+
+Six skills that serve as the permanent canonical reference implementations for each targeting mechanic combination. They are not deleted when new skills are designed — they are the foundation new skills are built on top of. When designing a new skill (e.g. Blizzard), the designer names which base template it derives from (e.g. "Fixed-Zone-Tick with a wind-up and larger radius") so the mechanic contract is immediately clear to everyone.
+
+**v1:** these skills are fully playable and craftable — they exist to validate the targeting system works end-to-end.
+
+**v2:** an `IsTemplate` flag is added to skill data. Flagged skills are invisible to the player — they cannot be crafted, do not appear in drops or pickers, and do not show in any player-facing UI. They remain in the data layer as a permanent reference library.
+
+All deal Magic damage. All values (damage, cooldown, radius, tick rate, duration) are TBD — owned by the Balancer.
+
+**Fixed-Zone-Tick**
+
+| Property | Value |
+|---|---|
+| Description | Proves Position targeting with a fixed ticking zone. Zone stays where cast; enemies walk through it. |
+| Good for | Skills that place a persistent damage field at a location — enemies walk into it and take repeated hits. Traps, pools, hazard zones. |
+| isPrototype | true |
+| Targeting shape | Position |
+| Wind-up | 0 (instant) |
+| Damage pattern | Tick |
+| Tick rate | 1/sec (test value) |
+| Stack limit | 1 |
+| Zone tracks entity | No |
+| Duration | 5s (test value) |
+| Type | Active |
+| Damage type | Magic |
+
+**Fixed-Zone-Burst**
+
+| Property | Value |
+|---|---|
+| Description | Proves Position targeting with a single burst hit. A remote instant explosion — Self-Burst placed at a chosen location. |
+| Good for | Skills that detonate a single explosion at a chosen spot — remote instant damage with no lingering effect. |
+| isPrototype | true |
+| Targeting shape | Position |
+| Wind-up | 0 (instant) |
+| Damage pattern | Burst |
+| Stack limit | 1 |
+| Zone tracks entity | No |
+| Duration | 0 — instant burst, no persistent zone |
+| Type | Active |
+| Damage type | Magic |
+
+**Windup-Burst**
+
+| Property | Value |
+|---|---|
+| Description | Proves wind-up mechanic. Telegraphed 1.5s delay before a high-damage burst lands at target position. Wind-up is the balancing cost. |
+| Good for | Skills with a visible telegraph before a powerful hit lands — high damage that enemies can theoretically walk out of. |
+| isPrototype | true |
+| Targeting shape | Position |
+| Wind-up | 1.5s |
+| Damage pattern | Burst |
+| Stack limit | 1 |
+| Zone tracks entity | No |
+| Duration | 0 — instant burst on detonation, no persistent zone |
+| Type | Active |
+| Damage type | Magic |
+
+**Tracked-Tick**
+
+| Property | Value |
+|---|---|
+| Description | Proves Entity targeting with a zone that follows the target. Ticks damage to the tracked enemy and all enemies within radius around them. Zone moves with the entity. |
+| Good for | Skills that attach a persistent effect to an enemy — follows the target and damages it (and nearby enemies) continuously. Curses, brands, haunts. |
+| isPrototype | true |
+| Targeting shape | Entity |
+| Wind-up | 0 (instant) |
+| Damage pattern | Tick |
+| Tick rate | 1/sec (test value) |
+| Stack limit | 1 |
+| Zone tracks entity | Yes |
+| Duration | 5s (test value) — zone persists after target dies (stops following, keeps ticking in place until duration expires) |
+| Type | Active |
+| Damage type | Magic |
+| AoE | Hits tracked enemy + all enemies within radius around them |
+
+**Entity-Debuff**
+
+| Property | Value |
+|---|---|
+| Description | Proves Entity targeting with no damage output. Applies a debuff directly to the locked target; effect follows the target for its duration. |
+| Good for | Skills that apply a status to a specific enemy with no damage — slows, weakens, marks for death. Pure utility on a target. |
+| isPrototype | true |
+| Targeting shape | Entity |
+| Wind-up | 0 (instant) |
+| Damage pattern | None |
+| Stack limit | 1 |
+| Zone tracks entity | Yes |
+| Duration | 6s (test value) |
+| Type | Active |
+| Damage type | Magic (N/A) |
+| Effect | Slow (placeholder) |
+
+**Stackable-Zone**
+
+| Property | Value |
+|---|---|
+| Description | Proves configurable stack limit. Each cast places an independent ticking zone; up to the stack cap active simultaneously. |
+| Good for | Skills where you want multiple independent instances active simultaneously — turrets, totems, summons, overlapping zones. |
+| isPrototype | true |
+| Targeting shape | Position |
+| Wind-up | 0 (instant) |
+| Damage pattern | Tick |
+| Tick rate | 1/sec (test value) |
+| Stack limit | 3 (test value) |
+| Zone tracks entity | No |
+| Duration | 10s (test value) — oldest instance despawns when a 4th is cast before duration elapses |
+| Trigger radius | — |
+| Arm time | — |
+| Trigger | — |
+| Type | Active |
+| Damage type | Magic |
+
+**Triggered-Zone-Burst**
+
+| Property | Value |
+|---|---|
+| Description | Proves trigger-on-proximity mechanic. Placed at a position, dormant until an enemy enters the trigger radius, then fires once and despawns. |
+| Good for | Traps, proximity mines, tripwires — placed hazards that punish enemies for moving through an area. |
+| isPrototype | true |
+| Targeting shape | Position |
+| Wind-up | 0 (instant) |
+| Damage pattern | Burst |
+| Stack limit | 3 (test value) |
+| Zone tracks entity | No |
+| Duration | 30s (test value) — despawns if not triggered before expiry |
+| Trigger radius | 1 tile (test value) |
+| Arm time | 0.5s (test value) — prevents self-triggering immediately after placement |
+| Trigger | Single (fires once, despawns) |
+| Type | Active |
+| Damage type | Magic |
 
 ---
 
@@ -200,10 +440,10 @@ Focus is the universal skill resource. All archetypes spend Focus to fire skills
 
 | Skill | Cost |
 |---|---|
-| Strike | 5 Focus (flat) — effectively free; regens faster than you spend |
-| Nova | 20 Focus (flat) — meaningful burst cost |
-| Cyclone | 12 Focus/sec (drain while held) — expensive over time, requires management |
-| Damage Aura | Reserves 25% of Max Focus — shrinks available pool while active |
+| Entity-Burst | 5 Focus (flat) — effectively free; regens faster than you spend |
+| Self-Burst | 20 Focus (flat) — meaningful burst cost |
+| Self-Channeled-Tick | 12 Focus/sec (drain while held) — expensive over time, requires management |
+| Self-Aura-Tick | Reserves 25% of Max Focus — shrinks available pool while active |
 
 **Starting values (placeholder — owned by Balancer):**
 

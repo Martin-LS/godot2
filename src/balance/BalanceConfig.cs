@@ -59,6 +59,56 @@ public static class BalanceConfig
 
         public const float DamageAuraCooldown = 1.0f; // damage tick interval
         public const float DamageAuraRange    = 250f;
+
+        // Prototype: Fixed-Zone-Burst — test values, owned by Balancer
+        public const float FixedZoneBurstCooldown    = 1.0f;
+        public const float FixedZoneBurstRange       = 180f; // cast range (5 tiles)
+        public const float FixedZoneBurstZoneRadius  = 72f;  // blast radius at landing (2 tiles)
+        public const float FixedZoneBurstDamageMult  = 1.0f;
+
+        // Prototype: Windup-Burst — test values, owned by Balancer
+        public const float WindupBurstCooldown    = 3.0f;
+        public const float WindupBurstRange       = 180f;
+        public const float WindupBurstZoneRadius  = 108f; // 3 tiles
+        public const float WindupBurstWindUp      = 1.5f;
+        public const float WindupBurstDamageMult  = 2.0f;
+
+        // Prototype: Tracked-Tick — test values, owned by Balancer
+        public const float TrackedTickCooldown   = 3.0f;
+        public const float TrackedTickRange      = 180f;
+        public const float TrackedTickZoneRadius = 72f;  // 2 tiles
+        public const float TrackedTickDuration   = 5.0f;
+        public const float TrackedTickRate       = 1.0f;
+        public const float TrackedTickDamageMult = 0.4f;
+
+        // Prototype: Triggered-Zone-Burst — test values, owned by Balancer
+        public const float TriggeredZoneBurstCooldown     = 1.5f;
+        public const float TriggeredZoneBurstRange        = 180f;
+        public const float TriggeredZoneBurstTriggerRadius = 36f;  // 1 tile
+        public const float TriggeredZoneBurstZoneRadius   = 108f;  // 3-tile blast
+        public const float TriggeredZoneBurstDuration     = 30.0f;
+        public const float TriggeredZoneBurstArmTime      = 0.5f;
+        public const float TriggeredZoneBurstDamageMult   = 2.0f;
+
+        // Prototype: Stackable-Zone — test values, owned by Balancer
+        public const float StackableZoneCooldown   = 2.0f;
+        public const float StackableZoneRange      = 180f;
+        public const float StackableZoneZoneRadius = 72f;
+        public const float StackableZoneDuration   = 10.0f;
+        public const float StackableZoneRate       = 1.0f;
+        public const float StackableZoneDamageMult = 0.4f;
+
+        // Prototype: Entity-Debuff — test values, owned by Balancer
+        public const float EntityDebuffCooldown = 3.0f;
+        public const float EntityDebuffRange    = 180f;
+
+        // Prototype: Fixed-Zone-Tick — test values, owned by Balancer
+        public const float FixedZoneTickCooldown    = 4.0f;
+        public const float FixedZoneTickRange       = 180f;
+        public const float FixedZoneTickZoneRadius  = 72f;
+        public const float FixedZoneTickDuration    = 5.0f;
+        public const float FixedZoneTickRate        = 1.0f; // seconds between ticks
+        public const float FixedZoneTickDamageMult  = 0.4f; // per tick, hits multiple times
     }
 
     public static class Focus
@@ -81,6 +131,15 @@ public static class BalanceConfig
         public const float NovaFocusCost          = 20f;
         public const float DamageAuraReservation  = 0.25f; // fraction of MaxFocus
 
+        // Prototype skill focus costs — test values, owned by Balancer
+        public const float TrackedTickFocusCost     = 15f;
+        public const float TriggeredZoneBurstFocusCost = 15f;
+        public const float StackableZoneFocusCost      = 15f;
+        public const float EntityDebuffFocusCost   = 10f;
+        public const float WindupBurstFocusCost    = 20f;
+        public const float FixedZoneBurstFocusCost = 15f;
+        public const float FixedZoneTickFocusCost  = 20f;
+
         // Per-skill type damage multipliers — placeholder, owned by Balancer
         public const float CycloneDamageMultiplier = 0.4f;
         public const float AuraDamageMultiplier    = 0.2f;
@@ -91,7 +150,7 @@ public static class BalanceConfig
     {
         public const float SlowApplyChance   = 0.30f;
         public const float SlowDuration      = 3f;    // seconds
-        public const float SlowFraction      = 0.40f; // speed reduction
+        public const float SlowFraction      = 0.75f; // speed reduction
 
         public const float BurnApplyChance   = 0.25f;
         public const float BurnDuration      = 4f;

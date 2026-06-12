@@ -2,6 +2,7 @@ using Godot;
 using System.Collections.Generic;
 using Godot1.Skills;
 using Godot1;
+using Godot1.Enemies;
 
 namespace Godot1.Player;
 
@@ -24,6 +25,14 @@ public partial class PlayerController : CharacterBody3D
     public float MagicResistance    { get; private set; }
     public float EffectiveRange     { get; private set; }
 
+    private float _rangeBuffBonus; // flat tile bonus from active range buffs (e.g. Shout)
+
+    private static readonly PackedScene TargetIndicatorScene =
+        GD.Load<PackedScene>("res://src/vfx/target_indicator.tscn");
+
+    private Node3D? _targetIndicator;
+    private Node3D? _aimReticle;
+
     private Stats.StatBlock _statBlock = new();
     private Character.CharacterData? _charData;
     private Node3D _model = null!;
@@ -38,6 +47,9 @@ public partial class PlayerController : CharacterBody3D
     public int Level { get; private set; } = 1;
     public int CurrentXp { get; private set; }
     public int XpToNextLevel { get; private set; } = 20;
+
+    public EnemyController? LockedTarget  { get; private set; }
+    public Vector3          TargetPosition { get; private set; }
 
     private float _focusRegen;
     private float _totalReserved;
@@ -87,15 +99,10 @@ public partial class PlayerController : CharacterBody3D
             var body   = GetEquippedItem(c, Items.ItemSlot.Body);
 
             DamageReduction = (hat?.DamageReduction ?? 0f) + (body?.DamageReduction ?? 0f);
-            // Range Modifiers only apply to ranged weapons; melee range is unaffected by armour.
-            float weaponRange = weapon?.WeaponRange ?? 1.5f;
-            EffectiveRange = weapon?.PreferredDelivery != "Melee"
-                ? (weaponRange + (hat?.RangeModifier ?? 0f) + (body?.RangeModifier ?? 0f)) * GameScale.TileSize
-                : weaponRange * GameScale.TileSize;
 
             var weaponController = GetNodeOrNull<Weapon.WeaponController>("Weapon");
             ApplyWeaponDamage(weaponController, weapon);
-            weaponController?.SetRange(EffectiveRange);
+            RecalculateEffectiveRange();
             weaponController?.SetPreferredDelivery(weapon?.PreferredDelivery ?? "Melee");
 
             for (int i = 0; i < 3 && i < c.SlottedSkillInstanceIds.Count; i++)
@@ -155,7 +162,7 @@ public partial class PlayerController : CharacterBody3D
             wc?.SetCritMultiplier(BalanceConfig.SkillAugments.CritMultiplier);
             wc?.SetRange(1.5f * GameScale.TileSize);
             wc?.SetPreferredDelivery("Melee");
-            var fallback = SkillRegistry.Get("strike");
+            var fallback = SkillRegistry.Get("entity_burst");
             if (fallback != null) wc?.SetSlot(0, fallback);
 
             MaxFocus            = BalanceConfig.Focus.WarriorMaxFocus;
@@ -247,12 +254,64 @@ public partial class PlayerController : CharacterBody3D
         _rangeIndicator = CreateRangeIndicator(indicatorRadius);
         AddChild(_rangeIndicator);
         _rangeIndicator.Visible = false;
+
+        if (TargetIndicatorScene != null)
+        {
+            _targetIndicator = TargetIndicatorScene.Instantiate<Node3D>();
+            _targetIndicator.Visible = false;
+            GetTree().Root.CallDeferred(Node.MethodName.AddChild, _targetIndicator);
+        }
+
+        _aimReticle = CreateAimReticle();
+        _aimReticle.Visible = false;
+        GetTree().Root.CallDeferred(Node.MethodName.AddChild, _aimReticle);
     }
 
     public void SetRangeIndicatorVisible(bool visible)
     {
         if (_rangeIndicator != null)
             _rangeIndicator.Visible = visible;
+    }
+
+    public void RecalculateEffectiveRange()
+    {
+        var weapon = _charData != null ? GetEquippedItem(_charData, Items.ItemSlot.Weapon) : null;
+        var hat    = _charData != null ? GetEquippedItem(_charData, Items.ItemSlot.Hat)    : null;
+        var body   = _charData != null ? GetEquippedItem(_charData, Items.ItemSlot.Body)   : null;
+
+        float weaponRange = weapon?.WeaponRange ?? 1.5f;
+        EffectiveRange = weapon?.PreferredDelivery != "Melee"
+            ? (weaponRange + (hat?.RangeModifier ?? 0f) + (body?.RangeModifier ?? 0f) + _rangeBuffBonus) * GameScale.TileSize
+            : weaponRange * GameScale.TileSize;
+
+        GetNodeOrNull<Weapon.WeaponController>("Weapon")?.SetRange(EffectiveRange);
+    }
+
+    public void AddRangeBuffBonus(float tiles)
+    {
+        _rangeBuffBonus += tiles;
+        RecalculateEffectiveRange();
+    }
+
+    public void RemoveRangeBuffBonus(float tiles)
+    {
+        _rangeBuffBonus -= tiles;
+        RecalculateEffectiveRange();
+    }
+
+    private static Node3D CreateAimReticle()
+    {
+        var root  = new Node3D();
+        var torus = new TorusMesh { OuterRadius = 12f, InnerRadius = 8f, Rings = 32, RingSegments = 8 };
+        var mat   = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            AlbedoColor = new Color(1f, 1f, 1f, 0.9f),
+        };
+        var mesh = new MeshInstance3D { Mesh = torus, MaterialOverride = mat };
+        mesh.RotateX(Mathf.Pi / 2f);
+        root.AddChild(mesh);
+        return root;
     }
 
     private static MeshInstance3D CreateRangeIndicator(float radius)
@@ -284,6 +343,38 @@ public partial class PlayerController : CharacterBody3D
         Velocity = direction * moveSpeed;
         MoveAndSlide();
 
+        UpdateLockedTarget();
+
+        var camera = GetViewport().GetCamera3D();
+        if (camera != null)
+        {
+            var mousePos = GetViewport().GetMousePosition();
+            var rayFrom  = camera.ProjectRayOrigin(mousePos);
+            var rayDir   = camera.ProjectRayNormal(mousePos);
+            if (Mathf.Abs(rayDir.Y) > 0.001f)
+            {
+                float t = -rayFrom.Y / rayDir.Y;
+                TargetPosition = rayFrom + rayDir * t;
+            }
+        }
+
+        if (_targetIndicator != null)
+        {
+            bool hasTarget = LockedTarget != null && GodotObject.IsInstanceValid(LockedTarget);
+            _targetIndicator.Visible = hasTarget;
+            if (hasTarget)
+                _targetIndicator.GlobalPosition = new Vector3(LockedTarget!.GlobalPosition.X, 1f, LockedTarget!.GlobalPosition.Z);
+        }
+
+        if (_aimReticle != null)
+        {
+            var wc = GetNodeOrNull<Weapon.WeaponController>("Weapon");
+            bool show = wc?.HasAnyPositionSkill() ?? false;
+            _aimReticle.Visible = show;
+            if (show)
+                _aimReticle.GlobalPosition = new Vector3(TargetPosition.X, 0.5f, TargetPosition.Z);
+        }
+
         bool moving = direction.LengthSquared() > 0.01f;
         bool inAttack = _animTree != null &&
             (((bool)_animTree.Get("parameters/shot_right/active")) ||
@@ -297,11 +388,10 @@ public partial class PlayerController : CharacterBody3D
         }
         else
         {
-            var nearest = FindNearestEnemy();
-            if (nearest != null)
+            var toAim = new Vector3(TargetPosition.X - GlobalPosition.X, 0f, TargetPosition.Z - GlobalPosition.Z);
+            if (toAim.LengthSquared() > 1f)
             {
-                var toEnemy = (nearest.GlobalPosition - GlobalPosition).Normalized();
-                float targetYaw = Mathf.Atan2(toEnemy.X, toEnemy.Z);
+                float targetYaw = Mathf.Atan2(toAim.X, toAim.Z);
                 _yaw = Mathf.LerpAngle(_yaw, targetYaw, Mathf.Min(1f, RotationSpeed * (float)delta));
                 _model.Rotation = new Vector3(0f, _yaw, 0f);
             }
@@ -578,6 +668,20 @@ public partial class PlayerController : CharacterBody3D
             target.GetAnimationLibrary("").AddAnimation(targetName, copy);
         }
         sourceRoot.QueueFree();
+    }
+
+    private void UpdateLockedTarget()
+    {
+        // Always recompute — cursor may have moved to a closer enemy
+        EnemyController? best = null;
+        float bestDist = float.MaxValue;
+        foreach (var node in GetTree().GetNodesInGroup("enemies"))
+        {
+            if (node is not EnemyController enemy || enemy.IsQueuedForDeletion()) continue;
+            float dist = TargetPosition.DistanceTo(enemy.GlobalPosition);
+            if (dist < bestDist) { bestDist = dist; best = enemy; }
+        }
+        LockedTarget = best;
     }
 
     private Node3D? FindNearestEnemy()
