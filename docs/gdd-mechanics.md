@@ -626,15 +626,9 @@ Drop rarity for crafting materials scales with tier — the more exotic the item
 
 ## Maps
 
-Maps are the arenas where runs take place. Each map has **attributes** that modify the run.
+> Map design, procedural generation, biomes, chunks, and obstacle props are documented in `docs/gdd-map.md`.
 
-### Map Attributes
-
-| Attribute   | Description                                                                 |
-|-------------|-----------------------------------------------------------------------------|
-| Map Level   | Scales kill XP reward — killing an enemy grants `1 XP × map level` directly, on top of any XP Shard the enemy drops |
-
-More attributes will be added in future (e.g. enemy density modifiers, environmental hazards, drop bonuses).
+Maps are the arenas where runs take place. Each map has a **Map Level** attribute that scales kill XP — killing an enemy grants `1 XP × map level` directly, on top of any XP Shard the enemy drops.
 
 ---
 

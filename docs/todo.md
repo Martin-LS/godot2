@@ -70,8 +70,10 @@ Update this as tasks are completed or new work is identified.
 - [x] Pause screen — ESC toggles PauseMenu (CanvasLayer, process_mode=Always); GetTree().Paused set on show/hide; Resume + End Run buttons; debug section (speed slider, range toggle) hidden in non-debug builds
 - [ ] Boss mechanic — run win condition triggers when timer expires but boss is TBD
 - [x] Map generation — single 24×24 KayKit dungeon arena; floor tiles, perimeter walls, corner pieces, scattered props (pillars, barrels, crates, torches); collision boundary; player spawns at centre; enemies spawn on floor tiles
+- [x] Map generation rewrite — connector tile system; MapData (seed, biome, level, chunk count) generated at run start via RunConfig; DungeonGenerator builds 4–6 rooms as flat box patches connected by corridors; invisible walls on all room sides with corridor gaps; placeholder obstacle boxes (stumps, rocks, logs) scattered per room. KayKit assets removed from map.
+- [ ] Hollow Dark Forest assets — floor tile, tree trunk wall, wall corner (Blender); replace placeholder box geometry in DungeonGenerator
+- [ ] Enemy pathfinding — NavigationAgent3D; enemies currently walk directly toward player and collide with obstacles/walls
 - [ ] Map selection screen — only one arena map; no selection or variety yet
-- [ ] Enemy pathfinding — enemies walk directly toward player; get stuck if spawned behind walls or in corridors leading away from player
 - [ ] Archetype defense system — Rogue dodge and Mage focus shield are future design (GDD future notes section)
 - [ ] Higher-tier crafting materials — drop system only has common tier; rarer tiers TBD
 

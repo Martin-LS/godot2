@@ -1,169 +1,277 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 
 namespace Godot1.World;
 
 public partial class DungeonGenerator : Node3D
 {
-    private GridMap _gridMap = null!;
     private readonly List<Vector3> _floorPositions = new();
 
-    private const int   AHalf = 12;       // 24×24 cell arena, -12 to +11
-    private const float CL    = 4f;       // cell size local
-    private const float SC    = 9f;       // node scale
-    private const float CW    = CL * SC;  // cell world size = 36
+    private const float RoomSize       = 200f;
+    private const float CorridorWidth  = 60f;
+    private const float CorridorLength = 100f;
+    private const float GridStep       = RoomSize + CorridorLength;
+    private const float FloorThick     = 2f;
+    private const float WallHeight     = 200f;
+    private const float WallThick      = 8f;
+
+    // Side indices: 0=N(-Z)  1=S(+Z)  2=E(+X)  3=W(-X)
+    private static readonly int[] Dx = { 0,  0, 1, -1 };
+    private static readonly int[] Dz = { 1, -1, 0,  0 };
+    // When moving in direction di, which side of the SOURCE room faces the dest?
+    private static readonly int[] SrcSide  = { 1, 0, 2, 3 };
+    // Which side of the DEST room faces back to source?
+    private static readonly int[] DestSide = { 0, 1, 3, 2 };
 
     public Vector3 SpawnPosition { get; private set; } = Vector3.Zero;
 
     public override void _Ready()
     {
-        var lib = GD.Load<MeshLibrary>("res://assets/models/environment/dungeon/dungeon_library.tres");
-        if (lib == null) { GD.PrintErr("DungeonGenerator: dungeon_library.tres not found"); return; }
+        var mapData = RunConfig.Pending ?? MapData.GenerateRandom();
+        var rng     = new Random(mapData.Seed);
 
-        _gridMap = new GridMap
+        var rooms     = new List<(int gx, int gz)> { (0, 0) };
+        var corridors = new List<(float cx, float cz, float w, float d)>();
+        var occupied  = new HashSet<(int, int)> { (0, 0) };
+
+        // Track which sides of each room have a corridor opening
+        // connectedSides[(gx,gz)][side] = true means that side has a corridor
+        var connectedSides = new Dictionary<(int, int), bool[]>();
+        connectedSides[(0, 0)] = new bool[4];
+
+        for (int i = 1; i < mapData.ChunkCount; i++)
         {
-            MeshLibrary = lib,
-            CellSize    = new Vector3(CL, CL, CL),
-            Scale       = new Vector3(SC, SC, SC),
-        };
-        AddChild(_gridMap);
+            bool placed   = false;
+            var roomOrder = Shuffled(rng, rooms.Count);
+            foreach (int ri in roomOrder)
+            {
+                if (placed) break;
+                var (rx, rz) = rooms[ri];
+                var dirOrder = Shuffled(rng, 4);
+                foreach (int di in dirOrder)
+                {
+                    int nx = rx + Dx[di], nz = rz + Dz[di];
+                    if (occupied.Contains((nx, nz))) continue;
 
-        BuildFloor();
-        SpawnPosition = CellToWorld(0, 0);
-        BuildWalls();
-        AddPerimeterCollision();
-        ScatterProps();
+                    occupied.Add((nx, nz));
+                    rooms.Add((nx, nz));
+                    connectedSides[(nx, nz)] = new bool[4];
+
+                    connectedSides[(rx, rz)][SrcSide[di]]  = true;
+                    connectedSides[(nx, nz)][DestSide[di]] = true;
+
+                    float rcx = rx * GridStep, rcz = rz * GridStep;
+                    float ncx = nx * GridStep, ncz = nz * GridStep;
+                    bool  zDir = di < 2;
+                    corridors.Add((
+                        (rcx + ncx) / 2f,
+                        (rcz + ncz) / 2f,
+                        zDir ? CorridorWidth  : CorridorLength,
+                        zDir ? CorridorLength : CorridorWidth
+                    ));
+
+                    placed = true;
+                    break;
+                }
+            }
+        }
+
+        SpawnPosition = new Vector3(0f, 1f, 0f);
+
+        var floorBody = new StaticBody3D();
+        var wallBody  = new StaticBody3D();
+        AddChild(floorBody);
+        AddChild(wallBody);
+
+        var floorMat = new StandardMaterial3D { AlbedoColor = new Color("#2e2618") };
+
+        foreach (var (gx, gz) in rooms)
+        {
+            float cx = gx * GridStep, cz = gz * GridStep;
+            AddFloorPatch(cx, cz, RoomSize, RoomSize, floorMat, floorBody);
+            AddRoomWalls(cx, cz, connectedSides[(gx, gz)], wallBody);
+            _floorPositions.Add(new Vector3(cx, 0f, cz));
+        }
+
+        foreach (var (cx, cz, w, d) in corridors)
+        {
+            AddFloorPatch(cx, cz, w, d, floorMat, floorBody);
+            AddCorridorSideWalls(cx, cz, w, d, wallBody);
+        }
+
+        ScatterObstacles(rooms, rng);
 
         var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
         if (player != null)
             player.GlobalPosition = SpawnPosition;
     }
 
-    private void BuildFloor()
+    private void AddFloorPatch(float cx, float cz, float w, float d,
+                               StandardMaterial3D mat, StaticBody3D body)
     {
-        for (int x = -AHalf; x < AHalf; x++)
-            for (int z = -AHalf; z < AHalf; z++)
-            {
-                _gridMap.SetCellItem(new Vector3I(x, 0, z), 0);
-                _floorPositions.Add(CellToWorld(x, z));
-            }
-    }
+        var pos = new Vector3(cx, -FloorThick / 2f, cz);
 
-    private void BuildWalls()
-    {
-        var wallScene   = GD.Load<PackedScene>("res://assets/models/environment/dungeon/wall.gltf");
-        var cornerScene = GD.Load<PackedScene>("res://assets/models/environment/dungeon/wall_corner.gltf");
-        if (wallScene == null || cornerScene == null) { GD.PrintErr("DungeonGenerator: wall scenes not found"); return; }
-
-        // Straight walls along each edge, excluding the 4 corner cells
-        // North (z=-AHalf): faces south (+Z into room) — rotation 0
-        for (int x = -AHalf + 1; x < AHalf - 1; x++)
-            PlaceProp(wallScene, CellToWorld(x, -AHalf), 0f);
-
-        // South (z=AHalf-1): faces north (-Z into room) — rotation PI
-        for (int x = -AHalf + 1; x < AHalf - 1; x++)
-            PlaceProp(wallScene, CellToWorld(x, AHalf - 1), Mathf.Pi);
-
-        // West (x=-AHalf): faces east (+X into room) — rotation PI/2
-        for (int z = -AHalf + 1; z < AHalf - 1; z++)
-            PlaceProp(wallScene, CellToWorld(-AHalf, z), Mathf.Pi * 0.5f);
-
-        // East (x=AHalf-1): faces west (-X into room) — rotation 3*PI/2
-        for (int z = -AHalf + 1; z < AHalf - 1; z++)
-            PlaceProp(wallScene, CellToWorld(AHalf - 1, z), Mathf.Pi * 1.5f);
-
-        // Four corners
-        PlaceProp(cornerScene, CellToWorld(-AHalf,    -AHalf    ), 0f);
-        PlaceProp(cornerScene, CellToWorld(AHalf - 1, -AHalf    ), Mathf.Pi * 0.5f);
-        PlaceProp(cornerScene, CellToWorld(AHalf - 1, AHalf - 1 ), Mathf.Pi);
-        PlaceProp(cornerScene, CellToWorld(-AHalf,    AHalf - 1 ), Mathf.Pi * 1.5f);
-    }
-
-    private void AddPerimeterCollision()
-    {
-        var body    = new StaticBody3D();
-        AddChild(body);
-        float half  = AHalf * CW;     // 432
-        float span  = half * 2 + CW;  // 900 (covers wall cells too)
-
-        // One large box per side, placed outside the floor area
-        AddBox(body, new Vector3(0, 0, -(half + CW * 0.5f)), new Vector3(span, 100f, CW));
-        AddBox(body, new Vector3(0, 0,  (half + CW * 0.5f)), new Vector3(span, 100f, CW));
-        AddBox(body, new Vector3(-(half + CW * 0.5f), 0, 0), new Vector3(CW, 100f, span));
-        AddBox(body, new Vector3( (half + CW * 0.5f), 0, 0), new Vector3(CW, 100f, span));
-    }
-
-    private static void AddBox(StaticBody3D body, Vector3 pos, Vector3 size)
-    {
-        var cs = new CollisionShape3D { Shape = new BoxShape3D { Size = size } };
-        cs.Position = pos;
-        body.AddChild(cs);
-    }
-
-    private void ScatterProps()
-    {
-        var rng = new RandomNumberGenerator();
-        rng.Randomize();
-
-        var pillarScene = GD.Load<PackedScene>("res://assets/models/environment/dungeon/pillar.gltf");
-        var barrelScene = GD.Load<PackedScene>("res://assets/models/environment/dungeon/barrel_large.gltf");
-        var crateScene  = GD.Load<PackedScene>("res://assets/models/environment/dungeon/crate_large.gltf");
-        var torchScene  = GD.Load<PackedScene>("res://assets/models/environment/dungeon/torch_lit.gltf");
-
-        // Pillars in a loose grid, skipping the central 3×3 area
-        if (pillarScene != null)
-            for (int gx = -2; gx <= 2; gx++)
-                for (int gz = -2; gz <= 2; gz++)
-                {
-                    if (Mathf.Abs(gx) <= 1 && Mathf.Abs(gz) <= 1) continue;
-                    int cx = gx * 5 + rng.RandiRange(-1, 1);
-                    int cz = gz * 5 + rng.RandiRange(-1, 1);
-                    if (cx > -AHalf + 1 && cx < AHalf - 2 && cz > -AHalf + 1 && cz < AHalf - 2)
-                        PlaceProp(pillarScene, CellToWorld(cx, cz), 0f);
-                }
-
-        // Barrels and crates scattered across the interior
-        int inner = AHalf - 3;
-        if (barrelScene != null)
-            for (int i = 0; i < 12; i++)
-                PlaceProp(barrelScene,
-                    CellToWorld(rng.RandiRange(-inner, inner), rng.RandiRange(-inner, inner)),
-                    rng.Randf() * Mathf.Tau);
-
-        if (crateScene != null)
-            for (int i = 0; i < 12; i++)
-                PlaceProp(crateScene,
-                    CellToWorld(rng.RandiRange(-inner, inner), rng.RandiRange(-inner, inner)),
-                    rng.Randf() * Mathf.Tau);
-
-        // Torches along the inside of the wall border, every 5 cells
-        if (torchScene != null)
+        var mi = new MeshInstance3D
         {
-            float torchY = 0.395f * SC; // lift so base sits flush with floor top
-            for (int x = -AHalf + 3; x < AHalf - 2; x += 5)
-            {
-                PlaceProp(torchScene, CellToWorld(x, -AHalf + 1) + new Vector3(0, torchY, 0), 0f);
-                PlaceProp(torchScene, CellToWorld(x,  AHalf - 2) + new Vector3(0, torchY, 0), Mathf.Pi);
-            }
-            for (int z = -AHalf + 3; z < AHalf - 2; z += 5)
-            {
-                PlaceProp(torchScene, CellToWorld(-AHalf + 1, z) + new Vector3(0, torchY, 0), Mathf.Pi * 0.5f);
-                PlaceProp(torchScene, CellToWorld( AHalf - 2, z) + new Vector3(0, torchY, 0), Mathf.Pi * 1.5f);
-            }
+            Mesh             = new BoxMesh { Size = new Vector3(w, FloorThick, d) },
+            MaterialOverride = mat,
+            Position         = pos,
+        };
+        AddChild(mi);
+
+        body.AddChild(new CollisionShape3D
+        {
+            Shape    = new BoxShape3D { Size = new Vector3(w, FloorThick, d) },
+            Position = pos,
+        });
+    }
+
+    // Walls on all 4 sides of a room; sides with corridors get a gap opening.
+    private static void AddRoomWalls(float cx, float cz, bool[] connected, StaticBody3D body)
+    {
+        float half  = RoomSize / 2f;
+        float cHalf = CorridorWidth / 2f;
+        float segLen = (RoomSize - CorridorWidth) / 2f;
+
+        // N (-Z)
+        if (!connected[0])
+            AddWall(body, new Vector3(cx, WallHeight / 2f, cz - half - WallThick / 2f),
+                          new Vector3(RoomSize + WallThick * 2, WallHeight, WallThick));
+        else
+        {
+            AddWall(body, new Vector3(cx - cHalf - segLen / 2f, WallHeight / 2f, cz - half - WallThick / 2f),
+                          new Vector3(segLen, WallHeight, WallThick));
+            AddWall(body, new Vector3(cx + cHalf + segLen / 2f, WallHeight / 2f, cz - half - WallThick / 2f),
+                          new Vector3(segLen, WallHeight, WallThick));
+        }
+
+        // S (+Z)
+        if (!connected[1])
+            AddWall(body, new Vector3(cx, WallHeight / 2f, cz + half + WallThick / 2f),
+                          new Vector3(RoomSize + WallThick * 2, WallHeight, WallThick));
+        else
+        {
+            AddWall(body, new Vector3(cx - cHalf - segLen / 2f, WallHeight / 2f, cz + half + WallThick / 2f),
+                          new Vector3(segLen, WallHeight, WallThick));
+            AddWall(body, new Vector3(cx + cHalf + segLen / 2f, WallHeight / 2f, cz + half + WallThick / 2f),
+                          new Vector3(segLen, WallHeight, WallThick));
+        }
+
+        // E (+X)
+        if (!connected[2])
+            AddWall(body, new Vector3(cx + half + WallThick / 2f, WallHeight / 2f, cz),
+                          new Vector3(WallThick, WallHeight, RoomSize + WallThick * 2));
+        else
+        {
+            AddWall(body, new Vector3(cx + half + WallThick / 2f, WallHeight / 2f, cz - cHalf - segLen / 2f),
+                          new Vector3(WallThick, WallHeight, segLen));
+            AddWall(body, new Vector3(cx + half + WallThick / 2f, WallHeight / 2f, cz + cHalf + segLen / 2f),
+                          new Vector3(WallThick, WallHeight, segLen));
+        }
+
+        // W (-X)
+        if (!connected[3])
+            AddWall(body, new Vector3(cx - half - WallThick / 2f, WallHeight / 2f, cz),
+                          new Vector3(WallThick, WallHeight, RoomSize + WallThick * 2));
+        else
+        {
+            AddWall(body, new Vector3(cx - half - WallThick / 2f, WallHeight / 2f, cz - cHalf - segLen / 2f),
+                          new Vector3(WallThick, WallHeight, segLen));
+            AddWall(body, new Vector3(cx - half - WallThick / 2f, WallHeight / 2f, cz + cHalf + segLen / 2f),
+                          new Vector3(WallThick, WallHeight, segLen));
         }
     }
 
-    private void PlaceProp(PackedScene scene, Vector3 worldPos, float yRot)
+    // Invisible walls along the narrow sides of a corridor.
+    private static void AddCorridorSideWalls(float cx, float cz, float w, float d, StaticBody3D body)
     {
-        var node = scene.Instantiate<Node3D>();
-        node.Scale    = new Vector3(SC, SC, SC);
-        node.Rotation = new Vector3(0f, yRot, 0f);
-        AddChild(node);
-        node.GlobalPosition = worldPos;
+        bool zDir = w < d;
+        if (zDir)
+        {
+            AddWall(body, new Vector3(cx - w / 2f - WallThick / 2f, WallHeight / 2f, cz),
+                          new Vector3(WallThick, WallHeight, d));
+            AddWall(body, new Vector3(cx + w / 2f + WallThick / 2f, WallHeight / 2f, cz),
+                          new Vector3(WallThick, WallHeight, d));
+        }
+        else
+        {
+            AddWall(body, new Vector3(cx, WallHeight / 2f, cz - d / 2f - WallThick / 2f),
+                          new Vector3(w, WallHeight, WallThick));
+            AddWall(body, new Vector3(cx, WallHeight / 2f, cz + d / 2f + WallThick / 2f),
+                          new Vector3(w, WallHeight, WallThick));
+        }
     }
 
-    private Vector3 CellToWorld(int x, int z)
-        => _gridMap.ToGlobal(_gridMap.MapToLocal(new Vector3I(x, 0, z)));
+    private static void AddWall(StaticBody3D body, Vector3 pos, Vector3 size)
+    {
+        body.AddChild(new CollisionShape3D
+        {
+            Shape    = new BoxShape3D { Size = size },
+            Position = pos,
+        });
+    }
+
+    private void ScatterObstacles(List<(int gx, int gz)> rooms, Random rng)
+    {
+        var stumpMat = new StandardMaterial3D { AlbedoColor = new Color("#2e1008") };
+        var rockMat  = new StandardMaterial3D { AlbedoColor = new Color("#3a3028") };
+        var logMat   = new StandardMaterial3D { AlbedoColor = new Color("#3c2818") };
+
+        foreach (var (gx, gz) in rooms)
+        {
+            if (gx == 0 && gz == 0) continue;
+
+            float cx   = gx * GridStep;
+            float cz   = gz * GridStep;
+            float half = RoomSize / 2f * 0.65f;
+
+            for (int i = 0; i < rng.Next(1, 4); i++)
+                PlaceObstacle(RandomPoint(rng, cx, cz, half), new Vector3(18, 55, 18), stumpMat);
+
+            for (int i = 0; i < rng.Next(1, 3); i++)
+                PlaceObstacle(RandomPoint(rng, cx, cz, half), new Vector3(38, 28, 38), rockMat);
+
+            if (rng.Next(2) == 0)
+                PlaceObstacle(RandomPoint(rng, cx, cz, half), new Vector3(15, 18, 90), logMat,
+                              (float)(rng.NextDouble() * Math.PI));
+        }
+    }
+
+    private void PlaceObstacle(Vector3 floorPos, Vector3 size, StandardMaterial3D mat, float yRot = 0f)
+    {
+        var pos = new Vector3(floorPos.X, size.Y / 2f, floorPos.Z);
+
+        AddChild(new MeshInstance3D
+        {
+            Mesh             = new BoxMesh { Size = size },
+            MaterialOverride = mat,
+            Position         = pos,
+            Rotation         = new Vector3(0f, yRot, 0f),
+        });
+
+        var sb = new StaticBody3D { Position = pos, Rotation = new Vector3(0f, yRot, 0f) };
+        sb.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size } });
+        AddChild(sb);
+    }
+
+    private static Vector3 RandomPoint(Random rng, float cx, float cz, float half)
+        => new Vector3(
+            cx + (float)(rng.NextDouble() * 2 - 1) * half,
+            0f,
+            cz + (float)(rng.NextDouble() * 2 - 1) * half);
+
+    private static List<int> Shuffled(Random rng, int count)
+    {
+        var list = new List<int>(count);
+        for (int i = 0; i < count; i++) list.Add(i);
+        for (int i = count - 1; i > 0; i--)
+        {
+            int j = rng.Next(i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
+        return list;
+    }
 
     public Vector3 GetSpawnPointNear(Vector3 reference, float minDist)
     {

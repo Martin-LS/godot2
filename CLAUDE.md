@@ -8,7 +8,9 @@ Top-down action RPG with horde combat (Diablo / Path of Exile 2 style). Godot 4.
 ## Docs
 
 - `docs/gdd-mechanics.md` — Game design: combat, skills, EoT, characters, enemies, run structure, win/lose, future notes
+- `docs/gdd-map.md` — Game design: map generation, chunks, biomes, obstacle props, hollow dark forest
 - `docs/gdd-progression.md` — Game design: meta-progression, gear, augments, crafting, currencies, UI/menus
+- `docs/technical-map.md` — Architecture: map generation, MapData, RunConfig, DungeonGenerator algorithm, constants, extension points
 - `docs/technical-scene.md` — Architecture: scene layout, scene flow, core systems table, signals, C# conventions, rendering, third-party tools
 - `docs/technical-systems.md` — Architecture: data types, save format, crafting methods, EoT system, damage pipeline, enemy spawner, drop system
 - `docs/technical-assets.md` — 3D asset pipeline: visual style, proportions, rig standard, animation clip names, Blender export settings, Godot import settings, KayKit library reference

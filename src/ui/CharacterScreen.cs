@@ -69,7 +69,10 @@ public partial class CharacterScreen : Control
         GetNode<Button>($"{CharViewBase}/CraftButtons/CraftSkillButton").Pressed    += ShowCraftSkillPopup;
 
         GetNode<Button>($"{CharViewBase}/Buttons/StartRunButton").Pressed += () =>
+        {
+            World.RunConfig.Pending = World.MapData.GenerateRandom(level: 1);
             GetTree().ChangeSceneToFile("res://main.tscn");
+        };
 
         GetNode<Button>("VBox/BackButton").Pressed += () =>
             GetTree().ChangeSceneToFile("res://src/ui/account_screen.tscn");
