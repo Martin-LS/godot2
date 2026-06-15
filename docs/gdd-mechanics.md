@@ -656,6 +656,64 @@ Maps are the arenas where runs take place. Each map has a **Map Level** attribut
 
 All types scale with elapsed time — speed and HP increase per minute. Spawn rate also accelerates.
 
+### Enemy Navigation
+
+**Always navigate.** Enemies use navmesh pathfinding at all times — they never walk into walls or get stuck on corners. Competent movement is non-negotiable for horde feel; a skeleton bumping into a pillar reads as broken, not charming.
+
+**No separation (v1).** Enemies do not avoid each other. The blob is intentional — 30 skeletons converging on the same point is the visual threat mass that Self-Burst and Self-Channeled-Tick are designed to answer. Spreading enemies out would make horde skills feel weaker and the threat more diffuse. Light natural spreading from collision is sufficient. Revisit post-v1 if playtesting reveals a problem.
+
+**Chokepoints are a feature.** Map corridors and doorways are intentional tactical geometry. Enemies funneling through a doorway is a core fun moment — position at the mouth of a corridor, drop a zone skill, clear the flood. This falls out of correct pathfinding for free; no extra design work needed. Map design should treat chokepoints as a first-class tool, not an obstacle routing problem.
+
+### Enemy Spawning
+
+There are two categories of enemy presence in a run:
+
+**Pre-placed enemies** — authored into room templates when the map is built. Start idle. Aggro via the proximity cluster system below.
+
+**Wave-spawned enemies** — spawned dynamically during the run as part of escalating difficulty. Always aggro immediately on spawn — no idle state, no cluster membership. These are the horde.
+
+#### Enemy Pool (wave-spawned)
+
+What wave-spawned enemies can appear is defined per map by an **enemy pool** — a list of typed variants with counts and stat modifiers:
+
+```
+EnemyPoolEntry:
+  EnemyType: string       // e.g. "skeleton", "archer_skeleton"
+  Count: int              // drives spawn ratio (weight in the pool)
+  Modifiers:
+    ArmorBonus: int       // e.g. +5, +10
+    HpBonus: int          // future
+    SpeedBonus: int       // future
+    DamageBonus: int      // future
+```
+
+The spawner draws randomly from the pool weighted by `Count`. Modifiers are applied to the enemy instance at spawn time on top of base stats. v1: one entry, `skeleton`, count 1, all modifiers zero.
+
+**Map crafting hook:** when maps become craftable, the player configures the enemy pool — e.g. "warrior skeletons only" or "5× light skeleton + 10× heavy skeleton". The spawner consumes whatever the pool defines; no spawner changes needed.
+
+#### Proximity Cluster System (pre-placed enemies)
+
+Pre-placed enemies are always **idle** at map load. Clusters are not authored or pre-computed — they are an emergent property of which idle enemies are near each other at any given moment.
+
+**How clusters form:** think of it like cells organising. Each idle enemy looks at its neighbours. If another idle enemy is within proximity range, they are connected. Any two idle enemies connected directly or through a chain of connections belong to the same cluster. This is recalculated dynamically — not stored permanently.
+
+**Enemy states:**
+
+| State | Behaviour |
+|---|---|
+| Idle | Standing still. Participates in proximity clustering. Has an individual aggro radius. |
+| Chasing | Independently pursuing the player via navmesh. No cluster membership while chasing. |
+
+**Aggro trigger:** each idle enemy checks player distance every frame. If the player enters that enemy's aggro radius → the enemy wakes → its entire connected idle cluster wakes simultaneously. Clusters produce the "whole group snaps to attention" feel without manual authoring.
+
+**Losing the player:** if a chasing enemy loses the player (player moves beyond `BalanceConfig.Enemies.LostPlayerDistanceTiles` × tile size), the enemy returns to idle and immediately re-runs proximity scanning. It joins the nearest idle cluster or forms a new one with other nearby idle enemies. Clusters naturally reform around survivors and returning chasers.
+
+> **Current value: 30 tiles (1080 world units).** Wave-spawned enemies need a threshold that exceeds their spawn distance (~560 units / ~15.5 tiles from the nearest room centre), or they switch to Idle immediately on spawn. Once pre-placed enemies are implemented, they should use a separate, smaller config value (6–10 tiles is the intended design range for pre-placed). `LostPlayerDistanceTiles` will be split into `WaveSpawnLostPlayerTiles` and `PrePlacedLostPlayerTiles` at that point.
+
+**Wave-spawned enemies** are always created in the chasing state — they never participate in clustering.
+
+**No manual clump authoring required.** Room designers place enemies; the proximity system handles grouping automatically. The only tuning lever is the proximity radius (how far apart enemies can be and still cluster together) — this can live on `MapData` to allow different maps to feel tighter or looser.
+
 ---
 
 ## Win / Lose Conditions

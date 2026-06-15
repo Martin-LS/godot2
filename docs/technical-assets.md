@@ -139,6 +139,8 @@ Each character has its own palette. Record it here when authoring so future modi
 
 ## Rig — Standard Bone Set
 
+> **Base file: `assets/models/characters/player_prototype.blend`** — this is the canonical rigged humanoid source. When creating any new humanoid character (skeleton, zombie, humanoid boss, NPC, etc.), **duplicate `player_prototype.blend`** as the starting point. It already has the correct armature, bone hierarchy, weight painting, and rest pose. Do not build a new rig from scratch.
+
 > **Status: Implemented for `player.glb`.** Enemy models are still unrigged static meshes. The spec below applies to all future humanoid characters.
 
 Every humanoid character uses this exact bone hierarchy and naming. Do not deviate — animation sharing and code lookups depend on consistent names.
@@ -420,6 +422,7 @@ bpy.ops.export_scene.gltf(
 assets/
   models/
     characters/
+      player_prototype.blend   ← canonical rigged humanoid base — duplicate this for all new humanoid chars
       player.glb
       player.blend
       enemy_<type>.glb

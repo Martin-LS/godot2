@@ -38,7 +38,8 @@ DungeonGenerator._Ready()
 | `Seed` | `int` | Drives all random decisions in the generator |
 | `Biome` | `MapBiome` | Determines visual theme and future asset library |
 | `Level` | `int` | Map difficulty; feeds into XP scaling and future modifiers |
-| `ChunkCount` | `int` | Number of rooms to generate (v1: 4–6) |
+| `ChunkCount` | `int` | Number of rooms to generate (v1: 7–11) |
+| `EnemyPool` | `List<EnemyPoolEntry>` | Typed pool of enemy variants with count + stat modifiers; drawn by EnemySpawner |
 
 `MapData.GenerateRandom(level)` creates a new instance with a random seed via `System.Random` (not Godot's RNG, so it works before the scene is loaded).
 
@@ -65,7 +66,7 @@ Static class with a single `Pending` property. Bridges the scene change — set 
 Rooms are tracked on an integer grid. Each grid cell is `GridStep` world units apart:
 
 ```
-GridStep = RoomSize + CorridorLength  (currently 200 + 100 = 300 world units)
+GridStep = RoomSize + CorridorLength  (currently 400 + 160 = 560 world units)
 ```
 
 1. Place spawn room at grid `(0, 0)`
@@ -105,14 +106,43 @@ Each obstacle has its own `StaticBody3D` + `BoxShape3D` for collision. Logs are 
 
 | Constant | Value | Notes |
 |---|---|---|
-| `RoomSize` | 200f | Square side length in world units |
-| `CorridorWidth` | 60f | Narrow dimension of a corridor |
-| `CorridorLength` | 100f | Long dimension of a corridor (the gap between rooms) |
-| `GridStep` | 300f | Distance between room centres (RoomSize + CorridorLength) |
+| `RoomSize` | 400f | Square side length in world units |
+| `CorridorWidth` | 90f | Narrow dimension of a corridor |
+| `CorridorLength` | 160f | Long dimension of a corridor (the gap between rooms) |
+| `GridStep` | 560f | Distance between room centres (RoomSize + CorridorLength) |
 | `FloorThick` | 2f | Height of floor box mesh |
 | `WallHeight` | 200f | Height of invisible perimeter collision walls |
 
-All values are placeholder — tweak freely once the map feels right to play.
+All values are tunable — adjust freely once the map feels right to play.
+
+---
+
+## Navmesh Bake
+
+After all geometry is placed, `DungeonGenerator.BakeNavmesh()` runs synchronously before emitting `MapReady`:
+
+```
+NavigationMesh (AgentRadius=16, AgentHeight=50, CellSize=4, parsed_geometry_type=Both)
+→ NavigationServer3D.ParseSourceGeometryData(navMesh, sourceData, dungeonMapNode)
+    // explicit root = DungeonMap — scans all floor/wall/obstacle children
+→ NavigationServer3D.BakeFromSourceGeometryData(navMesh, sourceData)
+→ NavigationRegion3D assigned baked mesh, added as child of DungeonMap
+→ CallDeferred(EmitSignal(MapReady))
+    // deferred so EnemySpawner._Ready() connects before the signal fires
+```
+
+**Why explicit root?** `NavigationRegion3D.BakeNavigationMesh()` defaults to scanning the region's own children (none — it's an empty node). Using `NavigationServer3D.ParseSourceGeometryData` with `DungeonMap` as the explicit root guarantees all geometry is included.
+
+**NavMesh constants:**
+
+| Parameter | Value | Notes |
+|---|---|---|
+| `AgentRadius` | 16f | Slightly above enemy collision sphere (radius 14) for wall clearance |
+| `AgentHeight` | 50f | Rooms are open (no ceiling) — ample clearance |
+| `AgentMaxClimb` | 5f | Flat map; obstacles have no ramps |
+| `CellSize` | 4f | Horizontal voxel resolution |
+| `CellHeight` | 4f | Vertical voxel resolution |
+| `parsed_geometry_type` | 2 (Both) | Scans MeshInstance3D + StaticColliders |
 
 ---
 

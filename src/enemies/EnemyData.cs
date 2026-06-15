@@ -20,4 +20,10 @@ public static class EnemyRegistry
         PhysicalResistance: BalanceConfig.Enemies.Skeleton.PhysicalResistance,
         MagicResistance: 0f,
         ModelPath: "res://assets/models/characters/enemy_skeleton.glb");
+
+    public static EnemyData Get(string enemyType) => enemyType switch
+    {
+        "skeleton" => Skeleton,
+        _          => Skeleton, // fallback to skeleton for unknown types
+    };
 }

@@ -171,6 +171,13 @@ public static class BalanceConfig
         public const float SpeedPerMinute      = 5f;  // added to base speed each minute
         public const int   HealthPerMinute     = 3;   // added to base health each minute
         public const float MeleeContactRange   = 32f; // world units; enemy start-hit proximity
+
+        // Navigation / aggro — in tiles; multiply by GameScale.TileSize for world units
+        // Wave-spawn rooms are ~8.3 tiles away; this must exceed that. Pre-placed enemies need
+        // a separate (smaller) constant when that system is implemented.
+        public const float LostPlayerDistanceTiles    = 30f; // wave-spawn chase range
+        public const float EnemyAggroRadiusTiles      = 6f;  // idle re-aggro detection radius
+        public const float ClusterProximityRadiusTiles = 4f; // max gap for two idle enemies to cluster
     }
 
     public static class Drops

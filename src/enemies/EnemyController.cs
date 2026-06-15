@@ -25,10 +25,19 @@ public partial class EnemyController : CharacterBody3D
     public float MagicResistance    = 0f;
     public string ModelPath = "res://assets/models/characters/enemy_generic.glb";
 
+    private enum EnemyState { Idle, Chasing }
+    private EnemyState _state = EnemyState.Chasing; // wave-spawned always start chasing
+
+    private static readonly float _lostDist  = BalanceConfig.Enemies.LostPlayerDistanceTiles   * GameScale.TileSize;
+    private static readonly float _aggroDist = BalanceConfig.Enemies.EnemyAggroRadiusTiles      * GameScale.TileSize;
+
     private int _currentHealth;
     public  int CurrentHealth => _currentHealth;
     private CharacterBody3D? _player;
+    private NavigationAgent3D? _navAgent;
     private float _damageCooldown;
+    private float _pathTimer;
+    private const float PathUpdateInterval = 0.25f;
     private readonly Dictionary<string, EotInstance> _activeEots = new();
     private float _baseSpeed;
     private AnimationNodeStateMachinePlayback? _smPlayback;
@@ -39,6 +48,14 @@ public partial class EnemyController : CharacterBody3D
         _baseSpeed     = Speed;
         _player = GetTree().GetFirstNodeInGroup("player") as CharacterBody3D;
         AddToGroup("enemies");
+
+        _navAgent = new NavigationAgent3D
+        {
+            PathDesiredDistance    = 10f,
+            TargetDesiredDistance  = 20f,
+            AvoidanceEnabled       = false,
+        };
+        AddChild(_navAgent);
         var enemyModel = GD.Load<PackedScene>(ModelPath).Instantiate<Node3D>();
         enemyModel.Scale = new Vector3(9f, 9f, 9f);
         AddChild(enemyModel);
@@ -97,28 +114,71 @@ public partial class EnemyController : CharacterBody3D
 
         if (_player == null) return;
 
-        var diff = _player.GlobalPosition - GlobalPosition;
-        var direction = new Vector3(diff.X, 0f, diff.Z).Normalized();
-        Velocity = direction * Speed;
-        MoveAndSlide();
+        float distToPlayer = GlobalPosition.DistanceTo(_player.GlobalPosition);
 
-        if (direction.LengthSquared() > 0.01f)
-            LookAt(GlobalPosition + direction, Vector3.Up);
+        switch (_state)
+        {
+            case EnemyState.Idle:
+                Velocity = Godot.Vector3.Zero;
+                MoveAndSlide();
+                _smPlayback?.Travel("idle");
+                if (distToPlayer <= _aggroDist)
+                    _state = EnemyState.Chasing;
+                break;
 
-        var current = _smPlayback?.GetCurrentNode() ?? "";
-        if (current != "attack")
+            case EnemyState.Chasing:
+                if (distToPlayer > _lostDist)
+                {
+                    _state = EnemyState.Idle;
+                    break;
+                }
+                ChasePlayer((float)delta, distToPlayer);
+                break;
+        }
+
+        TickEots((float)delta);
+    }
+
+    private void ChasePlayer(float delta, float distToPlayer)
+    {
+        if (_navAgent != null)
+        {
+            _pathTimer -= delta;
+            if (_pathTimer <= 0f)
+            {
+                _navAgent.TargetPosition = _player!.GlobalPosition;
+                _pathTimer = PathUpdateInterval;
+            }
+
+            if (!_navAgent.IsNavigationFinished())
+            {
+                var nextPos   = _navAgent.GetNextPathPosition();
+                var direction = new Godot.Vector3(nextPos.X - GlobalPosition.X, 0f, nextPos.Z - GlobalPosition.Z).Normalized();
+                Velocity = direction * Speed;
+                MoveAndSlide();
+
+                if (direction.LengthSquared() > 0.01f)
+                    LookAt(GlobalPosition + direction, Godot.Vector3.Up);
+            }
+            else
+            {
+                Velocity = Godot.Vector3.Zero;
+                MoveAndSlide();
+            }
+        }
+
+        var animState = _smPlayback?.GetCurrentNode() ?? "";
+        if (animState != "attack")
             _smPlayback?.Travel("walk");
 
-        _damageCooldown -= (float)delta;
-        if (_damageCooldown <= 0f && GlobalPosition.DistanceTo(_player.GlobalPosition) < BalanceConfig.Enemies.MeleeContactRange)
+        _damageCooldown -= delta;
+        if (_damageCooldown <= 0f && distToPlayer < BalanceConfig.Enemies.MeleeContactRange)
         {
             if (_player is Godot1.Player.PlayerController pc)
                 pc.TakeDamage(ContactDamage, Items.DamageType.Physical, this);
             _damageCooldown = DamageInterval;
             _smPlayback?.Travel("attack");
         }
-
-        TickEots((float)delta);
     }
 
     public void ApplyEot(EotData eot, float critMultiplier = 1.0f)

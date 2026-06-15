@@ -72,7 +72,7 @@ Update this as tasks are completed or new work is identified.
 - [x] Map generation — single 24×24 KayKit dungeon arena; floor tiles, perimeter walls, corner pieces, scattered props (pillars, barrels, crates, torches); collision boundary; player spawns at centre; enemies spawn on floor tiles
 - [x] Map generation rewrite — connector tile system; MapData (seed, biome, level, chunk count) generated at run start via RunConfig; DungeonGenerator builds 4–6 rooms as flat box patches connected by corridors; invisible walls on all room sides with corridor gaps; placeholder obstacle boxes (stumps, rocks, logs) scattered per room. KayKit assets removed from map.
 - [ ] Hollow Dark Forest assets — floor tile, tree trunk wall, wall corner (Blender); replace placeholder box geometry in DungeonGenerator
-- [ ] Enemy pathfinding — NavigationAgent3D; enemies currently walk directly toward player and collide with obstacles/walls
+- [x] Enemy pathfinding — NavigationAgent3D + NavigationRegion3D; navmesh baked synchronously after map generation; enemies steer via GetNextPathPosition() instead of walking directly toward player; state machine (Idle/Chasing) with aggro/lost-player thresholds; wave-spawn pool per MapData (EnemyPoolEntry, weighted random draw)
 - [ ] Map selection screen — only one arena map; no selection or variety yet
 - [ ] Archetype defense system — Rogue dodge and Mage focus shield are future design (GDD future notes section)
 - [ ] Higher-tier crafting materials — drop system only has common tier; rarer tiers TBD

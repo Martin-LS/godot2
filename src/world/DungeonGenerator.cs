@@ -6,11 +6,13 @@ namespace Godot1.World;
 
 public partial class DungeonGenerator : Node3D
 {
+    [Signal] public delegate void MapReadyEventHandler();
+
     private readonly List<Vector3> _floorPositions = new();
 
-    private const float RoomSize       = 200f;
-    private const float CorridorWidth  = 60f;
-    private const float CorridorLength = 100f;
+    private const float RoomSize       = 400f;
+    private const float CorridorWidth  = 90f;
+    private const float CorridorLength = 160f;
     private const float GridStep       = RoomSize + CorridorLength;
     private const float FloorThick     = 2f;
     private const float WallHeight     = 200f;
@@ -105,6 +107,31 @@ public partial class DungeonGenerator : Node3D
         var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
         if (player != null)
             player.GlobalPosition = SpawnPosition;
+
+        BakeNavmesh();
+    }
+
+    private void BakeNavmesh()
+    {
+        var navMesh = new NavigationMesh();
+        navMesh.AgentHeight   = 50f;
+        navMesh.AgentRadius   = 16f; // slightly > enemy collision sphere radius (14) for wall clearance
+        navMesh.AgentMaxClimb = 5f;
+        navMesh.CellSize      = 4f;
+        navMesh.CellHeight    = 4f;
+        navMesh.Set("parsed_geometry_type", 2); // 2 = Both (mesh instances + static colliders)
+
+        // Explicitly parse geometry from DungeonMap (this) so all floors/walls/obstacles are included.
+        // Default BakeNavigationMesh() scans the region's own children (empty) — this avoids that trap.
+        var sourceData = new NavigationMeshSourceGeometryData3D();
+        NavigationServer3D.ParseSourceGeometryData(navMesh, sourceData, this);
+        NavigationServer3D.BakeFromSourceGeometryData(navMesh, sourceData);
+
+        var region = new NavigationRegion3D { NavigationMesh = navMesh };
+        AddChild(region);
+
+        // Deferred so EnemySpawner._Ready() has connected before the signal fires
+        Callable.From(() => EmitSignal(SignalName.MapReady)).CallDeferred();
     }
 
     private void AddFloorPatch(float cx, float cz, float w, float d,

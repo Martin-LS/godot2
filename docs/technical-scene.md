@@ -24,7 +24,7 @@ Godot 4.6, C#, Forward Plus renderer. Game world is 3D (CharacterBody3D, XZ move
 | Stretch mode        | `canvas_items`                | Scales UI and world together; crisp at integer multiples of 720p.  |
 | UI theme            | Custom Iron & Slate theme (`res://assets/ui/game_theme.tres`) | Hand-built `Theme` resource set via `gui/theme/custom`. Covers PanelContainer/TabContainer/Panel panel styleboxes (gold `#D4A017` border, Iron Black bg), Button states (normal/hover/pressed/disabled/focus), Label/LineEdit/PopupMenu/Tooltip styles. Default font: Exo 2. No per-scene theme overrides — all Control nodes inherit automatically. |
 | Fonts               | Exo 2 (UI default), Cinzel (headings/titles), EB Garamond (body/lore), Almendra, Cinzel Decorative, Inter — all at `res://assets/fonts/` | Downloaded from Google Fonts as woff2; imported by Godot. Exo 2 set as `theme.default_font`. Bold variant (`Exo_2_2.woff2`) used for tooltip titles. |
-| Floor               | KayKit dungeon arena (`DungeonGenerator.cs`) | 24×24 grid of `floor_tile_large` hexagonal stone tiles. Walls + corner pieces on all four edges. Scattered pillars, barrels, crates, torches as props. Generated at run start; player spawned at the arena centre via `DungeonGenerator.SpawnPosition` (set to `CellToWorld(0,0)` after the floor is built — not world origin). |
+| Floor               | Procedural connector-tile map (`DungeonGenerator.cs`) | 7–11 rooms (400×400 world units each) connected by corridors (90 wide, 160 long). Each room and corridor is a flat `BoxMesh` + matching `CollisionShape3D`. Invisible wall boxes on all room sides with corridor gap openings. Placeholder obstacle props (stumps, boulders, logs) scattered per non-spawn room. Player spawns at room 0 centre. After all geometry is placed, navmesh is baked synchronously using `NavigationServer3D.ParseSourceGeometryData` with DungeonMap as the explicit scan root, then `MapReady` is emitted deferred. |
 | Pickup visuals      | Colored `BoxMesh` (10×10×10) | XP Shard = green, coin = yellow, health = red. Opaque to all systems. |
 
 ---
@@ -160,7 +160,8 @@ Main (Node)
 │   ├── Camera3D               ← perspective, ~60°, parented to player (follows automatically)
 │   │   └── DirectionalLight3D ← global main light, moves with camera
 │   └── Weapon (Node)
-├── DungeonMap (Node3D)        ← arena generator (DungeonGenerator.cs)
+├── DungeonMap (Node3D)        ← procedural map generator (DungeonGenerator.cs)
+│   └── NavigationRegion3D    ← added at runtime after synchronous navmesh bake; baked mesh covers all rooms/corridors/obstacles
 ├── WorldEnvironment
 ├── Hud (CanvasLayer)          ← health bar, Focus bar (blue), Focus Shield bar (light blue, all archetypes), XP bar, level, coin counter, run timer, skill bar
 ├── EnemySpawner (Node)
@@ -190,9 +191,9 @@ Main (Node)
 | CharacterManager  | Autoload — load/save characters, hold selected character     | `res://src/character/`    | ✅ done |
 | Player            | Input, movement, stat sheet, taking damage, Focus pool (CurrentFocus, regen, TrySpendFocus, ReserveFocus/UnreserveFocus, Focus Shield — all archetypes) | `res://src/player/`       | ✅ done |
 | Weapon            | Skill firing — targeting nearest enemy, cooldown management; manual activation (keys 1/2/3) and per-slot auto-activate toggle pending | `res://src/weapon/` | 🔄 in progress |
-| DungeonGenerator  | Single-room arena: floor GridMap, wall meshes, props, collision boundary, player spawn | `res://src/world/` | ✅ done |
-| EnemySpawner      | Time-based wave scaling, spawning on dungeon floor tiles      | `res://src/enemies/`      | ✅ done |
-| Enemy             | AI (chase), taking damage, death + XP Shard spawning           | `res://src/enemies/`      | ✅ done |
+| DungeonGenerator  | Procedural map: 7–11 rooms connected by corridors, wall collision, obstacle scatter, player spawn. Bakes navmesh synchronously via NavigationServer3D with DungeonMap as explicit geometry root; emits `MapReady` (deferred) when done. | `res://src/world/` | ✅ done |
+| EnemySpawner      | Time-based wave scaling; starts on `MapReady`. Draws from `MapData.EnemyPool` (typed variants with count + stat modifiers); weighted random selection; spawns enemies at room centres beyond `SpawnRadius * 0.5` from player. | `res://src/enemies/` | ✅ done |
+| Enemy             | State machine: Chasing (wave-spawned, immediate) or Idle (pre-placed, future). `NavigationAgent3D` steers via navmesh path updated every 0.25s. Lost-player threshold: `BalanceConfig.Enemies.LostPlayerDistanceTiles` (30 tiles for wave-spawn). Taking damage, death, drops. | `res://src/enemies/` | ✅ done (proximity cluster system pending) |
 | XpShard           | XP Shard pickup — auto-collected on contact                  | `res://src/xp/`           | ✅ done |
 | EoT               | Effect over Time — apply, tick, expire on enemies            | `res://src/eot/`          | ✅ done |
 | Hud               | Health bar, Focus bar (blue, below health), Focus Shield bar (light blue, below Focus — all archetypes), XP bar, level, coin counter, run timer | `res://src/hud/`          | ✅ done |
@@ -316,10 +317,68 @@ Systems communicate via signals only — no direct cross-system method calls.
 | `SkillFired(int slotIndex, float cooldown, string delivery)` | WeaponController | Hud skill bar (resets cooldown overlay); PlayerController (triggers attack animation via delivery string: "Melee" → shot_right, "Ranged" → shot_left) |
 | `Died(position)`            | Enemy          | (reserved — not yet wired)       |
 | `CoinChanged(int)`          | RunSession     | Hud (coin counter)               |
+| `MapReady`                  | DungeonGenerator | EnemySpawner (start wave timer); EnemyController pre-placed instances (unlock idle→chase transition) |
 | `RunTimerExpired`           | RunSession     | EnemySpawner (spawn boss)        |
 | `RunEnded(result)`          | RunSession     | CharacterManager (flush coins/XP/level via `RecordRunCompletion`) |
 | `FocusChanged(float current, float max)` | PlayerController | HUD (Focus bar) |
 | `ShieldChanged(float current, float max)` | PlayerController | HUD (Focus Shield bar — all archetypes) |
+
+---
+
+## Enemy Spawning Architecture
+
+### Two spawning sources
+
+| Source | When | Aggro | Cluster |
+|---|---|---|---|
+| Pre-placed (room templates) | Map load | Idle until player enters proximity | Yes — proximity cluster system |
+| Wave-spawned (EnemySpawner) | During run, after `MapReady` | Immediate on spawn | Never |
+
+### Map load sequence
+
+```
+DungeonGenerator._Ready() builds rooms, corridors, obstacles
+→ NavigationServer3D.ParseSourceGeometryData(navMesh, data, dungeonMap)  // explicit root
+→ NavigationServer3D.BakeFromSourceGeometryData(navMesh, data)           // synchronous
+→ NavigationRegion3D added with baked mesh
+→ CallDeferred(EmitSignal(MapReady))   // deferred so all _Ready() subscribers have connected
+→ EnemySpawner.OnMapReady() → reads EnemyPool from MapData, starts wave timer
+→ (future) Pre-placed enemies unlock idle→chase transition
+```
+
+`MapReady` is emitted deferred (not immediately after bake) to avoid a race condition: `DungeonMap` is node 4 in `main.tscn` and `EnemySpawner` is node 8 — without deferral, the signal fires before EnemySpawner's `_Ready()` connects its handler.
+
+### Proximity cluster system (runtime)
+
+Clusters are not scene nodes — they are an emergent runtime grouping of idle enemies. No authored clump objects exist.
+
+**Algorithm (runs on idle enemies only):**
+- Each idle enemy maintains a proximity radius
+- Connected components among idle enemies within that radius form a cluster
+- Recomputed on state change (enemy enters or leaves idle), not every frame
+
+**State machine per `EnemyController`:**
+
+```
+Dormant (pre-MapReady, future pre-placed enemies only)
+  → MapReady fires → Idle
+Idle
+  → player enters aggro radius → wake self + connected cluster → Chasing
+Chasing
+  → player beyond LostPlayerDistanceTiles → Idle (re-scan proximity, rejoin/reform cluster)
+```
+
+**Wave-spawned enemies** are created directly in Chasing — they never enter Idle or participate in clustering. See `BalanceConfig.Enemies.LostPlayerDistanceTiles` (current: 30 tiles for wave-spawn; will be split into separate wave/pre-placed constants when pre-placed enemies are implemented).
+
+### Enemy pool (`MapData.EnemyPool`)
+
+Wave spawner draws from a typed pool per map:
+
+```
+EnemyPoolEntry { EnemyType, Count, Modifiers { ArmorBonus, HpBonus, SpeedBonus, DamageBonus } }
+```
+
+Count drives spawn weighting. Modifiers are applied to the enemy instance at spawn on top of base `EnemyData` values. v1: one entry, `skeleton`, count 1, all modifiers zero.
 
 ---
 
