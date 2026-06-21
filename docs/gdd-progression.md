@@ -26,7 +26,7 @@ Exact stat differences per tier are TBD. Higher tier also unlocks more augment s
 
 ### Gear Slots
 
-Characters can equip up to 4 gear items (one per gear slot) and up to 3 skill items (one per skill slot). All items persist between runs. Each slot has a distinct role:
+Characters can equip up to 4 gear items (one per gear slot) and 1 skill item (code supports more slots for future expansion). All items persist between runs. Each slot has a distinct role:
 
 | Slot      | Role                                                             | Progression axis                    |
 |-----------|------------------------------------------------------------------|-------------------------------------|
@@ -34,21 +34,21 @@ Characters can equip up to 4 gear items (one per gear slot) and up to 3 skill it
 | Hat       | Survival — HP, Speed, damage reduction (%) by category; Range Modifier by category | Tier → better stats within category |
 | Body      | Survival — HP, Speed, damage reduction (%) by category; Range Modifier by category | Tier → better stats within category |
 | Ring      | Mitigation — physical resistance (%)                             | Tier → higher resistance            |
-| Skill ×3  | Active/passive ability used during a run                         | Tier → stronger effect + lower cooldown (cooldown is a skill attribute — no character-level attack speed stat exists) |
+| Skill ×1  | Active/passive ability used during a run (code supports more slots for future expansion) | Tier → stronger effect + lower cooldown (cooldown is a skill attribute — no character-level attack speed stat exists) |
 
 #### Skill Slots
 
-Three skill slots map directly to the 3 skill bar slots shown during a run. Whatever is equipped in skill slots 1–3 is what fires during the run.
+1 skill slot shown on the HUD and used during a run. Code supports multiple slots for future expansion. Whatever is equipped in the skill slot is what fires during the run. Any archetype can equip any skill — there are no restrictions.
 
-The same skill item can be equipped in multiple slots simultaneously. Any archetype can equip any skill — there are no restrictions. v1 starter skill: **Entity-Burst** (formerly Strike; tags: `Attack`). All archetypes start with plain Entity-Burst — no pre-socketed augments. Weapon type determines damage type and delivery.
+v1 starter skill: **Entity-Burst** (physical type, 1.0× multiplier). All archetypes start with plain Entity-Burst — no pre-socketed augments. Weapon drives the delivery animation; skill defines the damage type.
 
 Skill items are crafted (Craft New — accessible from an empty skill slot, left-click → Craft New; not yet implemented in v1) and equipped from the **Skills inventory tab**.
 
 #### Skill Augments
 
-> **PoE2 inspiration:** Skill Augments are the equivalent of PoE2 support gems — they socket directly into a skill and modify how it behaves. Tag compatibility is the only gate; there are no character or archetype restrictions.
+Skill Augments are craftable items that socket into a skill item to modify it. Any augment can go into any skill slot — no archetype or skill type restrictions. Each augment type can only be equipped once per skill (no duplicates).
 
-Skill Augments are craftable items that socket into a skill item to modify it. **There is no tag gate on socketing** — any Skill Augment can go into any skill slot. Tags on augments are descriptive only (they describe what the augment does and what kind of skill it was designed for) and do not restrict socketing.
+**Ineffective combos — visual warning:** No augment is hard-locked from any skill, but some combinations produce no effect (e.g. Pierce on a Self skill — no projectile or impact point). The UI flags these with a warning indicator on the augment socket (red/yellow exclamation, hover tooltip explaining why). Exact indicator design TBD. Keeps the system open while giving players clear feedback when a slot is being wasted.
 
 **Skill Augment slots per tier** — upgrading a skill unlocks deeper modification, not just bigger numbers:
 
@@ -58,45 +58,24 @@ Skill Augments are craftable items that socket into a skill item to modify it. *
 | Uncommon   | 2            |
 | Rare       | 3            |
 
-- **Socketing:** choose a compatible Skill Augment from inventory and place it into an open slot on the skill item
+- **Socketing:** choose a Skill Augment from inventory and place it into an open slot on the skill item
 - **Removing:** free, Skill Augment returns to inventory
-- **Compatibility:** governed by tags — a Skill Augment declares which tags it requires; the skill must have at least one
 
-**Augment conflicts:**
-
-Some augments are mutually exclusive by effect — for example, two damage type conversion augments (Magic Damage + Chaos Damage) cannot both apply. When a conflict exists:
-
-- The augment in the **highest slot index wins** — slot 3 beats slot 2, slot 2 beats slot 1
-- Losing augments are **greyed out with a red X** in the skill item UI
-- Hovering or selecting a losing augment **highlights the winning augment** and shows a tooltip: *"Overridden by [Augment Name] in slot [N]"*
-- Leaving a conflicting augment slotted is allowed — it is simply wasted. The player resolves it by moving their preferred augment to a higher slot.
-- Slot order is the only tiebreaker. It has no effect on math — it exists solely for conflict resolution.
-
-**Augment math model:**
-
-Augment effects are evaluated using a bucketed formula inspired by PoE. Slot order is irrelevant to math — all operations within each bucket are commutative.
-
-`Final value = (Base + Flat additions) × (1 + sum of all Increased%) × More₁ × More₂ × …`
-
-| Bucket | What goes here | How it stacks |
-|---|---|---|
-| Flat additions | Fixed numeric additions (+10 damage, +5 range) | Summed together, applied to base first |
-| Increased % | Percentage bonuses (+20% damage, +15% crit chance) | All pooled into a single sum, applied as one multiplier |
-| More multipliers | Independent conditional multipliers | Each applied separately — they compound multiplicatively |
-
-Augments are designed as flat additions or increased % bonuses. More multipliers are reserved for specific conditional effects where compounding is intentional (e.g. a crit multiplier). Raw unconditional multipliers (×2 damage) are avoided on general augments — they produce unintuitive power spikes when combined with increased% bonuses and make balancing unpredictable.
+**Augment tag + trigger type system.** Each augment has a functional tag (e.g. `splash`, `pierce`, `slow`, `crit`). Each augment slot has a trigger type (e.g. `on_enemy_hit_%`, `always`) that declares which augment tags it accepts and how it fires. Mechanical augments (splash, pierce) use a trigger type with no % chance — they fire on every hit. Effect augments (slow, crit, burn) use `on_enemy_hit_%` with a fixed trigger chance defined on the augment. Full tag/trigger taxonomy TBD at implementation.
 
 **v1 Skill Augments:**
 
-| Skill Augment    | Designed for | Effect |
-|------------------|-------------|--------|
-| Splash           | `Melee`     | Hit damages a small area around the target |
-| Pierce           | `Ranged`    | Projectile passes through enemies |
-| Slow             | `Attack`    | Applies the Slow EoT on hit (see Effects over Time) |
-| Critical Strike  | `Attack`    | Adds flat **Crit Chance**. On crit: final damage (any type) is multiplied by the **Crit Multiplier** (fixed at 1.5× in v1; shown to players as +50% Crit Damage). Damage EoTs applied by a crit hit are stamped with the Crit Multiplier for their full duration. Used as the Rogue starter augment. |
-| Magic Damage     | `Attack`    | Converts damage to Magic type — used as the Mage starter augment |
+| Skill Augment   | Tag      | Trigger type       | Effect |
+|-----------------|----------|--------------------|--------|
+| Splash          | `splash` | `always`           | Hit damages a small area around the impact point. Meaningful on Entity skills (Melee and Ranged). No effect on Self skills — UI warns. |
+| Pierce          | `pierce` | `always`           | Hit passes through the first enemy and continues. Ranged: projectile travels through. Melee: swing cuts through enemies in a line. No effect on Self skills — UI warns. |
+| Slow            | `slow`   | `on_enemy_hit_%`   | Applies the Slow EoT on hit |
+| Critical Strike | `crit`   | `on_enemy_hit_%`   | Hit deals base damage × 1.5×. Trigger chance = crit chance. Bow identity adds a flat bonus on top. |
+| Burn            | `burn`   | `on_enemy_hit_%`   | Applies the Burn EoT on hit |
 
-Exact values (splash radius, crit chance, crit multiplier, slow %, apply chance, duration) are TBD.
+Exact values (splash radius, trigger chances, slow %, burn damage, duration) are TBD.
+
+**Future augment pattern — mine/trap placement:** A mine augment triggers `on_enemy_hit_%` and places a proximity trap at the hit location. Successive hits place additional mines up to an active cap. The cap scales with augment tier (e.g. tier 1 = 2 active mines, tier 2 = 4, tier 3 = 6). This introduces augment-tier-scaling caps as a mechanic — design in full when crafting tiers are being expanded.
 
 **Crafting cost (v1):** every Skill Augment costs **1 Common material** to craft.
 
@@ -104,25 +83,23 @@ Skill Augments are crafted (Craft New entry point TBD — not yet implemented; p
 
 #### Equipment Tags
 
-Equipment items have **tags** — the same concept as skill tags, applied to gear. Tags determine which Equipment Augments can socket into an item. An Equipment Augment declares which tags it requires; the item must have at least one matching tag. Equipment Augments with no tag requirement can socket into any equipment item.
+Armour pieces (Hat and Body) carry a **category tag** that identifies their type. The tag drives the stat profile described in Hat & Body below. No augment gating — any augment can socket into any equipment item regardless of category.
 
-| Equipment | Tags |
+| Armour | Tag |
 |---|---|
-| Sword | `Melee` |
-| Bow | `Ranged` |
-| Wand | `Magic` |
 | Hat / Body (Heavy) | `Heavy` |
 | Hat / Body (Medium) | `Medium` |
 | Hat / Body (Light) | `Light` |
-| Ring      | *(no tags — universal augments only)* |
 
-Weapon tags intentionally reuse the skill tag names — players already know `Melee`, `Ranged`, `Magic` from skills.
+Category is fixed per item — a Heavy hat stays Heavy regardless of tier.
 
 #### Equipment Augments
 
 Equipment Augments are craftable items that socket into an equipment item to add a **behaviour** — not just a stat bonus, but something that changes how that piece of equipment *feels* to use. They are the gear-layer equivalent of Skill Augments.
 
 **Design intent — Equipment Augments are the defensive build layer.** Skill Augments handle offensive variance (splash, crit, pierce, damage conversion). Equipment Augments handle defensive variance — how the character survives, recovers, and punishes attackers. There is no stagger or hit-recovery system; the hit feedback is D4-style (always in control, no interrupts). All defensive investment flows through Equipment Augments. Future equipment augments should continue in this direction: barriers, dodge, resistance boosts, shield-on-hit, recovery mechanics. Offensive Equipment Augments (weapon/ring slot) are TBD and secondary to this defensive purpose.
+
+**Design rule:** `always` and `on_player_hit_%` augments may not deal proactive offensive damage — reactive damage (e.g. Retaliation/thorns) is acceptable. Auras via equipment augments are defensive or debuff only — a damage aura belongs on a skill augment, not armour. Offensive utility (e.g. cooldown reduction) is a grey area — flag for review when new augments are designed.
 
 **Equipment Augment slots per tier** — mirrors the Skill Augment slot system:
 
@@ -132,24 +109,25 @@ Equipment Augments are craftable items that socket into an equipment item to add
 | Uncommon       | 2                      |
 | Rare           | 3                      |
 
-- **Socketing:** choose a compatible Equipment Augment from inventory and place it into an open slot on the equipment item
+- **Socketing:** choose an Equipment Augment from inventory and place it into an open slot on the equipment item
 - **Removing:** free, Equipment Augment returns to inventory
-- **Compatibility:** governed by equipment tags — an Equipment Augment declares which tags it requires; the item must have at least one. Augments with no tag requirement work on any equipment including accessories.
+- Any augment can socket into any equipment item — no tag gate. Each augment type can only be equipped once per item (no duplicates).
 
-**v1 Equipment Augments:**
+**v1 Equipment Augments** — same augment tag + trigger type system as skill augments, but player-based triggers. Each augment has a tag and a trigger type; trigger chance is fixed per augment:
 
-| Augment | Requires tag | Behaviour |
-|---|---|---|
-| Retaliation | `Heavy` | On hit received: deal small Physical damage to attacker |
-| Fortify | `Heavy` | On hit received: reduce damage taken from the next hit |
-| Dash Reflex | `Light` | On hit received: brief speed burst |
-| Ghost Step | `Light` | Killing an enemy within 2s of taking a hit restores a small amount of HP |
-| Mending | `Medium` | Regenerate a small amount of HP every 3s |
-| Adaptation | `Medium` | On kill: reduce active skill cooldowns slightly |
+| Augment     | Tag           | Trigger type        | Behaviour |
+|-------------|---------------|---------------------|-----------|
+| Retaliation | `retaliation` | `on_player_hit_%`   | On hit received: deal small Physical damage to attacker |
+| Fortify     | `fortify`     | `on_player_hit_%`   | On hit received: reduce damage taken from the next hit |
+| Dash Reflex | `dash_reflex` | `on_player_hit_%`   | On hit received: brief speed burst |
+| Ghost Step  | `ghost_step`  | `on_kill_%`         | On kill: restore a small amount of HP |
+| Mending     | `mending`     | `always`            | Regenerate a small amount of HP every 3s |
 
-Weapon and ring Equipment Augments (targeting `Melee`, `Ranged`, `Magic`, and universal tags) are TBD — designed when weapon and ring depth is expanded.
+Exact trigger chances and values are TBD — owned by the Balancer.
 
 Exact values for all behaviours are TBD — owned by the Balancer.
+
+**Aura augments:** Auras are Equipment Augments with the `aura` tag — a persistent area effect emanating from the player. The trigger type is player's choice: an `always` slot keeps the aura permanently active; an `on_player_hit_%` slot fires it reactively on taking a hit. The augment tag defines what the aura does; the trigger type defines when it runs. Focus reservation may apply as a cost for `always` aura augments — TBD when augment design is expanded.
 
 **Crafting cost (v1):** every Equipment Augment costs **1 Common material** to craft.
 
@@ -157,31 +135,25 @@ Equipment Augments are crafted (Craft New entry point TBD — not yet implemente
 
 #### Weapon
 
-Weapons do three things: provide **base damage** for all skill damage calculations, set **Weapon Range** for all your skills, and define **PreferredDelivery** — the fallback delivery mode for weapon-adaptive skills (those with no delivery tag). No weapon gates any skill — every skill fires regardless of what is equipped.
+Weapons do two things: provide the **base damage number** for all skill damage calculations, and set **Weapon Range**. No weapon gates any skill — every skill fires regardless of what is equipped.
 
-**Weapon is the root of base damage.** Skill damage = weapon base damage × archetype damage multiplier × (1 + level damage bonus%). Upgrading weapon tier is the primary way to increase damage output. Each weapon type also has a **passive identity bonus** that further amplifies a specific stat — rewarding players who match weapon to playstyle without restricting those who don't.
+**Weapon is the root of the damage number.** The skill defines the damage type and multiplier on top of the weapon's base. Upgrading weapon tier is the primary way to increase damage output. Each weapon type has a **passive identity bonus** that applies when the equipped skill's damage type matches the weapon's associated type — rewarding matched builds without restricting those who don't.
 
-**Weapon Range** is a flat number stat visible on the weapon item. It applies to all skills — delivery-tagged or adaptive. Effective Range on the character sheet reflects this after armour modifiers are applied (see Hat & Body).
+**Delivery is fixed per weapon type.** The weapon always drives the attack animation — a Sword always swings, a Bow always shoots, a Wand always fires a bolt. Skills do not override delivery.
 
-Range values are expressed in **tiles** (the canonical internal distance unit). The arena is 24×24 tiles; the playable interior is roughly 22×22 tiles. One tile = 36 Godot world units — this conversion lives in `GameScale.TileSize` and is independent of map art. If the map pack changes, only `GameScale.TileSize` needs updating; all range values stay correct.
+**Weapon Range** is a flat number stat visible on the weapon item. Effective Range on the character sheet reflects this after armour modifiers are applied (see Hat & Body).
 
-**PreferredDelivery** is a formal property on each weapon. When a skill has no delivery tag it is weapon-adaptive and inherits the weapon's `PreferredDelivery` at run start. Skills that carry a delivery tag always use that tag — `PreferredDelivery` is ignored.
+Range values are expressed in **tiles** (the canonical internal distance unit). One tile = 36 Godot world units — this conversion lives in `GameScale.TileSize`.
 
-How delivery resolves at fire time:
-- `Ranged` delivery + sword → sword throw
-- `Ranged` delivery + bow → arrow
-- `Ranged` delivery + wand → wand bolt
-- `Melee` delivery + any weapon → weapon swing / contact animation
-
-| Weapon type | Equipment tag | Base Damage (tier 1) | Weapon Range | PreferredDelivery | Identity bonus (tier 1) |
-|-------------|---------------|----------------------|--------------|-------------------|------------------------|
-| Sword       | `Melee`       | 15 physical          | 1 tile       | `Melee`           | +10% physical damage   |
-| Bow         | `Ranged`      | 12 physical          | 7 tiles      | `Ranged`          | +8% crit chance        |
-| Wand        | `Magic`       | 18 magic             | 5 tiles      | `Ranged`          | +10% magic damage      |
+| Weapon type | Base Damage (tier 1) | Weapon Range | Delivery | Identity bonus (tier 1) |
+|-------------|----------------------|--------------|----------|------------------------|
+| Sword       | 15                   | 1 tile       | `Melee`  | +10% physical damage (applies when skill is physical type) |
+| Bow         | 12                   | 7 tiles      | `Ranged` | +8% crit chance (type-agnostic — applies always) |
+| Wand        | 18                   | 5 tiles      | `Ranged` | +10% magic damage (applies when skill is magic type) + EoT affinity (higher base trigger chance for EoT augments) |
 
 **Tier scaling:** tier 2 = ×1.5 base damage, tier 3 = ×2.0 base damage. Identity bonus % also scales with tier (TBD). All values are placeholder — owned by the Balancer.
 
-Any character can equip any weapon. Weapons carry equipment tags for Equipment Augment compatibility.
+Any character can equip any weapon.
 
 **Visuals (in-run):** Weapon is rendered on the character model.
 
@@ -199,7 +171,7 @@ Any character can equip any category in any slot. Slots are independent — a ch
 
 Stats above apply per piece — each slot contributes its category's stats independently.
 
-**Range Modifier only applies to ranged weapons** — this is a universal rule for all armour categories. If the equipped weapon's `PreferredDelivery` is `Ranged`, both hat and body Range Modifiers are added to Effective Range. If `PreferredDelivery` is `Melee`, Range Modifier has no effect regardless of armour category — a sword's reach is not shortened by heavy plate, and a Light archer's range bonus doesn't extend a sword swing.
+**Range Modifier only applies to ranged weapons** — this is a universal rule for all armour categories. If the equipped weapon's `Delivery` is `Ranged`, both hat and body Range Modifiers are added to Effective Range. If `Delivery` is `Melee`, Range Modifier has no effect — a sword's reach is not shortened by heavy plate, and a Light archer's range bonus doesn't extend a sword swing.
 
 **Effective Range** (visible on the character sheet):
 - Ranged weapon: `Weapon Range + hat Range Modifier + body Range Modifier + range buff bonus` (in tiles)
@@ -215,19 +187,19 @@ Heavy suits close-range builds taking hits; Light suits ranged builds that kite;
 
 #### Ring
 
-Rings grant **physical resistance (%)**. No category, no equipment tags — any character can equip any ring, and rings can only socket Equipment Augments with no tag requirement (universal augments). Tier is the only progression axis: higher-tier rings give higher resistance.
+Rings grant **physical resistance (%)**. No category, no equipment tags — any character can equip any ring, and any Equipment Augment can socket into a ring. Tier is the only progression axis: higher-tier rings give higher resistance.
 
 #### Starter Gear
 
 Each character starts with one item per slot, matched to their archetype:
 
-| Archetype | Weapon         | Hat            | Body           | Ring          | Skill slot 1        | Slots 2 & 3 |
-|-----------|----------------|----------------|----------------|---------------|---------------------|-------------|
-| Warrior   | Sword (tier 1) | Heavy (tier 1) | Heavy (tier 1) | Ring (tier 1) | Entity-Burst (no augment) | Empty       |
-| Rogue     | Bow (tier 1)   | Light (tier 1) | Light (tier 1) | Ring (tier 1) | Entity-Burst (no augment) | Empty       |
-| Mage      | Wand (tier 1)  | Medium (tier 1)| Medium (tier 1)| Ring (tier 1) | Entity-Burst (no augment) | Empty       |
+| Archetype | Weapon         | Hat            | Body           | Ring          | Skill slot 1        |
+|-----------|----------------|----------------|----------------|---------------|---------------------|
+| Warrior   | Sword (tier 1) | Heavy (tier 1) | Heavy (tier 1) | Ring (tier 1) | Entity-Burst (no augment) |
+| Rogue     | Bow (tier 1)   | Light (tier 1) | Light (tier 1) | Ring (tier 1) | Entity-Burst (no augment) |
+| Mage      | Wand (tier 1)  | Medium (tier 1)| Medium (tier 1)| Ring (tier 1) | Entity-Burst (no augment) |
 
-New characters start with slot 1 filled and slots 2–3 empty. Filling them requires crafting additional skill items — the first craft is the natural next step after a new character's first run. Skills pre-equipped in slot 1 do not appear in the Skills inventory tab. All three starters use plain Entity-Burst with no augments — damage type and delivery are determined by the equipped weapon, not by pre-socketed augments. Crit is a bow identity (the bow's +8% crit identity bonus), not a Rogue identity; magic damage is a wand identity, not a Mage identity.
+All archetypes start with Entity-Burst — physical type, 1.0× multiplier, no augments. Weapon drives the delivery animation. Crit is a Bow identity bonus, not a Rogue identity; magic damage affinity is a Wand identity, not a Mage identity.
 
 Specific item names and exact stat values are TBD.
 
@@ -275,7 +247,7 @@ Crafting materials are tiered — common through exotic. Each tier drops at a di
 - XP bar + current level
 - Coin counter (this run)
 - Elapsed time / countdown
-- **Skill bar** — bottom-center of the HUD. 3 slots. Shows slotted skills with cooldown/toggle state:
+- **Skill bar** — bottom-center of the HUD. 1 slot. Shows the slotted skill with cooldown/toggle state:
   - Active skill on cooldown: slot is greyed out, fills from bottom as cooldown recovers
   - Active skill ready: slot fully lit
   - Passive skill: lit when toggled on, greyed when off
@@ -290,7 +262,7 @@ Crafting materials are tiered — common through exotic. Each tier drops at a di
   - **Character creation — name rules:** Required (non-empty). Alphanumeric only — no spaces or special characters. Must be unique across all characters on the account. Confirm button is disabled until all rules pass; inline error message explains which rule is violated.
 - **Character Screen** → full management hub for the selected character. Two tabs: **Loadout** (default) and **Sigils**. Start Run button at the bottom. Back button returns to Account Screen.
   - **Loadout tab** — two-column layout:
-    - *Left/centre* — character name, archetype, stats, and equipped slots: Weapon / Hat / Body / Ring / Skill 1 / Skill 2 / Skill 3
+    - *Left/centre* — character name, archetype, stats, and equipped slots: Weapon / Hat / Body / Ring / Skill 1
     - *Right column* — account inventory, always visible within this tab. Scrollable 5-column icon grid with three sub-tabs:
       - *Equipment* — crafted gear, 50-item cap
       - *Skills* — crafted skill items, 50-item cap

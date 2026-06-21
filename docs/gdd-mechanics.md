@@ -5,7 +5,9 @@
 
 ## Overview
 
-A top-down action RPG with horde combat (Diablo / Path of Exile 2 style). The player builds a persistent character, equips gear and skills, and takes them into timed combat runs against escalating enemy waves. Combat is skill-driven — each skill is manually activated by the player. Every skill **slot** has an **auto-activate toggle**: when enabled, that slot fires automatically on cooldown without input, allowing a more passive playstyle or hands-free filler slots while the player focuses on timing key abilities.
+> **Design pivot in progress.** The game is shifting away from a deliberate action RPG direction (Diablo / PoE2 style) toward a horde survival game with action RPG depth — closer to Vampire Survivors in moment-to-moment feel, with meaningful skill and item systems layered on top. Specific mechanics below are being reviewed and revised. Sections that have not yet been updated may still reflect the old direction.
+
+A top-down horde survival game with action RPG elements. The player builds a persistent character, equips gear and a skill, and takes them into timed combat runs against escalating enemy waves. The core loop is fast, automatic, and horde-focused — the ARPG layer adds depth through the skill and item systems.
 
 Every run makes the character permanently stronger: level and XP carry over, stat bonuses stack, and coins and crafting materials earned go into a shared account pool. Between runs, players craft gear from materials — building both their character and their item collection over time. Coins accumulate but have no spend mechanic yet.
 
@@ -23,42 +25,31 @@ The game has two intertwined goals: grow your character through runs, and build 
 
 ### Combat
 
-> **Design inspiration:** The skill system takes Path of Exile 2 as its north star — skills as socketable items, supports that modify individual skills, and trigger/chain mechanics. Our specific skills and numbers will differ, but the philosophy (deep, legible skill modification through a gem/support layer) guides all skill design decisions.
-
 Skills drive all combat. Each skill has a **type**:
 
 | Skill type | Behaviour | Focus cost |
 |---|---|---|
 | Active | Fires on manual activation or auto-activate on cooldown. | Flat cost per activation |
 | Channeled | Hold button to run, release to stop. Drains Focus continuously while held. Stops automatically at 0 Focus. Auto-cast holds the button indefinitely — will empty the Focus bar if left unchecked. Player responsibility. | Per-second drain while held |
-| Aura | Toggle on/off. Effect is always-on while enabled. Permanently reserves a % of Max Focus — shrinks the available pool while active. | Reserves % of Max Focus |
 | Passive | Toggle on/off. Stat or effect always-on while enabled. | None |
 
-The **skill bar** on the run HUD shows all slotted skills, their cooldown state, and whether auto-activate is enabled per slot.
+The **skill bar** on the run HUD shows the slotted skill, its cooldown state, and whether auto-activate is enabled.
 
-**Auto-activate design philosophy.** Some builds naturally devolve into holding all buttons simultaneously — if that is the optimal play, the game should respect the player enough to automate it and redirect their attention to something more interesting. Auto-activate is the honest version of "hold all buttons." It is not easy mode; it is the logical endpoint of certain build types. Movement is where the player's active attention lives when skills are automated — positioning, dodging, kiting, managing distance. Player errors (e.g. auto-casting a Channeled skill that drains the entire Focus bar) are lessons, not design problems to prevent.
+**Auto-activate.** The player can toggle their skill to fire automatically on cooldown. When enabled, movement is where the player's active attention lives — positioning, dodging, kiting. Auto-activate must be DPS-equivalent to manual: a player pressing the skill key manually on cooldown gets the same output as auto-activate. It is pure convenience, not a power reduction.
 
-**Auto-activate must be DPS-equivalent to manual.** A player manually pressing all skill keys on cooldown should get the same damage output as the same skills on auto-activate. Auto-activate trades attention (you stop managing the keys) for nothing else — it is pure convenience, not a power reduction. Any system that introduces artificial delays between auto-fires (e.g. a round-robin cycling delay) violates this and should not be implemented.
+**v1:** 1 skill slot. The slot can be empty — an empty slot does nothing. Code supports multiple slots for future expansion but the HUD and design show 1. Each skill has its own cooldown or drain rate.
 
-**v1:** Three skill slots (keys 1 / 2 / 3). Slots can be empty — an empty slot does nothing. New characters start with **1 skill slotted** (slot 1); slots 2 and 3 are empty. Players fill them by crafting additional skill items. This makes the first craft feel meaningful — it literally opens a new slot. Each skill has its own cooldown or drain rate — there is no shared slot cooldown.
+**Attack / cast speed is a skill attribute, not a character stat.** There is no global attack speed multiplier on the character or on gear. A skill's cooldown belongs to the skill item — it is tuned per skill and reduced by tier upgrades.
 
-**Attack / cast speed is a skill attribute, not a character stat.** There is no global attack speed multiplier on the character or on gear. A skill's cooldown belongs to the skill item — it is tuned per skill, reduced by tier upgrades, and can be modified by future Skill Augments (e.g. a Haste support). This keeps the PoE2 philosophy intact: skills are self-contained items with their own tempo, not extensions of a character stat. Two skills with different cooldowns have independent rhythms that do not interact.
+**Damage model.** The weapon provides the base damage number. The skill defines the damage type and a damage multiplier. Delivery (how the attack animates) is always driven by the equipped weapon — a Sword always swings, a Bow always shoots, a Wand always fires a bolt — regardless of which skill is equipped.
 
-Every skill has one or more **tags** — descriptors that other systems react to. Tags are not restrictions — any character can equip any skill. Tags serve two distinct roles:
+`Skill damage = Weapon base damage × Skill damage multiplier × Archetype damage multiplier (for skill's type) × (1 + level damage bonus%)`
 
-**Delivery tags** determine how a skill physically fires and which Weapon Range applies:
-- `Melee` — skill fires as a melee contact attack using the equipped weapon
-- `Ranged` — skill fires as a projectile using the equipped weapon asset (sword throw, arrow, wand throw, etc.) at the weapon's range
-
-Skills with no delivery tag are **weapon-adaptive**: they inherit the weapon's `PreferredDelivery` at run start. The same skill feels like a sword swing on a Warrior and an arrow on a Rogue. See Gear Slots in `gdd-progression.md` for how each weapon defines its `PreferredDelivery`.
-
-**Descriptor tags** determine augment compatibility, damage type, and visual effects layered on top of the delivery. They do not affect animation or range: `Magic`, `Attack`, `Spell`.
-
-**v1 tags:** `Melee`, `Attack`, `Aura` (expand as more skills and Skill Augments are added).
+Archetype damage multipliers apply per damage type — a Warrior gets 1.5× on physical skills and 0.5× on magic skills. Mismatched builds (e.g. Warrior equipping a magic-type skill) are viable but produce reduced output.
 
 ### Targeting
 
-All skills fire at the **locked target** — a single enemy that has a persistent target marker on them. The targeting system is always active; players on keyboard experience it as "skills just work." Controller players can redirect it with the right stick.
+**Entity skills** fire at the **locked target** — a single enemy that has a persistent target marker on them. **Self skills** ignore the lock entirely and always fire from the player. The targeting system is always active; players on keyboard experience it as "skills just work." Controller players can redirect the lock with the right stick.
 
 **How the lock works:**
 
@@ -78,15 +69,15 @@ All skills fire at the **locked target** — a single enemy that has a persisten
 
 Every skill declares one of three targeting shapes. The targeting system resolves the correct position or entity per shape and per input device:
 
-| Shape | Description | Mouse (PC) | Controller / Keyboard |
-|---|---|---|---|
-| **Self** | Effect originates from or is centered on the player | Player position | Player position |
-| **Position** | Effect lands at a location; no enemy required | Cursor world position | Locked target's world position |
-| **Entity** | Effect is applied to a specific enemy; blocked if no valid target | Nearest enemy to cursor | Locked target |
+| Shape | Description | Mouse (PC) | Controller / Keyboard | Player-facing? |
+|---|---|---|---|---|
+| **Self** | Effect originates from or is centered on the player | Player position | Player position | ✓ Yes |
+| **Entity** | Effect is applied to a specific enemy; blocked if no valid target | Nearest enemy to cursor | Locked target | ✓ Yes |
+| **Position** | Effect lands at a ground location; no enemy required | Cursor world position | Locked target's world position | Engine proof only |
 
-- **Self:** Self-Burst, Self-Channeled-Tick, Self-Aura-Tick — no targeting input needed, always fires from the player.
-- **Position:** skills that drop a zone (e.g. Cascade) — on PC falls at the cursor, even into empty space; on controller/keyboard falls at the locked target's position.
-- **Entity:** debuffs, attached effects (e.g. Brand) — must land on an enemy. On PC snaps to the nearest enemy to the cursor. On controller/keyboard fires at the locked target. Skill is blocked if no valid target exists.
+- **Self:** no targeting input needed — always fires from the player. Compatible with auto-activate.
+- **Entity:** must land on an enemy. On PC snaps to the nearest enemy to the cursor. On controller/keyboard fires at the locked target. Skill is blocked if no valid target exists. Compatible with auto-activate.
+- **Position:** requires manual ground placement — does not work cleanly with auto-target. Position skills are engine proofs only and are not player-facing.
 
 #### Range resolution per targeting shape
 
@@ -96,7 +87,7 @@ Every skill declares one of three targeting shapes. The targeting system resolve
 |---|---|---|
 | **Entity** | Effective Range (weapon + armour + buffs) | You are reaching out to hit an enemy — your weapon's reach determines how far you can do that |
 | **Position** | Skill's own `Range` field | You are placing an effect on the ground — this is a skill property, not a weapon property. A sword warrior can drop a zone as far as a wand mage if the skill allows it. |
-| **Self** | Skill's own `Range` field | The skill defines its own radius — a wide Aura on a sword warrior should not be shrunk by the sword's 1-tile reach |
+| **Self** | Skill's own `Range` field | The skill defines its own radius — a wide Self-Duration-Tick radius on a sword warrior should not be shrunk by the sword's 1-tile reach |
 
 - **Entity skills always use Effective Range.** A new Entity skill must not define a separate cast range — it inherits the character's gear-driven range automatically.
 - **Position, Self, and Channeled skills always use their own `Range` field.** This is a skill property, not a gear property. Weapon and armour have no influence on zone placement distance or self/channeled radius.
@@ -115,9 +106,9 @@ Weapons are held in different hands depending on type, which drives which animat
 
 | Weapon type | Hold hand (visual) | Skeleton bone | Melee animation |
 |---|---|---|---|
-| Sword, Axe, Club, Dagger | Right hand | `Hand_L` | `melee_right_atack` |
-| Bow | Left hand | `Hand_R` | `melee_left_atack` |
-| Wand | Right hand | `Hand_L` | `melee_right_atack` |
+| Sword, Axe, Club, Dagger | Right hand | `Hand_R` | `melee_right_atack` |
+| Bow | Left hand | `Hand_L` | `melee_left_atack` |
+| Wand | Right hand | `Hand_R` | `melee_right_atack` |
 
 - **`melee_right_atack`** — right-arm swing/slash; used by all right-hand weapons
 - **`melee_left_atack`** — left-arm horizontal sweep or butt-strike; used when a bow is equipped and a melee skill fires
@@ -165,16 +156,48 @@ Both player-received and enemy-received hits produce damage numbers. There is no
 
 ### Skills
 
-**v1 skills: Entity-Burst, Self-Channeled-Tick, Self-Aura-Tick, Self-Burst** — plus seven targeting system test skills (Fixed-Zone-Tick, Fixed-Zone-Burst, Windup-Burst, Tracked-Tick, Entity-Debuff, Stackable-Zone, Triggered-Zone-Burst). All eleven are base skill templates. All archetypes start with plain Entity-Burst in slot 1, no augments pre-socketed.
+**Design rules for player-facing skills:**
+- **All player-facing skills must deal direct damage.** Skills are damage delivery mechanisms — they always deal at least one hit of direct damage on activation. Debuffs, EoTs, and secondary effects (mines, traps) are added by augments, not baked into skills.
+- **Player-facing skills use Entity or Self targeting only.** Position skills require manual ground placement, which does not fit the auto-target horde survival model. Position skills exist as engine proofs only and are not templates for future player-facing skill design. Self (non-enemy target) is always valid.
 
-> **Tech note — renames, not new skills:** Entity-Burst, Self-Channeled-Tick, Self-Aura-Tick, and Self-Burst are renames of the existing Strike, Cyclone, Damage Aura, and Nova implementations. Rename in code and data — do not create new skill objects. v2 will create the real named versions (Strike, Cyclone, etc.) derived from these prototypes.
+#### Player-Facing Prototypes
+
+These are craftable and appear in player-facing systems. v2 will create real named skills derived from these.
+
+All player-facing skills are **Entity** (one clean hit on locked target) or **Self** (hits everything around the player). This is a firm design principle — skills that require manual target switching or ground placement to be meaningful are not player-facing.
+
+| Prototype | Targeting | Damage pattern | Skill type | Good for |
+|---|---|---|---|---|
+| Entity-Burst | Entity | Burst | Active | Basic attack — sword slash, arrow shot, wand bolt |
+| Self-Channeled-Tick | Self | Tick | Channeled | Whirlwind, spinning blade, sustained spin-to-win |
+| Self-Duration-Tick | Self | Tick | Active | Short AoE pulse burst — activate, ticks around you, cooldown |
+| Self-Burst | Self | Burst | Active | Panic nova — surrounded, pop it, instant AoE clear |
+
+> **Tech note — renames, not new skills:** Entity-Burst, Self-Channeled-Tick, Self-Duration-Tick, and Self-Burst are renames of the existing Strike, Cyclone, Damage Aura, and Nova implementations. Rename in code and data — do not create new skill objects. v2 will create the real named versions (Strike, Cyclone, etc.) derived from these prototypes.
+
+All archetypes start with plain Entity-Burst in slot 1, no augments pre-socketed.
+
+#### Engine Proof Prototypes
+
+Retained to validate engine mechanics only. Not craftable, not player-facing. Not templates for future skill design.
+
+| Prototype | Targeting | Damage pattern | Skill type | Proves |
+|---|---|---|---|---|
+| Fixed-Zone-Tick | Position | Tick | Active | Persistent ticking damage field at a ground position |
+| Fixed-Zone-Burst | Position | Burst | Active | Instant remote explosion at a ground position |
+| Windup-Burst | Position | Burst | Active | Telegraphed delay before detonation |
+| Stackable-Zone | Position | Tick | Active | Multiple independent instances active simultaneously |
+| Triggered-Zone-Burst | Position | Burst | Active | Proximity trigger — fires when enemy enters radius |
+| Tracked-Tick | Entity | Tick | Active | Zone follows a specific target — requires manual target switching to spread; incompatible with auto-target. Can return as an augment effect. |
+| Entity-Debuff | Entity | None | Active | Entity targeting with no damage output |
+| Self-Aura-Tick | Self | Tick | Active | Old Aura mechanic — persistent passive pulse (replaced by Self-Duration-Tick) |
 
 **Universal skill properties** — every skill in the game has these fields:
 
 | Property | Description |
 |---|---|
 | Description | What this skill is designed to prove or do (v1: mechanic proof; future: player-facing flavour) |
-| isPrototype | `true` = base template skill. v1: fully playable and craftable. v2: hidden from all player-facing systems (cannot be crafted, does not appear in drops or pickers). |
+| Kind | `Normal` = real named skill (v2+). `Prototype` = player-facing in v1, hidden in v2 when real named versions replace it. `EngineProof` = never player-facing or craftable — exists solely to validate engine mechanics. |
 | Targeting shape | Self / Position / Entity — how the skill resolves its target (see Targeting) |
 | Wind-up | Seconds of delay before effect lands; 0 = instant |
 | Damage pattern | Burst (single hit) / Tick (over duration) / None (debuff or utility only) |
@@ -196,19 +219,17 @@ The universal starter prototype. Hits the locked target using whatever the chara
 | Property | Value |
 |---|---|
 | Description | Proves Entity targeting and weapon-adaptive delivery. Universal starter — fires at locked target using equipped weapon. |
-| isPrototype | true |
+| Kind | Prototype |
 | Targeting shape | Entity |
 | Wind-up | 0 (instant) |
 | Damage pattern | Burst |
 | Stack limit | — |
 | Zone tracks entity | — |
-| Delivery | Weapon-adaptive — no delivery tag; inherits weapon's `PreferredDelivery` |
-| Descriptor tags | `Attack` |
+| Damage type | Physical |
 | Cooldown | 0.8s (tier 1) — lower at higher tiers |
 | Damage | 1× weapon base damage |
 | EoTs | None |
-| Splash | No |
-| Acquire | Free — slot 1 pre-filled at character creation; slots 2 and 3 start empty |
+| Acquire | Free — slot 1 pre-filled at character creation |
 
 #### Self-Channeled-Tick
 
@@ -219,41 +240,41 @@ Spin continuously in place, hitting all enemies within melee range on each tick.
 | Property | Value |
 |---|---|
 | Description | Proves Channeled skill type with Self targeting. Continuous ticking damage while held; drains Focus over time. |
-| isPrototype | true |
+| Kind | Prototype |
 | Targeting shape | Self |
 | Wind-up | 0 (instant) |
 | Damage pattern | Tick |
 | Stack limit | — |
 | Zone tracks entity | — |
 | Type | Channeled |
-| Delivery | Melee |
-| Descriptor tags | `Attack` |
+| Damage type | Physical |
 | Focus cost | 12 Focus/sec drain |
 | Damage per hit | 0.4× weapon base damage (placeholder) |
 | Tick rate | 4 hits/sec |
 | Acquire | Craft |
 
-#### Self-Aura-Tick
+#### Self-Duration-Tick
 
 *(Renamed from Damage Aura. Do not create a new skill — rename the existing implementation.)*
 
-Pulses damage to all nearby enemies once per second while active. An Aura skill — reserves a portion of Max Focus permanently while toggled on, shrinking the pool available for other skills. Proves the Aura type, Focus reservation, and area damage pulse.
+Activate once — pulses magic damage to all nearby enemies repeatedly for a few seconds, then enters cooldown. Proves Active Self ticking damage over a fixed duration. Natural pairing with Heavy armour and Wand: tanky magic build that stands in the horde and lets the damage tick. Wand EoT affinity means augments (e.g. Burn) trigger frequently per tick.
 
 | Property | Value |
 |---|---|
-| Description | Proves Aura skill type with Focus reservation. Always-on Self zone that ticks damage while toggled on. |
-| isPrototype | true |
+| Description | Proves Active Self skill with ticking damage over a fixed duration. Activate → ticks damage in radius for duration → cooldown. |
+| Kind | Prototype |
 | Targeting shape | Self |
 | Wind-up | 0 (instant) |
 | Damage pattern | Tick |
 | Stack limit | — |
 | Zone tracks entity | — |
-| Type | Aura |
-| Delivery | None — ambient area pulse, not weapon-based |
-| Descriptor tags | `Aura` |
-| Focus reservation | 25% of Max Focus |
-| Damage per pulse | 0.2× weapon base damage (placeholder) |
-| Pulse rate | 1/sec |
+| Type | Active |
+| Damage type | Magic (placeholder) |
+| Focus cost | 15 Focus (flat, on activation — placeholder) |
+| Damage per tick | 0.2× weapon base damage (placeholder) |
+| Tick rate | 2/sec (placeholder) |
+| Duration | 3s (placeholder) |
+| Cooldown | 2s (after duration ends — placeholder) |
 | Range | Short radius around player |
 | Acquire | Craft |
 
@@ -266,15 +287,14 @@ An instant explosion centered on the player — hits all enemies within a medium
 | Property | Value |
 |---|---|
 | Description | Proves Active Self burst. Instant explosion centered on player; flat Focus cost. |
-| isPrototype | true |
+| Kind | Prototype |
 | Targeting shape | Self |
 | Wind-up | 0 (instant) |
 | Damage pattern | Burst |
 | Stack limit | — |
 | Zone tracks entity | — |
 | Type | Active |
-| Delivery | None — centered radius burst, not weapon-based delivery |
-| Descriptor tags | `Attack` |
+| Damage type | Physical (placeholder) |
 | Focus cost | 20 Focus (flat) |
 | Damage | 0.8× weapon base damage |
 | Cooldown | 1.5s |
@@ -283,15 +303,7 @@ An instant explosion centered on the player — hits all enemies within a medium
 
 ---
 
-#### Base Skill Templates
-
-Six skills that serve as the permanent canonical reference implementations for each targeting mechanic combination. They are not deleted when new skills are designed — they are the foundation new skills are built on top of. When designing a new skill (e.g. Blizzard), the designer names which base template it derives from (e.g. "Fixed-Zone-Tick with a wind-up and larger radius") so the mechanic contract is immediately clear to everyone.
-
-**v1:** these skills are fully playable and craftable — they exist to validate the targeting system works end-to-end.
-
-**v2:** an `IsTemplate` flag is added to skill data. Flagged skills are invisible to the player — they cannot be crafted, do not appear in drops or pickers, and do not show in any player-facing UI. They remain in the data layer as a permanent reference library.
-
-All deal Magic damage. All values (damage, cooldown, radius, tick rate, duration) are TBD — owned by the Balancer.
+All values (damage, cooldown, radius, tick rate, duration) are TBD — owned by the Balancer.
 
 **Fixed-Zone-Tick**
 
@@ -299,7 +311,7 @@ All deal Magic damage. All values (damage, cooldown, radius, tick rate, duration
 |---|---|
 | Description | Proves Position targeting with a fixed ticking zone. Zone stays where cast; enemies walk through it. |
 | Good for | Skills that place a persistent damage field at a location — enemies walk into it and take repeated hits. Traps, pools, hazard zones. |
-| isPrototype | true |
+| Kind | EngineProof |
 | Targeting shape | Position |
 | Wind-up | 0 (instant) |
 | Damage pattern | Tick |
@@ -316,7 +328,7 @@ All deal Magic damage. All values (damage, cooldown, radius, tick rate, duration
 |---|---|
 | Description | Proves Position targeting with a single burst hit. A remote instant explosion — Self-Burst placed at a chosen location. |
 | Good for | Skills that detonate a single explosion at a chosen spot — remote instant damage with no lingering effect. |
-| isPrototype | true |
+| Kind | EngineProof |
 | Targeting shape | Position |
 | Wind-up | 0 (instant) |
 | Damage pattern | Burst |
@@ -332,7 +344,7 @@ All deal Magic damage. All values (damage, cooldown, radius, tick rate, duration
 |---|---|
 | Description | Proves wind-up mechanic. Telegraphed 1.5s delay before a high-damage burst lands at target position. Wind-up is the balancing cost. |
 | Good for | Skills with a visible telegraph before a powerful hit lands — high damage that enemies can theoretically walk out of. |
-| isPrototype | true |
+| Kind | EngineProof |
 | Targeting shape | Position |
 | Wind-up | 1.5s |
 | Damage pattern | Burst |
@@ -348,7 +360,7 @@ All deal Magic damage. All values (damage, cooldown, radius, tick rate, duration
 |---|---|
 | Description | Proves Entity targeting with a zone that follows the target. Ticks damage to the tracked enemy and all enemies within radius around them. Zone moves with the entity. |
 | Good for | Skills that attach a persistent effect to an enemy — follows the target and damages it (and nearby enemies) continuously. Curses, brands, haunts. |
-| isPrototype | true |
+| Kind | EngineProof |
 | Targeting shape | Entity |
 | Wind-up | 0 (instant) |
 | Damage pattern | Tick |
@@ -364,9 +376,9 @@ All deal Magic damage. All values (damage, cooldown, radius, tick rate, duration
 
 | Property | Value |
 |---|---|
-| Description | Proves Entity targeting with no damage output. Applies a debuff directly to the locked target; effect follows the target for its duration. |
-| Good for | Skills that apply a status to a specific enemy with no damage — slows, weakens, marks for death. Pure utility on a target. |
-| isPrototype | true |
+| Description | Proves Entity targeting with no damage output. Applies a debuff directly to the locked target; effect follows the target for its duration. Retained as a mechanic proof only — not a template for future skill design (all player-facing skills must deal direct damage). |
+| Good for | Engine proof of Entity targeting + debuff application. Not intended for player use. |
+| Kind | EngineProof |
 | Targeting shape | Entity |
 | Wind-up | 0 (instant) |
 | Damage pattern | None |
@@ -383,7 +395,7 @@ All deal Magic damage. All values (damage, cooldown, radius, tick rate, duration
 |---|---|
 | Description | Proves configurable stack limit. Each cast places an independent ticking zone; up to the stack cap active simultaneously. |
 | Good for | Skills where you want multiple independent instances active simultaneously — turrets, totems, summons, overlapping zones. |
-| isPrototype | true |
+| Kind | EngineProof |
 | Targeting shape | Position |
 | Wind-up | 0 (instant) |
 | Damage pattern | Tick |
@@ -403,7 +415,7 @@ All deal Magic damage. All values (damage, cooldown, radius, tick rate, duration
 |---|---|
 | Description | Proves trigger-on-proximity mechanic. Placed at a position, dormant until an enemy enters the trigger radius, then fires once and despawns. |
 | Good for | Traps, proximity mines, tripwires — placed hazards that punish enemies for moving through an area. |
-| isPrototype | true |
+| Kind | EngineProof |
 | Targeting shape | Position |
 | Wind-up | 0 (instant) |
 | Damage pattern | Burst |
@@ -418,11 +430,7 @@ All deal Magic damage. All values (damage, cooldown, radius, tick rate, duration
 
 ---
 
-**Weapon is the root of all damage.** Each weapon has a base damage value that increases with tier. Skill damage is calculated as:
-
-`Skill damage = Weapon base damage × Archetype damage multiplier × (1 + level damage bonus%)`
-
-Archetype damage multipliers define how effectively each archetype converts weapon damage into output — a Warrior extracts more physical damage from a Sword than a Mage would. Level-up grants a small cumulative % damage bonus that amplifies the whole formula.
+**Weapon is the root of the damage number.** Each weapon has a base damage value that increases with tier. The skill defines the damage type and multiplier — Entity-Burst is physical (placeholder); future named skills define their own type. The archetype multiplier keys off the skill's damage type, not the weapon's.
 
 **Level damage bonus: +2% per level (cumulative).** At level 10 = +20% total. All values below are placeholder — owned by the Balancer.
 
@@ -443,7 +451,7 @@ Focus is the universal skill resource. All archetypes spend Focus to fire skills
 | Entity-Burst | 5 Focus (flat) — effectively free; regens faster than you spend |
 | Self-Burst | 20 Focus (flat) — meaningful burst cost |
 | Self-Channeled-Tick | 12 Focus/sec (drain while held) — expensive over time, requires management |
-| Self-Aura-Tick | Reserves 25% of Max Focus — shrinks available pool while active |
+| Self-Duration-Tick | 15 Focus (flat, on activation) — burst cost like Self-Burst; ticks for duration then cooldown |
 
 **Starting values (placeholder — owned by Balancer):**
 
@@ -481,44 +489,22 @@ Resistances are always soft (never total immunity). Exact values are TBD.
 
 ### Critical Hits
 
-Critical hits are **damage-type agnostic** — a crit multiplies the final damage output regardless of whether the hit is Physical, Magic, or any future damage type. This is consistent with the ARPG genre standard and means new damage types require no changes to the crit system.
+Crit is an `on_enemy_hit_%` skill augment. When it triggers, the hit deals base skill damage × crit multiplier. Crit applies to base skill damage only — EoT damage from augments is unaffected.
 
-**Two distinct stats govern crits:**
+`Final damage (on crit) = Skill base damage × Crit Multiplier`
 
-| Stat | Internal name | Player-facing name | What it does |
-|---|---|---|---|
-| Crit Chance | Crit Chance | Crit Chance | % probability that a hit is a critical hit |
-| Crit Multiplier | Crit Multiplier | Crit Damage | Total multiplier applied to damage on a crit (e.g. 1.5× = +50% Crit Damage) |
+The augment's trigger chance is the crit chance. The Bow identity bonus adds a flat % on top of the augment's trigger chance — a Bow with a Critical Strike augment crits more often than a Sword with the same augment.
 
-> **Naming convention:** "Crit Multiplier" is used in the GDD and in code — it is unambiguous (1.5 means 1.5×). "Crit Damage" is the player-facing UI label, expressed as a bonus (+50% Crit Damage). Both refer to the same stat.
-
-These are independent investment axes. High Crit Chance with low Crit Multiplier = consistent small bonus. Low Crit Chance with high Crit Multiplier = rare but large spikes. Committing to both is what makes a dedicated crit build.
-
-**Crit is a More multiplier** in the augment math — applied after all other calculations (weapon base × archetype mult × level bonus × augment buckets), and does not interact with the Increased% bucket.
-
-`Final damage (on crit) = Skill damage × Crit Multiplier`
-
-**Crit Chance and Crit Multiplier are universal stats — no source gate.**
-Any item type can contribute to either pool: weapon identity, skill augment, equipment augment, ring, or any future gear stat. All contributions stack additively into their respective totals before the damage roll. There are no restrictions on which slot type may provide crit.
-
-**v1 scope:**
-- **Crit Chance:** investable — base is 0; raised by Bow identity (+8% flat) and/or Critical Strike Skill Augment; both stack additively into the same pool
-- **Crit Multiplier:** fixed at 1.5× (= +50% Crit Damage); not investable in v1
-
-**Future:** Crit Multiplier as an investable stat — e.g. a "Brutal Strike" augment that raises the multiplier — is a deliberate post-v1 hook. At that point players have both axes to work with and can feel the tension between stacking Chance vs. Multiplier.
-
-**EoT crit stamping:**
-When a hit that applies a damage EoT is a critical hit, the **entire EoT instance is stamped with the Crit Multiplier** — it deals crit-multiplied damage per tick for its full duration. Re-applying the EoT with a non-crit hit resets it to base damage; re-applying with a crit refreshes it at crit-multiplied damage. Non-damage EoTs (Slow, Vulnerability) are unaffected by crit — only EoTs with a damage-per-tick value can be stamped.
+**Crit Multiplier:** fixed at 1.5× in v1. Not investable. Future: investable via a dedicated augment.
 
 ### Effects over Time (EoT)
 
-Skills and Skill Augments can apply **Effects over Time (EoT)** to enemies on hit. All EoTs follow the same rules regardless of what the specific effect does:
+Skill Augments can apply **Effects over Time (EoT)** to enemies. EoTs are not applied by skills directly — they always come from augments. The augment's trigger chance determines whether the EoT is applied on a given hit; once triggered, the EoT applies at 100%.
 
-Every EoT has the same four properties. All EoTs follow the same application rules:
+Every EoT has the same three properties:
 
 | Property | All EoTs | Notes |
 |---|---|---|
-| Apply chance | Yes | % chance to apply on hit |
 | Duration | Yes | How long the effect lasts; refreshes on reapply |
 | Tick rate | Damage EoTs only | Ignored for non-damage EoTs |
 | Damage per tick | Damage EoTs only | Ignored for non-damage EoTs |
@@ -526,19 +512,17 @@ Every EoT has the same four properties. All EoTs follow the same application rul
 **Application rules (all EoTs):**
 - No stacking — only one instance of each EoT type per enemy at a time
 - Reapplying refreshes the duration rather than stacking or being ignored
-- **Damage EoTs only:** if the applying hit was a critical hit, the EoT instance is stamped with the crit multiplier for its full duration (see Critical Hits)
+- Crit does not affect EoT damage — crit only applies to base skill damage
 
 The EoT type defines *what it does* when active:
 
-| EoT | Damage per tick? | Crit-stampable? | What it does |
-|---|---|---|---|
-| Slow | No | No | Reduces enemy movement speed |
-| Burn | Yes (Magic) | Yes | Deals Magic damage per tick; stamped if applied by a crit |
-| Vulnerability | No | No | Increases damage taken by the enemy |
+| EoT | Damage per tick? | What it does |
+|---|---|---|
+| Slow | No | Reduces enemy movement speed |
+| Burn | Yes (Magic) | Deals Magic damage per tick |
+| Vulnerability | No | Increases damage taken by the enemy |
 
-When designing new EoTs: if it deals damage per tick, set tick rate, damage per tick, and mark it crit-stampable. If not, leave those blank. That is the only distinction.
-
-v1 Skill Augments only use Slow. All future effects follow this same framework.
+When designing new EoTs: if it deals damage per tick, set tick rate and damage per tick. If not, leave those blank. That is the only distinction.
 
 ### Interaction
 - Collectibles auto-collected on contact (XP Shards, coins, health)
@@ -558,7 +542,7 @@ Every run requires a character. Characters are created by the player, persist be
 | Rogue     | 80     | 260   | 1.0×                   | 0.5×                    | 100       | 15              | Bow + Light armour — fast, fragile kiter   |
 | Mage      | 100    | 200   | 0.5×                   | 1.5×                    | 150       | 10              | Wand + Medium armour — glass cannon; largest Focus Shield by default |
 
-Damage multipliers apply to weapon base damage (see Damage formula under Skills). Mismatched builds (e.g. Warrior + Wand) produce ~half output — viable but suboptimal. All values are placeholder — owned by the Balancer.
+Damage multipliers apply per skill damage type — a Warrior using a magic-type skill gets the 0.5× magic multiplier regardless of weapon equipped. Mismatched builds (archetype vs skill type) are viable but produce reduced output. All values are placeholder — owned by the Balancer.
 
 #### Archetype Stat Multipliers
 
@@ -593,11 +577,9 @@ A run cannot start without a selected character.
 |---------|---------------------------------------------|
 | WASD    | Move                                        |
 | 1       | Activate skill slot 1                       |
-| 2       | Activate skill slot 2                       |
-| 3       | Activate skill slot 3                       |
 | ESC     | Pause                                       |
 
-Each skill slot has an **auto-activate toggle** (set in the character screen before the run). When auto-cast is on for a slot, it fires automatically on cooldown — the key still works as a manual override to fire early if the skill is ready.
+The skill slot has an **auto-activate toggle** (set in the character screen before the run). When enabled, the skill fires automatically on cooldown — the key still works as a manual override.
 
 ---
 
@@ -662,7 +644,7 @@ All types scale with elapsed time — speed and HP increase per minute. Spawn ra
 
 **No separation (v1).** Enemies do not avoid each other. The blob is intentional — 30 skeletons converging on the same point is the visual threat mass that Self-Burst and Self-Channeled-Tick are designed to answer. Spreading enemies out would make horde skills feel weaker and the threat more diffuse. Light natural spreading from collision is sufficient. Revisit post-v1 if playtesting reveals a problem.
 
-**Chokepoints are a feature.** Map corridors and doorways are intentional tactical geometry. Enemies funneling through a doorway is a core fun moment — position at the mouth of a corridor, drop a zone skill, clear the flood. This falls out of correct pathfinding for free; no extra design work needed. Map design should treat chokepoints as a first-class tool, not an obstacle routing problem.
+**Chokepoints are a feature.** Map corridors and doorways are intentional tactical geometry. Enemies funneling through a doorway is a core fun moment — position at the mouth of a corridor, pop a Self-Burst or Self-Duration-Tick, clear the flood. This falls out of correct pathfinding for free; no extra design work needed. Map design should treat chokepoints as a first-class tool, not an obstacle routing problem.
 
 ### Enemy Spawning
 
