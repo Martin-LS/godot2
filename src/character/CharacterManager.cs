@@ -295,6 +295,13 @@ public partial class CharacterManager : Node
         if (skill == null || augment == null) return CraftResult.InsufficientMaterials;
         if (slotIndex >= skill.MaxSkillAugmentSlots) return CraftResult.InsufficientMaterials;
 
+        for (int i = 0; i < skill.SocketedSkillAugmentIds.Count; i++)
+        {
+            if (i == slotIndex) continue;
+            if (FindSkillAugmentInstance(skill.SocketedSkillAugmentIds[i])?.DefinitionId == augment.DefinitionId)
+                return CraftResult.InsufficientMaterials;
+        }
+
         while (skill.SocketedSkillAugmentIds.Count <= slotIndex)
             skill.SocketedSkillAugmentIds.Add("");
         skill.SocketedSkillAugmentIds[slotIndex] = augmentInstanceId;
@@ -346,6 +353,13 @@ public partial class CharacterManager : Node
         if (augmentDef.RequiredTags.Length > 0 &&
             (itemDef == null || !itemDef.Tags.Any(t => augmentDef.RequiredTags.Contains(t))))
             return CraftResult.InsufficientMaterials;
+
+        for (int i = 0; i < gear.SocketedEquipmentAugmentIds.Count; i++)
+        {
+            if (i == slotIndex) continue;
+            if (FindEquipmentAugmentInstance(gear.SocketedEquipmentAugmentIds[i])?.DefinitionId == augment.DefinitionId)
+                return CraftResult.InsufficientMaterials;
+        }
 
         while (gear.SocketedEquipmentAugmentIds.Count <= slotIndex)
             gear.SocketedEquipmentAugmentIds.Add("");
